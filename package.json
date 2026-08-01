@@ -16,8 +16,8 @@
     "db:validate": "prisma validate",
     "db:generate": "prisma generate",
     "db:status": "prisma migrate status",
-    "db:migrate": "prisma migrate deploy"
-  },
+    "db:migrate": "prisma migrate deploy",
+    "migration:identity:dry-run": "node migration/scripts/user-identity-map-dry-run.mjs"  },
   "dependencies": {
     "@prisma/adapter-pg": "7.9.1",
     "@prisma/client": "7.9.1",
