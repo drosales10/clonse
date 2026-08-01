@@ -127,3 +127,28 @@ function toTextExcerpt(body: string | null): string | null {
   const text = body.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   return text.length > 280 ? `${text.slice(0, 277)}...` : text;
 }
+
+
+export async function getArticleDetail(viewerId: string | null, articleId: string): Promise<import("@domain/articles").PublicArticleDetail | null> {
+  const row = await db.article.findFirst({
+    where: {
+      id: articleId,
+      approved: true,
+      draft: false,
+      searchable: true,
+      author: { enabled: true },
+    },
+    select: articleSelect,
+  });
+  if (!row || !canReadArticle(row.authorId, row.privacy, viewerId)) return null;
+  return {
+    ...toPublicArticle(row),
+    body: toSafeText(row.body),
+  };
+}
+
+function toSafeText(body: string | null): string | null {
+  if (!body) return null;
+  const text = body.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return text || null;
+}

@@ -65,3 +65,7 @@ export function canReadArticle(ownerId: string, privacy: number, viewerId: strin
   const viewerAccess = viewerId === null ? ARTICLE_ACCESS.ANONYMOUS : ARTICLE_ACCESS.REGISTERED;
   return Number.isInteger(privacy) && (privacy & viewerAccess) !== 0;
 }
+
+export interface PublicArticleDetail extends PublicArticle {
+  body: string | null;
+}

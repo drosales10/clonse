@@ -79,7 +79,7 @@ export default async function ArticlesPage({
                   <p className="eyebrow">{article.category?.title ?? "Artículo"}</p>
                   {article.featured ? <span className="article-badge">Destacado</span> : null}
                 </div>
-                <h2>{article.title}</h2>
+                <h2><Link href={`/articles/${encodeURIComponent(article.id)}`}>{article.title}</Link></h2>
                 {article.excerpt ? <p className="article-summary">{article.excerpt}</p> : null}
                 <dl className="article-facts">
                   <div><dt>Autor</dt><dd><Link href={`/profile/${encodeURIComponent(article.author.username)}`}>{article.author.displayName}</Link></dd></div>
