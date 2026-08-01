@@ -52,6 +52,7 @@ model User {
   eventsOwned          Event[] @relation("EventOwner")
   groupsOwned          Group[] @relation("GroupOwner")
   blogEntriesAuthored  BlogEntry[] @relation("BlogEntryAuthor")
+  articlesAuthored     Article[]   @relation("ArticleAuthor")
   identityMappings     UserIdentityMap[] @relation("IdentityMapUser")
   canonicalMappings    UserIdentityMap[] @relation("IdentityMapCanonical")
 
@@ -439,6 +440,53 @@ model Group {
   @@index([categoryId, searchable, catalogVisible])
   @@index([searchable, catalogVisible, createdAt])
   @@map("groups")
+}
+
+model ArticleCategory {
+  id        String   @id @default(cuid())
+  legacyId  Int?     @unique @map("legacy_id")
+  parentId  String?  @map("parent_id")
+  title     String
+  sortOrder Int      @default(0) @map("sort_order")
+  active    Boolean  @default(true)
+
+  parent   ArticleCategory?  @relation("ArticleCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children ArticleCategory[] @relation("ArticleCategoryHierarchy")
+  articles Article[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([parentId, sortOrder])
+  @@index([active, sortOrder])
+  @@map("article_categories")
+}
+
+model Article {
+  id              String   @id @default(cuid())
+  legacyId        Int?     @unique @map("legacy_id")
+  authorId        String   @map("author_id")
+  categoryId      String?  @map("category_id")
+  title           String
+  body            String?
+  publishedAt     DateTime @map("published_at")
+  updatedAt       DateTime @map("updated_at")
+  views           Int      @default(0)
+  draft           Boolean  @default(false)
+  approved        Boolean  @default(false)
+  searchable      Boolean  @default(false)
+  privacy         Int      @default(0)
+  commentsPrivacy Int?     @map("comments_privacy")
+  featured        Boolean  @default(false)
+
+  author   User            @relation("ArticleAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  category ArticleCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([authorId, categoryId])
+  @@index([categoryId, approved, draft, searchable, publishedAt])
+  @@index([approved, draft, searchable, publishedAt])
+  @@index([featured, approved, draft, searchable])
+  @@map("articles")
 }
 
 model UserIdentityMap {
