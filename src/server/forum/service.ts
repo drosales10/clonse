@@ -120,6 +120,9 @@ function resolveForumCategoryIds(
   selectedId: string,
   categories: Array<{ id: string; parentId: string | null }>,
 ): string[] {
+  const selected = categories.find((category) => category.id === selectedId);
+  if (selected && selected.parentId !== null) return [selected.id];
+
   const descendants = new Set([selectedId]);
   let changed = true;
   while (changed) {

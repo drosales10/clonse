@@ -517,3 +517,8 @@ h1 em { color: var(--accent); font-family: Georgia, serif; font-weight: 400; }
 @media (max-width: 480px) {
   .group-detail-facts { grid-template-columns: 1fr; }
 }
+
+.forum-subcategory-list { border-top: 1px solid var(--line); display: grid; gap: 10px; margin-top: 18px; padding-top: 18px; }
+.forum-subcategory-group { align-items: center; display: flex; flex-wrap: wrap; gap: 12px; }
+.forum-subcategory-group > span { color: var(--muted); font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.forum-back-link { display: inline-block; margin-bottom: 28px; }
