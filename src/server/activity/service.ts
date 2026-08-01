@@ -28,6 +28,7 @@ export async function updateStatusAndPrivacy(
         where: { id: actor.id },
         data: {
           profilePrivacy: input.profilePrivacy,
+          commentsPrivacy: input.commentsPrivacy,
           status: input.status,
           statusUpdatedAt: now,
         },

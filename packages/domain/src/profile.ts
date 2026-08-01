@@ -1,5 +1,6 @@
 import type { FriendRelationship, PublicProfileFriend } from "./friends";
 import type { PublicPresence } from "./presence";
+import type { PublicProfileComment } from "./profile-comments";
 import type { PublicProfileField } from "./profile-fields";
 
 export const PROFILE_ACCESS = {
@@ -34,6 +35,8 @@ export interface PublicProfile {
   visibility: ProfileVisibility;
   fields: PublicProfileField[];
   friends: PublicProfileFriend[];
+  comments: PublicProfileComment[];
+  canComment: boolean;
   relationship: FriendRelationship;
 }
 
@@ -58,11 +61,21 @@ export function canViewProfile(
   return (viewerPrivacyMax(ownerId, viewerId, viewerIsFriend) & profilePrivacy) !== 0;
 }
 
-export type ProfileSettingsField = "profilePrivacy" | "status" | "form";
+export function canCommentOnProfile(
+  ownerId: string,
+  commentsPrivacy: number,
+  viewerId: string | null,
+  viewerIsFriend = false,
+): boolean {
+  return canViewProfile(ownerId, commentsPrivacy, viewerId, viewerIsFriend);
+}
+
+export type ProfileSettingsField = "profilePrivacy" | "commentsPrivacy" | "status" | "form";
 export type ProfileSettingsErrors = Partial<Record<ProfileSettingsField, string[]>>;
 
 export interface ProfileSettingsInput {
   profilePrivacy: ProfilePrivacy;
+  commentsPrivacy: ProfilePrivacy;
   status: string | null;
 }
 
@@ -74,19 +87,23 @@ export interface ProfileSettingsFormState {
 
 export function profileSettingsInputFromFormData(formData: FormData): {
   profilePrivacy: number;
+  commentsPrivacy: number;
   status: string;
 } {
   const rawPrivacy = formData.get("profilePrivacy");
+  const rawCommentsPrivacy = formData.get("commentsPrivacy");
   const rawStatus = formData.get("status");
 
   return {
     profilePrivacy: typeof rawPrivacy === "string" ? Number(rawPrivacy) : Number.NaN,
+    commentsPrivacy: typeof rawCommentsPrivacy === "string" ? Number(rawCommentsPrivacy) : Number.NaN,
     status: typeof rawStatus === "string" ? rawStatus.trim() : "",
   };
 }
 
 export function validateProfileSettings(input: {
   profilePrivacy: number;
+  commentsPrivacy: number;
   status: string;
 }):
   | { success: true; data: ProfileSettingsInput }
@@ -96,6 +113,9 @@ export function validateProfileSettings(input: {
   if (!Number.isInteger(input.profilePrivacy) || !isProfilePrivacy(input.profilePrivacy)) {
     errors.profilePrivacy = ["Selecciona una privacidad de perfil válida."];
   }
+  if (!Number.isInteger(input.commentsPrivacy) || !isProfilePrivacy(input.commentsPrivacy)) {
+    errors.commentsPrivacy = ["Selecciona una privacidad de comentarios válida."];
+  }
 
   if (Array.from(input.status).length > 100) {
     errors.status = ["El estado no puede superar los 100 caracteres."];
@@ -103,5 +123,12 @@ export function validateProfileSettings(input: {
 
   return Object.keys(errors).length > 0
     ? { success: false, errors }
-    : { success: true, data: { profilePrivacy: input.profilePrivacy as ProfilePrivacy, status: input.status || null } };
+    : {
+        success: true,
+        data: {
+          profilePrivacy: input.profilePrivacy as ProfilePrivacy,
+          commentsPrivacy: input.commentsPrivacy as ProfilePrivacy,
+          status: input.status || null,
+        },
+      };
 }

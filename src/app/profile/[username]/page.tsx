@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { FriendRelationshipActions } from "@/app/components/friend-relationship-actions";
 import { ProfileBlockActions } from "@/app/components/profile-block-actions";
+import { ProfileComments } from "@/app/components/profile-comments";
 import { getCurrentUser } from "@/server/auth/session";
 import { getPublicProfile } from "@/server/profile/service";
 
@@ -91,7 +92,13 @@ export default async function ProfilePage({
               </div>
             ) : <p className="empty-state">Todavía no hay conexiones confirmadas visibles.</p>}
           </section>
-          <p className="profile-scope-note">Las fotos y la actividad se incorporarán en los siguientes incrementos de esta vertical.</p>
+          <ProfileComments
+            canComment={result.profile.canComment}
+            comments={result.profile.comments}
+            ownerUsername={result.profile.username}
+            viewer={viewer !== null}
+          />
+          <p className="profile-scope-note">Las fotos, las notificaciones y otras interacciones se incorporarán en los siguientes incrementos de esta vertical.</p>
         </section>
       )}
     </main>

@@ -35,13 +35,14 @@ function formFromPage(html, values) {
     if (name) form.append(name, value);
   }
   form.set("profilePrivacy", values.profilePrivacy);
+  form.set("commentsPrivacy", values.commentsPrivacy);
   form.set("status", values.status);
   const actionPath = match[1] || match[2] || "/account/profile";
   return { actionUrl: new URL(actionPath, "http://localhost:3000/").toString(), form };
 }
 
 async function saveStatus(sessionId, status, profileHtml) {
-  const { actionUrl, form } = formFromPage(profileHtml, { profilePrivacy: "63", status });
+  const { actionUrl, form } = formFromPage(profileHtml, { profilePrivacy: "63", commentsPrivacy: "63", status });
   return fetch(actionUrl, {
     method: "POST",
     headers: { Cookie: `social_session=${sessionId}`, Origin: "http://localhost:3000" },

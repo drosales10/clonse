@@ -24,10 +24,12 @@ function FormMessage({ state }: { state: ProfileSettingsFormState }) {
 
 export function ProfileSettingsForm({
   profilePrivacy,
+  commentsPrivacy,
   status,
   username,
 }: {
   profilePrivacy: number;
+  commentsPrivacy: number;
   status: string | null;
   username: string;
 }) {
@@ -48,6 +50,20 @@ export function ProfileSettingsForm({
         </select>
         <span className="field-help">Se conserva la máscara de privacidad del sistema legacy.</span>
         <FieldError errors={state.errors?.profilePrivacy} />
+      </div>
+      <div className="field">
+        <label htmlFor="comments-privacy">Quién puede comentar en tu perfil</label>
+        <select defaultValue={String(commentsPrivacy)} id="comments-privacy" name="commentsPrivacy">
+          <option value="0">Nadie salvo tú</option>
+          <option value="1">Solo tú</option>
+          <option value="3">Tus conexiones</option>
+          <option value="7">Conexiones ampliadas</option>
+          <option value="15">Tu red de conexiones</option>
+          <option value="31">Usuarios registrados</option>
+          <option value="63">Todo el mundo</option>
+        </select>
+        <span className="field-help">Esta regla se aplica aparte de la visibilidad general del perfil.</span>
+        <FieldError errors={state.errors?.commentsPrivacy} />
       </div>
       <div className="field">
         <label htmlFor="profile-status">Estado</label>

@@ -14,11 +14,12 @@ import type {
 } from "@domain/profile-fields";
 import { isProfileFieldType } from "@domain/profile-fields";
 import type { ProfileSettingsInput, PublicProfile } from "@domain/profile";
-import { canViewProfile } from "@domain/profile";
+import { canCommentOnProfile, canViewProfile } from "@domain/profile";
 import { presenceFromLastActiveAt } from "@domain/presence";
 
 import { db } from "@/server/db/client";
 import { updateStatusAndPrivacy } from "@/server/activity/service";
+import { getProfileComments } from "@/server/profile-comments/service";
 
 export type ProfileLookup =
   | { kind: "profile"; profile: PublicProfile }
@@ -40,6 +41,7 @@ export async function getPublicProfile(
       displayName: true,
       status: true,
       profilePrivacy: true,
+      commentsPrivacy: true,
       verifiedAt: true,
       signUpDate: true,
       lastActiveAt: true,
@@ -56,9 +58,13 @@ export async function getPublicProfile(
   const relationship = viewerId ? await getFriendRelationship(viewerId, owner.id) : "none";
   if (!canViewProfile(owner.id, owner.profilePrivacy, viewerId, relationship === "friends")) return { kind: "private" };
 
-  const [fields, friends] = await Promise.all([
+  const canComment = viewerId
+    ? canCommentOnProfile(owner.id, owner.commentsPrivacy, viewerId, relationship === "friends")
+    : false;
+  const [fields, friends, comments] = await Promise.all([
     getPublicProfileFields(owner.id),
     getPublicProfileFriends(owner.id),
+    getProfileComments(owner.id, viewerId),
   ]);
   return {
     kind: "profile",
@@ -72,6 +78,8 @@ export async function getPublicProfile(
       visibility: "public",
       fields,
       friends,
+      comments,
+      canComment,
       relationship,
     },
   };
@@ -81,6 +89,7 @@ export interface OwnProfileSettings {
   username: string;
   displayName: string;
   profilePrivacy: number;
+  commentsPrivacy: number;
   status: string | null;
 }
 
@@ -377,6 +386,7 @@ export async function getOwnProfileSettings(userId: string): Promise<OwnProfileS
       username: true,
       displayName: true,
       profilePrivacy: true,
+      commentsPrivacy: true,
       status: true,
     },
   });

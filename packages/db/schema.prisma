@@ -17,6 +17,7 @@ model User {
   status               String?
   statusUpdatedAt      DateTime? @map("status_updated_at")
   profilePrivacy       Int       @default(63) @map("profile_privacy")
+  commentsPrivacy      Int       @default(63) @map("comments_privacy")
   passwordHash         String    @map("password_hash")
   passwordMethod       Int       @default(0) @map("password_method")
   verificationTokenHash String?   @map("verification_token_hash")
@@ -38,6 +39,8 @@ model User {
   blocksCreated        ProfileBlock[] @relation("ProfileBlocker")
   blocksReceived       ProfileBlock[] @relation("ProfileBlocked")
   activities            Activity[] @relation("ActivityActor")
+  profileCommentsReceived ProfileComment[] @relation("ProfileCommentOwner")
+  profileCommentsAuthored ProfileComment[] @relation("ProfileCommentAuthor")
 
   @@index([enabled, verifiedAt])
   @@map("users")
@@ -166,4 +169,20 @@ model Activity {
   @@index([actorId, type, createdAt])
   @@index([createdAt])
   @@map("activities")
+}
+
+model ProfileComment {
+  id             String   @id @default(cuid())
+  profileOwnerId String   @map("profile_owner_id")
+  authorId       String   @map("author_id")
+  body           String
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  profileOwner User @relation("ProfileCommentOwner", fields: [profileOwnerId], references: [id], onDelete: Cascade)
+  author       User @relation("ProfileCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([profileOwnerId, createdAt])
+  @@index([authorId, createdAt])
+  @@map("profile_comments")
 }
