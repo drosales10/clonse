@@ -48,3 +48,56 @@ export function resolveIdentityMapping(
   }
   return { kind: "inactive-reference", status: "merged-without-canonical" };
 }
+
+export interface ApprovedIdentityMapping {
+  sourceSystem: string;
+  sourceTable: string;
+  legacyUserId: number;
+  userId: string;
+  status: "active" | "merged";
+  canonicalUserId: string | null;
+  reasonCode: string | null;
+}
+
+export type ApprovedIdentityMappingValidation =
+  | { valid: true; value: ApprovedIdentityMapping }
+  | { valid: false; reason: "invalid-reference" | "invalid-destination-user" | "invalid-status" | "invalid-merge" };
+
+export function validateApprovedIdentityMapping(
+  input: Partial<ApprovedIdentityMapping>,
+): ApprovedIdentityMappingValidation {
+  const reference = normalizeLegacyUserReference(input);
+  if ("kind" in reference) return { valid: false, reason: "invalid-reference" };
+  if (typeof input.userId !== "string" || input.userId.trim() === "") {
+    return { valid: false, reason: "invalid-destination-user" };
+  }
+  if (input.status !== IDENTITY_MAP_STATUS.ACTIVE && input.status !== IDENTITY_MAP_STATUS.MERGED) {
+    return { valid: false, reason: "invalid-status" };
+  }
+
+  const canonicalUserId = typeof input.canonicalUserId === "string" && input.canonicalUserId.trim() !== ""
+    ? input.canonicalUserId.trim()
+    : null;
+  if (input.status === IDENTITY_MAP_STATUS.MERGED && canonicalUserId === null) {
+    return { valid: false, reason: "invalid-merge" };
+  }
+  if (input.status === IDENTITY_MAP_STATUS.ACTIVE && canonicalUserId !== null) {
+    return { valid: false, reason: "invalid-merge" };
+  }
+
+  const reasonCode = typeof input.reasonCode === "string" && input.reasonCode.trim() !== ""
+    ? input.reasonCode.trim()
+    : null;
+  return {
+    valid: true,
+    value: {
+      sourceSystem: reference.sourceSystem,
+      sourceTable: reference.sourceTable,
+      legacyUserId: reference.legacyUserId,
+      userId: input.userId.trim(),
+      status: input.status,
+      canonicalUserId,
+      reasonCode,
+    },
+  };
+}
