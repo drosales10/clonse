@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { adminLogoutAction } from "@/app/actions/admin";
@@ -14,6 +15,7 @@ export default async function AdminDashboardPage() {
       <header className="app-header">
         <span className="brand">nexo<span>.</span></span>
         <nav className="profile-navigation" aria-label="Navegación administrativa">
+          <Link className="text-link" href="/admin/users">Usuarios</Link>
           <span className="text-link">Administración</span>
           <form action={adminLogoutAction}><button className="button button-quiet" type="submit">Cerrar sesión</button></form>
         </nav>
