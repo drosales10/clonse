@@ -19,7 +19,7 @@ export function ProfileCommentNotifications({ notifications }: { notifications: 
               <span className="friend-avatar" aria-hidden="true">{notification.actor.displayName.slice(0, 1).toUpperCase()}</span>
               <div>
                 <p><Link className="activity-actor" href={`/profile/${encodeURIComponent(notification.actor.username)}`}>{notification.actor.displayName}</Link> ha comentado en tu perfil.</p>
-                <Link className="text-link" href={`/profile/${encodeURIComponent(notification.profileOwnerUsername)}`}>Ver perfil</Link>
+                <Link className="text-link" href={`/profile/${encodeURIComponent(notification.profileOwnerUsername)}?v=comments`}>Ver perfil</Link>
               </div>
             </li>
           ))}

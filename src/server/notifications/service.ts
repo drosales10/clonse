@@ -37,3 +37,21 @@ export async function getProfileCommentNotifications(userId: string): Promise<No
     })),
   };
 }
+
+export async function clearProfileCommentNotifications(userId: string, ownerUsername: string): Promise<number> {
+  const owner = await db.user.findFirst({
+    where: { username: { equals: ownerUsername, mode: "insensitive" }, enabled: true },
+    select: { id: true },
+  });
+  if (!owner || owner.id !== userId) return 0;
+
+  const result = await db.notification.deleteMany({
+    where: {
+      recipientId: userId,
+      profileOwnerId: owner.id,
+      objectId: owner.id,
+      type: NOTIFICATION_TYPE_PROFILE_COMMENT,
+    },
+  });
+  return result.count;
+}

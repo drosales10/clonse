@@ -6,6 +6,7 @@ import { FriendRelationshipActions } from "@/app/components/friend-relationship-
 import { ProfileBlockActions } from "@/app/components/profile-block-actions";
 import { ProfileComments } from "@/app/components/profile-comments";
 import { getCurrentUser } from "@/server/auth/session";
+import { clearProfileCommentNotifications } from "@/server/notifications/service";
 import { getPublicProfile } from "@/server/profile/service";
 
 export const metadata: Metadata = {
@@ -18,13 +19,16 @@ export default async function ProfilePage({
   searchParams,
 }: {
   params: Promise<{ username: string }>;
-  searchParams: Promise<{ commentsPage?: string }>;
+  searchParams: Promise<{ commentsPage?: string; v?: string }>;
 }) {
   const [{ username }, viewer, query] = await Promise.all([params, getCurrentUser(), searchParams]);
   const commentsPage = parseCommentsPage(query.commentsPage);
   const result = await getPublicProfile(username, viewer?.id ?? null, commentsPage);
 
   if (!result) notFound();
+  if (query.v === "comments" && viewer && result.kind === "profile") {
+    await clearProfileCommentNotifications(viewer.id, result.profile.username);
+  }
 
   return (
     <main className="authenticated-shell">

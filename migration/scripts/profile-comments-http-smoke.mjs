@@ -150,6 +150,10 @@ try {
   assert.match(ownerHomeHtml, /Comentarios en tu perfil/);
   assert.match(ownerHomeHtml, /Comment author/);
   assert.match(ownerHomeHtml, /Ver perfil/);
+  assert.match(ownerHomeHtml, /v=comments/);
+  const commentsView = await fetch(`${baseUrl}/profile/${owner.username}?v=comments`, { headers: { Cookie: `social_session=${ownerSession}` } });
+  assert.equal(commentsView.status, 200, "la vista explícita de comentarios debe responder 200");
+  assert.equal(await db.notification.count({ where: { recipientId: owner.id, type: "profile_comment", objectId: owner.id } }), 0, "abrir v=comments debe limpiar los avisos del propietario");
 
   const seededForEdit = await db.profileComment.findFirst({ where: { profileOwnerId: owner.id, authorId: author.id, body: "Comentario paginado 0" }, select: { id: true } });
   assert.ok(seededForEdit, "debe existir un comentario sintético para edición");
