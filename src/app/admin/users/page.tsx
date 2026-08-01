@@ -49,7 +49,7 @@ export default async function AdminUsersPage({
           <div className="admin-table-wrap">
             <table className="admin-table">
               <thead><tr><th scope="col">Usuario</th><th scope="col">Email</th><th scope="col">Estado</th><th scope="col">Verificado</th><th scope="col">Alta</th></tr></thead>
-              <tbody>{result.users.map((user) => <tr key={user.id}><th scope="row"><strong>{user.displayName}</strong><small>@{user.username}</small></th><td>{user.email}</td><td>{user.enabled ? "Habilitado" : "Deshabilitado"}</td><td>{user.verifiedAt ? "Sí" : "No"}</td><td><time dateTime={user.signUpDate.toISOString()}>{formatDate(user.signUpDate)}</time></td></tr>)}</tbody>
+              <tbody>{result.users.map((user) => <tr key={user.id}><th scope="row"><Link className="admin-user-link" href={`/admin/users/${user.id}`}><strong>{user.displayName}</strong><small>@{user.username}</small></Link></th><td>{user.email}</td><td>{user.enabled ? "Habilitado" : "Deshabilitado"}</td><td>{user.verifiedAt ? "Sí" : "No"}</td><td><time dateTime={user.signUpDate.toISOString()}>{formatDate(user.signUpDate)}</time></td></tr>)}</tbody>
             </table>
           </div>
         ) : <p className="empty-state">No hay usuarios que coincidan con los filtros.</p>}
