@@ -34,3 +34,22 @@ export interface FriendRequestNotificationList {
   unreadCount: number;
   items: FriendRequestNotification[];
 }
+
+export type NotificationCenterType = typeof NOTIFICATION_TYPE_PROFILE_COMMENT | typeof NOTIFICATION_TYPE_FRIEND_REQUEST;
+
+export interface NotificationCenterItem {
+  id: string;
+  type: NotificationCenterType;
+  actor: {
+    username: string;
+    displayName: string;
+  };
+  profileOwnerUsername: string;
+  createdAt: Date;
+  readAt: Date | null;
+}
+
+export interface NotificationCenterList {
+  unreadCount: number;
+  items: NotificationCenterItem[];
+}

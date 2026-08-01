@@ -36,6 +36,7 @@ export default async function HomePage({
           <Link className="text-link" href="/account/friends">Conexiones</Link>
           <Link className="text-link" href="/people">Descubrir</Link>
           <Link className="text-link" href="/account/blocks">Bloqueos</Link>
+          <Link className="text-link" href="/account/notifications">Avisos</Link>
           <Link className="text-link" href="/account/profile">Ajustes</Link>
           <form action={logoutAction}>
             <button className="button button-quiet" type="submit">Cerrar sesión</button>

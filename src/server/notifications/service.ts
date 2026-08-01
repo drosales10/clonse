@@ -125,3 +125,57 @@ export async function getFriendRequestNotifications(userId: string): Promise<Fri
     })),
   };
 }
+
+
+export async function getNotificationCenter(userId: string): Promise<import("@domain/notifications").NotificationCenterList> {
+  const notificationTypes: string[] = [NOTIFICATION_TYPE_PROFILE_COMMENT, NOTIFICATION_TYPE_FRIEND_REQUEST];
+  const where = {
+    recipientId: userId,
+    type: { in: notificationTypes },
+    actor: { enabled: true },
+  };
+  const [unreadCount, notifications] = await Promise.all([
+    db.notification.count({ where: { ...where, readAt: null } }),
+    db.notification.findMany({
+      where,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: NOTIFICATION_LIST_LIMIT,
+      select: {
+        id: true,
+        type: true,
+        readAt: true,
+        createdAt: true,
+        actor: { select: { username: true, displayName: true } },
+        profileOwner: { select: { username: true } },
+      },
+    }),
+  ]);
+
+  return {
+    unreadCount,
+    items: notifications.flatMap((notification) =>
+      notification.type === NOTIFICATION_TYPE_PROFILE_COMMENT || notification.type === NOTIFICATION_TYPE_FRIEND_REQUEST
+        ? [{
+            id: notification.id,
+            type: notification.type,
+            actor: notification.actor,
+            profileOwnerUsername: notification.profileOwner.username,
+            createdAt: notification.createdAt,
+            readAt: notification.readAt,
+          }]
+        : [],
+    ),
+  };
+}
+
+export async function markAllNotificationsRead(userId: string): Promise<number> {
+  const result = await db.notification.updateMany({
+    where: {
+      recipientId: userId,
+      type: { in: [NOTIFICATION_TYPE_PROFILE_COMMENT, NOTIFICATION_TYPE_FRIEND_REQUEST] },
+      readAt: null,
+    },
+    data: { readAt: new Date() },
+  });
+  return result.count;
+}
