@@ -71,7 +71,7 @@ export default async function BlogsPage({
             {catalog.items.map((entry) => (
               <article className="blog-card" key={entry.id}>
                 <p className="eyebrow">{entry.category?.title ?? "Blog"}</p>
-                <h2>{entry.title}</h2>
+                <h2><Link href={`/blogs/${encodeURIComponent(entry.id)}`}>{entry.title}</Link></h2>
                 {entry.excerpt ? <p className="blog-summary">{entry.excerpt}</p> : null}
                 <dl className="blog-facts">
                   <div><dt>Autor</dt><dd><Link href={`/profile/${encodeURIComponent(entry.author.username)}`}>{entry.author.displayName}</Link></dd></div>

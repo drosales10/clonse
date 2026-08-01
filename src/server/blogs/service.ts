@@ -116,3 +116,35 @@ function toTextExcerpt(body: string | null): string | null {
   const text = body.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   return text.length > 280 ? `${text.slice(0, 277)}...` : text;
 }
+
+
+export async function getBlogEntryDetail(viewerId: string | null, entryId: string): Promise<import("@domain/blogs").PublicBlogEntryDetail | null> {
+  const legacyId = parseLegacyBlogEntryId(entryId);
+  const row = await db.blogEntry.findFirst({
+    where: {
+      OR: [
+        { id: entryId },
+        ...(legacyId === null ? [] : [{ legacyId }]),
+      ],
+      author: { enabled: true },
+    },
+    select: blogEntrySelect,
+  });
+  if (!row || !canReadBlogEntry(row.authorId, row.privacy, viewerId)) return null;
+  return {
+    ...toPublicBlogEntry(row),
+    body: toSafeText(row.body),
+  };
+}
+
+function parseLegacyBlogEntryId(value: string): number | null {
+  if (!/^\d+$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function toSafeText(body: string | null): string | null {
+  if (!body) return null;
+  const text = body.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return text || null;
+}

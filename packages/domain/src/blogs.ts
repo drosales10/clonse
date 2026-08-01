@@ -62,3 +62,7 @@ export function canReadBlogEntry(ownerId: string, privacy: number, viewerId: str
   const viewerAccess = viewerId === null ? BLOG_ACCESS.ANONYMOUS : BLOG_ACCESS.REGISTERED;
   return Number.isInteger(privacy) && (privacy & viewerAccess) !== 0;
 }
+
+export interface PublicBlogEntryDetail extends PublicBlogEntry {
+  body: string | null;
+}
