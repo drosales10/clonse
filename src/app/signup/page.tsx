@@ -13,7 +13,7 @@ export default function SignupPage() {
       <section className="auth-card auth-card-wide" aria-labelledby="signup-title">
         <p className="eyebrow">Registro</p>
         <h1 id="signup-title">Forma parte de la red</h1>
-        <p className="lead">Esta es la primera etapa del registro legacy: identidad, credenciales y aceptación de términos.</p>
+        <p className="lead">Esta es la primera etapa del registro legacy: identidad, credenciales, aceptación de términos y verificación de email.</p>
         <RegisterForm />
       </section>
     </main>

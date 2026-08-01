@@ -72,3 +72,14 @@ La primera vertical implementable es **acceso e identidad** porque todas las sup
 1. Implementar tokens de verificación y recuperación con correo real mediante adaptador.
 2. Reproducir registro multistep, campos dinámicos, invitación y efectos secundarios.
 3. Añadir pruebas de contrato, permisos y recorrido Playwright contra fixtures sintéticos.
+
+## Contratos de verificación y recuperación
+
+| Flujo | Entrada moderna | Persistencia | Expiración | Consumo | Diferencia legacy |
+|---|---|---|---|---|---|
+| Verificar email | `/verify?token=<token>` | `users.verification_token_hash`, `verification_sent_at`, `verified_at` | 24 horas | Un solo uso; hash y fecha se limpian | Legacy usa `md5(user_code)` y genera `d`, pero no valida expiración |
+| Reenviar verificación | Email del registro | Rota el hash y la fecha | 24 horas desde el reenvío | El token anterior deja de servir | Legacy busca `user_newemail` y reenvía el mismo derivado |
+| Solicitar recuperación | Email | `users.password_reset_token_hash`, `password_reset_sent_at` | 24 horas | Un solo uso | Legacy guarda el código en `se_usersettings` y lo limpia al reset |
+| Restablecer contraseña | `/reset-password?token=<token>` + dos passwords | Actualiza `password_hash`, limpia reset y revoca sesiones | Token válido y no caducado | Un solo uso | Legacy conserva sesiones y usa el método de password configurado |
+
+Los tokens nunca se guardan en claro ni se escriben en logs. Las respuestas de solicitud de recuperación y reenvío son genéricas para no revelar si un email existe. La entrega real por correo queda detrás de un adaptador pendiente; en `development` se muestra un enlace de prueba de forma explícita y no se presenta como integración SMTP real.

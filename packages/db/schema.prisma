@@ -14,11 +14,15 @@ model User {
   email                String    @unique
   username             String    @unique
   displayName          String    @map("display_name")
+  status               String?
+  profilePrivacy       Int       @default(63) @map("profile_privacy")
   passwordHash         String    @map("password_hash")
   passwordMethod       Int       @default(0) @map("password_method")
   verificationTokenHash String?   @map("verification_token_hash")
   verificationSentAt   DateTime? @map("verification_sent_at")
-  verifiedAt           DateTime? @map("verified_at")
+  verifiedAt            DateTime? @map("verified_at")
+  passwordResetTokenHash String?   @map("password_reset_token_hash")
+  passwordResetSentAt   DateTime? @map("password_reset_sent_at")
   enabled              Boolean   @default(true)
   signUpDate           DateTime  @default(now()) @map("sign_up_date")
   loginCount            Int       @default(0) @map("login_count")
@@ -27,6 +31,7 @@ model User {
   createdAt             DateTime  @default(now()) @map("created_at")
   updatedAt             DateTime  @updatedAt @map("updated_at")
   sessions             AuthSession[]
+  profileFieldValues   ProfileFieldValue[]
 
   @@index([enabled, verifiedAt])
   @@map("users")
@@ -42,4 +47,71 @@ model AuthSession {
   @@index([userId])
   @@index([expiresAt])
   @@map("auth_sessions")
+}
+
+model ProfileCategory {
+  id        String  @id @default(cuid())
+  legacyId  Int?    @unique @map("legacy_id")
+  title     String
+  sortOrder Int     @default(0) @map("sort_order")
+  active    Boolean @default(true)
+  parentId  String? @map("parent_id")
+
+  parent   ProfileCategory?  @relation("ProfileCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children ProfileCategory[] @relation("ProfileCategoryHierarchy")
+  fields   ProfileField[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([parentId, sortOrder])
+  @@index([active, sortOrder])
+  @@map("profile_categories")
+}
+
+model ProfileField {
+  id             String  @id @default(cuid())
+  legacyId       Int?    @unique @map("legacy_id")
+  categoryId     String  @map("category_id")
+  parentFieldId  String? @map("parent_field_id")
+  fieldKey       String  @unique @map("field_key")
+  label          String
+  description    String?
+  type           String
+  sortOrder      Int     @default(0) @map("sort_order")
+  required       Boolean @default(false)
+  maxLength      Int?    @map("max_length")
+  options        Json?
+  displayMode    Int     @default(1) @map("display_mode")
+  validationRegex String? @map("validation_regex")
+  allowHtml      Boolean @default(false) @map("allow_html")
+  active         Boolean @default(true)
+
+  category       ProfileCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  parentField    ProfileField?   @relation("ProfileFieldDependency", fields: [parentFieldId], references: [id], onDelete: SetNull)
+  dependentFields ProfileField[] @relation("ProfileFieldDependency")
+  values         ProfileFieldValue[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([categoryId, active, sortOrder])
+  @@index([parentFieldId])
+  @@map("profile_fields")
+}
+
+model ProfileFieldValue {
+  id        String       @id @default(cuid())
+  userId    String       @map("user_id")
+  fieldId   String       @map("field_id")
+  value     Json
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  field ProfileField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, fieldId])
+  @@index([fieldId])
+  @@map("profile_field_values")
 }

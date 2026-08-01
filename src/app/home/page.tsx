@@ -17,9 +17,13 @@ export default async function HomePage({
     <main className="authenticated-shell">
       <header className="app-header">
         <Link className="brand" href="/">nexo<span>.</span></Link>
-        <form action={logoutAction}>
-          <button className="button button-quiet" type="submit">Cerrar sesión</button>
-        </form>
+        <nav className="profile-navigation" aria-label="Navegación de cuenta">
+          <Link className="text-link" href={`/profile/${encodeURIComponent(user.username)}`}>Mi perfil</Link>
+          <Link className="text-link" href="/account/profile">Ajustes</Link>
+          <form action={logoutAction}>
+            <button className="button button-quiet" type="submit">Cerrar sesión</button>
+          </form>
+        </nav>
       </header>
       <section className="welcome-panel" aria-labelledby="welcome-title">
         <p className="eyebrow">Inicio autenticado</p>
@@ -28,7 +32,7 @@ export default async function HomePage({
         {params.welcome === "1" ? <p className="success-message" role="status">Cuenta creada. El siguiente incremento añadirá verificación por email.</p> : null}
         <div className="scope-grid">
           <article><span>01</span><h2>Actividad</h2><p>Feed, estados y comentarios se incorporarán después de cerrar la identidad.</p></article>
-          <article><span>02</span><h2>Perfil</h2><p>Privacidad, campos dinámicos y foto requieren el inventario de settings y niveles.</p></article>
+          <article><span>02</span><h2>Perfil</h2><p>Privacidad y estado ya se pueden gestionar; campos dinámicos y foto requieren el inventario de settings y niveles.</p><Link className="text-link" href="/account/profile">Configurar mi perfil →</Link></article>
           <article><span>03</span><h2>Mensajes</h2><p>La comunicación usará la sesión server-side sin exponer datos privados al cliente.</p></article>
         </div>
       </section>
