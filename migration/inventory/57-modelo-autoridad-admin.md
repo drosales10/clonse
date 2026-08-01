@@ -93,3 +93,29 @@ No se aplicó `prisma migrate`, no se conectó a una base para importar datos y 
 3. No se ha definido la transformación de hashes legacy ni la asignación de `isSuperAdmin`.
 4. No se han implementado niveles, subredes, permisos por módulo, dashboard, usuarios ni configuración.
 5. El estado `disabled` se revoca durante la lectura de una sesión; el origen de esa deshabilitación será el campo `Admin.enabled` tras disponer de datos.
+
+## Flujo de login/logout implementado
+
+- `packages/domain/src/admin-access.ts` define `AdminLoginInput`, estado del formulario y validación server-side de username, contraseña y persistencia.
+- `src/app/actions/admin.ts` contiene `adminLoginAction` y `adminLogoutAction`; no reutiliza `loginAction`, `social_session` ni la autorización de usuario.
+- `src/app/components/admin-access-form.tsx` representa carga, errores por campo y error general sin exponer si un usuario administrativo existe.
+- `/admin/login` redirige a `/admin/dashboard` cuando `getAdminAccessState()` encuentra una sesión válida; en caso contrario muestra el formulario.
+- `/admin/dashboard` ejecuta el guard server-side y redirige a login si no hay admin autenticado. El logout revoca la sesión y elimina la cookie administrativa.
+- Una cuenta inexistente y una contraseña incorrecta producen el mismo mensaje. Una cuenta deshabilitada produce un estado específico sin permitir sesión.
+- Al no existir cuentas importadas, el flujo está preparado pero no permite acceso efectivo; no se crearon credenciales de prueba.
+
+## Validación del flujo
+
+- `pnpm exec tsc --noEmit` ✅
+- `pnpm exec eslint packages/domain/src/admin-access.ts src/app/actions/admin.ts src/app/components/admin-access-form.tsx src/app/admin/login/page.tsx src/app/admin/dashboard/page.tsx src/server/admin/access.ts src/server/admin/session.ts` ✅
+- `pnpm build` ✅; Next.js reconoce `/admin`, `/admin/login` y `/admin/dashboard`.
+- `git diff --check` ✅; Windows solo informa normalización LF/CRLF.
+
+No se ejecutó login contra PostgreSQL porque la migración no se aplicó y no hay cuentas administrativas reales.
+
+## Pendientes
+
+1. Aplicar la migración en un PostgreSQL destino verificado.
+2. Importar o crear administradores mediante un procedimiento controlado, con decisión sobre hashes legacy y `isSuperAdmin`.
+3. Añadir recuperación administrativa, auditoría y límites de intentos si el contrato legacy lo requiere.
+4. Implementar dashboard real, usuarios, niveles, subredes y configuración únicamente después de modelar sus permisos y tablas.
