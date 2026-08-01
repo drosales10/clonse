@@ -16,7 +16,9 @@ export default async function AdminDashboardPage() {
         <span className="brand">nexo<span>.</span></span>
         <nav className="profile-navigation" aria-label="Navegación administrativa">
           <Link className="text-link" href="/admin/users">Usuarios</Link>
-          <span className="text-link">Administración</span>
+          <Link className="text-link" href="/admin/levels">Niveles</Link>
+          <Link className="text-link" href="/admin/subnetworks">Subredes</Link>
+          <Link className="text-link" href="/admin/settings">Configuración</Link>
           <form action={adminLogoutAction}><button className="button button-quiet" type="submit">Cerrar sesión</button></form>
         </nav>
       </header>

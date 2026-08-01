@@ -29,7 +29,10 @@ export default async function AdminUsersPage({
         <Link className="brand" href="/admin/dashboard">nexo<span>.</span></Link>
         <nav className="profile-navigation" aria-label="Navegación administrativa">
           <Link className="text-link" href="/admin/dashboard">Panel</Link>
-          <span className="text-link">Usuarios</span>
+          <span className="text-link" aria-current="page">Usuarios</span>
+          <Link className="text-link" href="/admin/levels">Niveles</Link>
+          <Link className="text-link" href="/admin/subnetworks">Subredes</Link>
+          <Link className="text-link" href="/admin/settings">Configuración</Link>
           <form action={adminLogoutAction}><button className="button button-quiet" type="submit">Cerrar sesión</button></form>
         </nav>
       </header>

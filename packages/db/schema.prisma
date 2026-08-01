@@ -10,52 +10,52 @@ datasource db {
 }
 
 model User {
-  id                   String    @id @default(cuid())
-  email                String    @unique
-  username             String    @unique
-  displayName          String    @map("display_name")
-  status               String?
-  statusUpdatedAt      DateTime? @map("status_updated_at")
-  profilePrivacy       Int       @default(63) @map("profile_privacy")
-  commentsPrivacy      Int       @default(63) @map("comments_privacy")
-  saveProfileViews     Boolean   @default(true) @map("save_profile_views")
-  passwordHash         String    @map("password_hash")
-  passwordMethod       Int       @default(0) @map("password_method")
-  verificationTokenHash String?   @map("verification_token_hash")
-  verificationSentAt   DateTime? @map("verification_sent_at")
-  verifiedAt            DateTime? @map("verified_at")
-  passwordResetTokenHash String?   @map("password_reset_token_hash")
-  passwordResetSentAt   DateTime? @map("password_reset_sent_at")
-  enabled              Boolean   @default(true)
-  signUpDate           DateTime  @default(now()) @map("sign_up_date")
-  loginCount            Int       @default(0) @map("login_count")
-  lastLoginAt          DateTime? @map("last_login_at")
-  lastActiveAt         DateTime? @map("last_active_at")
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
-  sessions             AuthSession[]
-  profileFieldValues   ProfileFieldValue[]
-  friendRequestsSent   FriendConnection[] @relation("FriendRequester")
-  friendRequestsReceived FriendConnection[] @relation("FriendAddressee")
-  blocksCreated        ProfileBlock[] @relation("ProfileBlocker")
-  blocksReceived       ProfileBlock[] @relation("ProfileBlocked")
-  activities            Activity[] @relation("ActivityActor")
-  profileCommentsReceived ProfileComment[] @relation("ProfileCommentOwner")
-  profileCommentsAuthored ProfileComment[] @relation("ProfileCommentAuthor")
-  profileViewStats      ProfileViewStats?
-  profileViewers        ProfileViewViewer[] @relation("ProfileViewViewer")
-  notificationsReceived Notification[] @relation("NotificationRecipient")
-  notificationsSent    Notification[] @relation("NotificationActor")
-  notificationsAsProfileOwner Notification[] @relation("NotificationProfileOwner")
-  businessesOwned      Business[] @relation("BusinessOwner")
-  classifiedsOwned     Classified[] @relation("ClassifiedOwner")
-  eventsOwned          Event[] @relation("EventOwner")
-  groupsOwned          Group[] @relation("GroupOwner")
-  blogEntriesAuthored  BlogEntry[] @relation("BlogEntryAuthor")
-  articlesAuthored     Article[]   @relation("ArticleAuthor")
-  forumPostsAuthored   ForumPost[] @relation("ForumPostAuthor")
-  identityMappings     UserIdentityMap[] @relation("IdentityMapUser")
-  canonicalMappings    UserIdentityMap[] @relation("IdentityMapCanonical")
+  id                          String              @id @default(cuid())
+  email                       String              @unique
+  username                    String              @unique
+  displayName                 String              @map("display_name")
+  status                      String?
+  statusUpdatedAt             DateTime?           @map("status_updated_at")
+  profilePrivacy              Int                 @default(63) @map("profile_privacy")
+  commentsPrivacy             Int                 @default(63) @map("comments_privacy")
+  saveProfileViews            Boolean             @default(true) @map("save_profile_views")
+  passwordHash                String              @map("password_hash")
+  passwordMethod              Int                 @default(0) @map("password_method")
+  verificationTokenHash       String?             @map("verification_token_hash")
+  verificationSentAt          DateTime?           @map("verification_sent_at")
+  verifiedAt                  DateTime?           @map("verified_at")
+  passwordResetTokenHash      String?             @map("password_reset_token_hash")
+  passwordResetSentAt         DateTime?           @map("password_reset_sent_at")
+  enabled                     Boolean             @default(true)
+  signUpDate                  DateTime            @default(now()) @map("sign_up_date")
+  loginCount                  Int                 @default(0) @map("login_count")
+  lastLoginAt                 DateTime?           @map("last_login_at")
+  lastActiveAt                DateTime?           @map("last_active_at")
+  createdAt                   DateTime            @default(now()) @map("created_at")
+  updatedAt                   DateTime            @updatedAt @map("updated_at")
+  sessions                    AuthSession[]
+  profileFieldValues          ProfileFieldValue[]
+  friendRequestsSent          FriendConnection[]  @relation("FriendRequester")
+  friendRequestsReceived      FriendConnection[]  @relation("FriendAddressee")
+  blocksCreated               ProfileBlock[]      @relation("ProfileBlocker")
+  blocksReceived              ProfileBlock[]      @relation("ProfileBlocked")
+  activities                  Activity[]          @relation("ActivityActor")
+  profileCommentsReceived     ProfileComment[]    @relation("ProfileCommentOwner")
+  profileCommentsAuthored     ProfileComment[]    @relation("ProfileCommentAuthor")
+  profileViewStats            ProfileViewStats?
+  profileViewers              ProfileViewViewer[] @relation("ProfileViewViewer")
+  notificationsReceived       Notification[]      @relation("NotificationRecipient")
+  notificationsSent           Notification[]      @relation("NotificationActor")
+  notificationsAsProfileOwner Notification[]      @relation("NotificationProfileOwner")
+  businessesOwned             Business[]          @relation("BusinessOwner")
+  classifiedsOwned            Classified[]        @relation("ClassifiedOwner")
+  eventsOwned                 Event[]             @relation("EventOwner")
+  groupsOwned                 Group[]             @relation("GroupOwner")
+  blogEntriesAuthored         BlogEntry[]         @relation("BlogEntryAuthor")
+  articlesAuthored            Article[]           @relation("ArticleAuthor")
+  forumPostsAuthored          ForumPost[]         @relation("ForumPostAuthor")
+  identityMappings            UserIdentityMap[]   @relation("IdentityMapUser")
+  canonicalMappings           UserIdentityMap[]   @relation("IdentityMapCanonical")
 
   @@index([enabled, verifiedAt])
   @@map("users")
@@ -125,27 +125,27 @@ model ProfileCategory {
 }
 
 model ProfileField {
-  id             String  @id @default(cuid())
-  legacyId       Int?    @unique @map("legacy_id")
-  categoryId     String  @map("category_id")
-  parentFieldId  String? @map("parent_field_id")
-  fieldKey       String  @unique @map("field_key")
-  label          String
-  description    String?
-  type           String
-  sortOrder      Int     @default(0) @map("sort_order")
-  required       Boolean @default(false)
-  maxLength      Int?    @map("max_length")
-  options        Json?
-  displayMode    Int     @default(1) @map("display_mode")
+  id              String  @id @default(cuid())
+  legacyId        Int?    @unique @map("legacy_id")
+  categoryId      String  @map("category_id")
+  parentFieldId   String? @map("parent_field_id")
+  fieldKey        String  @unique @map("field_key")
+  label           String
+  description     String?
+  type            String
+  sortOrder       Int     @default(0) @map("sort_order")
+  required        Boolean @default(false)
+  maxLength       Int?    @map("max_length")
+  options         Json?
+  displayMode     Int     @default(1) @map("display_mode")
   validationRegex String? @map("validation_regex")
-  allowHtml      Boolean @default(false) @map("allow_html")
-  active         Boolean @default(true)
+  allowHtml       Boolean @default(false) @map("allow_html")
+  active          Boolean @default(true)
 
-  category       ProfileCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  parentField    ProfileField?   @relation("ProfileFieldDependency", fields: [parentFieldId], references: [id], onDelete: SetNull)
-  dependentFields ProfileField[] @relation("ProfileFieldDependency")
-  values         ProfileFieldValue[]
+  category        ProfileCategory     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  parentField     ProfileField?       @relation("ProfileFieldDependency", fields: [parentFieldId], references: [id], onDelete: SetNull)
+  dependentFields ProfileField[]      @relation("ProfileFieldDependency")
+  values          ProfileFieldValue[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -156,12 +156,12 @@ model ProfileField {
 }
 
 model ProfileFieldValue {
-  id        String       @id @default(cuid())
-  userId    String       @map("user_id")
-  fieldId   String       @map("field_id")
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  fieldId   String   @map("field_id")
   value     Json
-  createdAt DateTime     @default(now()) @map("created_at")
-  updatedAt DateTime     @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   user  User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   field ProfileField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
@@ -172,12 +172,12 @@ model ProfileFieldValue {
 }
 
 model Activity {
-  id              String   @id @default(cuid())
-  actorId         String   @map("actor_id")
-  type            String
-  text            String
-  objectPrivacy   Int      @map("object_privacy")
-  createdAt       DateTime @default(now()) @map("created_at")
+  id            String   @id @default(cuid())
+  actorId       String   @map("actor_id")
+  type          String
+  text          String
+  objectPrivacy Int      @map("object_privacy")
+  createdAt     DateTime @default(now()) @map("created_at")
 
   actor User @relation("ActivityActor", fields: [actorId], references: [id], onDelete: Cascade)
 
@@ -203,13 +203,13 @@ model ProfileComment {
 }
 
 model ProfileViewStats {
-  id             String             @id @default(cuid())
-  profileOwnerId String             @unique @map("profile_owner_id")
-  totalViews     Int                @default(0) @map("total_views")
-  createdAt      DateTime           @default(now()) @map("created_at")
-  updatedAt      DateTime           @updatedAt @map("updated_at")
+  id             String   @id @default(cuid())
+  profileOwnerId String   @unique @map("profile_owner_id")
+  totalViews     Int      @default(0) @map("total_views")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
-  profileOwner User              @relation(fields: [profileOwnerId], references: [id], onDelete: Cascade)
+  profileOwner User                @relation(fields: [profileOwnerId], references: [id], onDelete: Cascade)
   viewers      ProfileViewViewer[]
 
   @@map("profile_view_stats")
@@ -251,15 +251,15 @@ model Notification {
 }
 
 model BusinessCategory {
-  id        String   @id @default(cuid())
-  legacyId  Int?     @unique @map("legacy_id")
-  parentId  String?  @map("parent_id")
+  id        String  @id @default(cuid())
+  legacyId  Int?    @unique @map("legacy_id")
+  parentId  String? @map("parent_id")
   title     String
-  sortOrder Int      @default(0) @map("sort_order")
-  active    Boolean  @default(true)
+  sortOrder Int     @default(0) @map("sort_order")
+  active    Boolean @default(true)
 
-  parent   BusinessCategory?  @relation("BusinessCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children BusinessCategory[] @relation("BusinessCategoryHierarchy")
+  parent     BusinessCategory?  @relation("BusinessCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children   BusinessCategory[] @relation("BusinessCategoryHierarchy")
   businesses Business[]
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -271,30 +271,30 @@ model BusinessCategory {
 }
 
 model Business {
-  id          String   @id @default(cuid())
-  legacyId    Int?     @unique @map("legacy_id")
-  ownerId     String   @map("owner_id")
-  categoryId  String?  @map("category_id")
-  title       String
-  slug        String?  @unique
-  summary     String?
-  description String?
-  city        String?
-  province    String?
-  country     String?
-  postalCode  String?  @map("postal_code")
-  createdAt   DateTime @map("created_at")
-  updatedAt   DateTime @map("updated_at")
-  approvedAt  DateTime? @map("approved_at")
-  expiresAt   DateTime? @map("expires_at")
-  searchable  Boolean  @default(true)
-  privacy     Int      @default(63)
-  featured    Boolean  @default(false)
-  sponsored   Boolean  @default(false)
-  rating      Float    @default(0)
-  weightedRating Float  @default(0) @map("weighted_rating")
-  views       Int      @default(0)
-  totalComments Int    @default(0) @map("total_comments")
+  id             String    @id @default(cuid())
+  legacyId       Int?      @unique @map("legacy_id")
+  ownerId        String    @map("owner_id")
+  categoryId     String?   @map("category_id")
+  title          String
+  slug           String?   @unique
+  summary        String?
+  description    String?
+  city           String?
+  province       String?
+  country        String?
+  postalCode     String?   @map("postal_code")
+  createdAt      DateTime  @map("created_at")
+  updatedAt      DateTime  @map("updated_at")
+  approvedAt     DateTime? @map("approved_at")
+  expiresAt      DateTime? @map("expires_at")
+  searchable     Boolean   @default(true)
+  privacy        Int       @default(63)
+  featured       Boolean   @default(false)
+  sponsored      Boolean   @default(false)
+  rating         Float     @default(0)
+  weightedRating Float     @default(0) @map("weighted_rating")
+  views          Int       @default(0)
+  totalComments  Int       @default(0) @map("total_comments")
 
   owner    User              @relation("BusinessOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   category BusinessCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
@@ -306,15 +306,15 @@ model Business {
 }
 
 model ClassifiedCategory {
-  id        String   @id @default(cuid())
-  legacyId  Int?     @unique @map("legacy_id")
-  parentId  String?  @map("parent_id")
+  id        String  @id @default(cuid())
+  legacyId  Int?    @unique @map("legacy_id")
+  parentId  String? @map("parent_id")
   title     String
-  sortOrder Int      @default(0) @map("sort_order")
-  active    Boolean  @default(true)
+  sortOrder Int     @default(0) @map("sort_order")
+  active    Boolean @default(true)
 
-  parent   ClassifiedCategory?  @relation("ClassifiedCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children ClassifiedCategory[] @relation("ClassifiedCategoryHierarchy")
+  parent      ClassifiedCategory?  @relation("ClassifiedCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children    ClassifiedCategory[] @relation("ClassifiedCategoryHierarchy")
   classifieds Classified[]
 
   createdAt DateTime @default(now()) @map("created_at")
@@ -350,12 +350,12 @@ model Classified {
 }
 
 model EventCategory {
-  id        String   @id @default(cuid())
-  legacyId  Int?     @unique @map("legacy_id")
-  parentId  String?  @map("parent_id")
+  id        String  @id @default(cuid())
+  legacyId  Int?    @unique @map("legacy_id")
+  parentId  String? @map("parent_id")
   title     String
-  sortOrder Int      @default(0) @map("sort_order")
-  active    Boolean  @default(true)
+  sortOrder Int     @default(0) @map("sort_order")
+  active    Boolean @default(true)
 
   parent   EventCategory?  @relation("EventCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children EventCategory[] @relation("EventCategoryHierarchy")
@@ -370,24 +370,24 @@ model EventCategory {
 }
 
 model Event {
-  id          String   @id @default(cuid())
-  legacyId    Int?     @unique @map("legacy_id")
-  ownerId     String   @map("owner_id")
-  categoryId  String?  @map("category_id")
+  id          String    @id @default(cuid())
+  legacyId    Int?      @unique @map("legacy_id")
+  ownerId     String    @map("owner_id")
+  categoryId  String?   @map("category_id")
   title       String
   description String?
   host        String?
   location    String?
   startsAt    DateTime? @map("starts_at")
   endsAt      DateTime? @map("ends_at")
-  createdAt   DateTime @map("created_at")
-  updatedAt   DateTime @map("updated_at")
-  searchable  Boolean  @default(true)
-  privacy     Int      @default(64)
-  inviteOnly  Boolean  @default(false) @map("invite_only")
-  views       Int      @default(0)
+  createdAt   DateTime  @map("created_at")
+  updatedAt   DateTime  @map("updated_at")
+  searchable  Boolean   @default(true)
+  privacy     Int       @default(64)
+  inviteOnly  Boolean   @default(false) @map("invite_only")
+  views       Int       @default(0)
 
-  owner    User          @relation("EventOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  owner    User           @relation("EventOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   category EventCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@index([ownerId])
@@ -397,12 +397,12 @@ model Event {
 }
 
 model GroupCategory {
-  id        String   @id @default(cuid())
-  legacyId  Int?     @unique @map("legacy_id")
-  parentId  String?  @map("parent_id")
+  id        String  @id @default(cuid())
+  legacyId  Int?    @unique @map("legacy_id")
+  parentId  String? @map("parent_id")
   title     String
-  sortOrder Int      @default(0) @map("sort_order")
-  active    Boolean  @default(true)
+  sortOrder Int     @default(0) @map("sort_order")
+  active    Boolean @default(true)
 
   parent   GroupCategory?  @relation("GroupCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children GroupCategory[] @relation("GroupCategoryHierarchy")
@@ -417,24 +417,24 @@ model GroupCategory {
 }
 
 model Group {
-  id            String   @id @default(cuid())
-  legacyId      Int?     @unique @map("legacy_id")
-  ownerId       String   @map("owner_id")
-  categoryId    String?  @map("category_id")
-  title         String
-  description   String?
-  createdAt     DateTime @map("created_at")
-  updatedAt     DateTime @map("updated_at")
-  searchable    Boolean  @default(true)
-  privacy       Int      @default(0)
-  catalogVisible Boolean @default(false) @map("catalog_visible")
-  commentsPrivacy Int?   @map("comments_privacy")
-  discussionPrivacy Int? @map("discussion_privacy")
-  inviteEnabled Boolean   @default(false) @map("invite_enabled")
-  uploadEnabled Boolean   @default(false) @map("upload_enabled")
-  views         Int      @default(0)
+  id                String   @id @default(cuid())
+  legacyId          Int?     @unique @map("legacy_id")
+  ownerId           String   @map("owner_id")
+  categoryId        String?  @map("category_id")
+  title             String
+  description       String?
+  createdAt         DateTime @map("created_at")
+  updatedAt         DateTime @map("updated_at")
+  searchable        Boolean  @default(true)
+  privacy           Int      @default(0)
+  catalogVisible    Boolean  @default(false) @map("catalog_visible")
+  commentsPrivacy   Int?     @map("comments_privacy")
+  discussionPrivacy Int?     @map("discussion_privacy")
+  inviteEnabled     Boolean  @default(false) @map("invite_enabled")
+  uploadEnabled     Boolean  @default(false) @map("upload_enabled")
+  views             Int      @default(0)
 
-  owner    User          @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  owner    User           @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   category GroupCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@index([ownerId])
@@ -444,12 +444,12 @@ model Group {
 }
 
 model ArticleCategory {
-  id        String   @id @default(cuid())
-  legacyId  Int?     @unique @map("legacy_id")
-  parentId  String?  @map("parent_id")
+  id        String  @id @default(cuid())
+  legacyId  Int?    @unique @map("legacy_id")
+  parentId  String? @map("parent_id")
   title     String
-  sortOrder Int      @default(0) @map("sort_order")
-  active    Boolean  @default(true)
+  sortOrder Int     @default(0) @map("sort_order")
+  active    Boolean @default(true)
 
   parent   ArticleCategory?  @relation("ArticleCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children ArticleCategory[] @relation("ArticleCategoryHierarchy")
@@ -480,7 +480,7 @@ model Article {
   commentsPrivacy Int?     @map("comments_privacy")
   featured        Boolean  @default(false)
 
-  author   User            @relation("ArticleAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  author   User             @relation("ArticleAuthor", fields: [authorId], references: [id], onDelete: Restrict)
   category ArticleCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@index([authorId, categoryId])
@@ -491,14 +491,14 @@ model Article {
 }
 
 model ForumInstance {
-  id                 String         @id @default(cuid())
-  legacyId           Int?           @unique @map("legacy_id")
-  mode               String         @default("forum")
-  name               String?
-  description        String?
-  position           Int            @default(0)
-  categories         ForumCategory[]
-  posts              ForumPost[]
+  id          String          @id @default(cuid())
+  legacyId    Int?            @unique @map("legacy_id")
+  mode        String          @default("forum")
+  name        String?
+  description String?
+  position    Int             @default(0)
+  categories  ForumCategory[]
+  posts       ForumPost[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -508,19 +508,19 @@ model ForumInstance {
 }
 
 model ForumCategory {
-  id             String          @id @default(cuid())
-  legacyId       Int?            @unique @map("legacy_id")
-  instanceId     String          @map("instance_id")
-  parentId       String?         @map("parent_id")
-  title          String
-  description    String?
-  position       Int             @default(0)
-  publicCanRead  Boolean         @default(false) @map("public_can_read")
-  isLocked       Boolean         @default(false) @map("is_locked")
-  instance       ForumInstance   @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  parent         ForumCategory?  @relation("ForumCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children       ForumCategory[] @relation("ForumCategoryHierarchy")
-  posts          ForumPost[]
+  id            String          @id @default(cuid())
+  legacyId      Int?            @unique @map("legacy_id")
+  instanceId    String          @map("instance_id")
+  parentId      String?         @map("parent_id")
+  title         String
+  description   String?
+  position      Int             @default(0)
+  publicCanRead Boolean         @default(false) @map("public_can_read")
+  isLocked      Boolean         @default(false) @map("is_locked")
+  instance      ForumInstance   @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  parent        ForumCategory?  @relation("ForumCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children      ForumCategory[] @relation("ForumCategoryHierarchy")
+  posts         ForumPost[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -531,28 +531,28 @@ model ForumCategory {
 }
 
 model ForumPost {
-  id             String         @id @default(cuid())
-  legacyId       Int?           @unique @map("legacy_id")
-  authorId       String         @map("author_id")
-  instanceId     String         @map("instance_id")
-  categoryId     String         @map("category_id")
-  parentId       String?        @map("parent_id")
+  id             String        @id @default(cuid())
+  legacyId       Int?          @unique @map("legacy_id")
+  authorId       String        @map("author_id")
+  instanceId     String        @map("instance_id")
+  categoryId     String        @map("category_id")
+  parentId       String?       @map("parent_id")
   title          String?
   body           String?
-  createdAt      DateTime       @map("created_at")
-  modifiedAt     DateTime?      @map("modified_at")
-  views          Int            @default(0)
-  replyCount     Int            @default(0) @map("reply_count")
+  createdAt      DateTime      @map("created_at")
+  modifiedAt     DateTime?     @map("modified_at")
+  views          Int           @default(0)
+  replyCount     Int           @default(0) @map("reply_count")
   rating         Int?
-  isLocked       Boolean        @default(false) @map("is_locked")
-  isAnnouncement Boolean        @default(false) @map("is_announcement")
-  isSticky       Boolean        @default(false) @map("is_sticky")
-  hasAttachments Boolean        @default(false) @map("has_attachments")
-  author         User           @relation("ForumPostAuthor", fields: [authorId], references: [id], onDelete: Restrict)
-  instance       ForumInstance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  category       ForumCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  parent         ForumPost?     @relation("ForumPostReplies", fields: [parentId], references: [id], onDelete: Cascade)
-  replies        ForumPost[]    @relation("ForumPostReplies")
+  isLocked       Boolean       @default(false) @map("is_locked")
+  isAnnouncement Boolean       @default(false) @map("is_announcement")
+  isSticky       Boolean       @default(false) @map("is_sticky")
+  hasAttachments Boolean       @default(false) @map("has_attachments")
+  author         User          @relation("ForumPostAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  instance       ForumInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  category       ForumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  parent         ForumPost?    @relation("ForumPostReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies        ForumPost[]   @relation("ForumPostReplies")
 
   @@index([instanceId, categoryId, parentId, createdAt])
   @@index([categoryId, parentId, isSticky, isAnnouncement])
@@ -561,17 +561,17 @@ model ForumPost {
 }
 
 model UserIdentityMap {
-  id              String   @id @default(cuid())
-  userId          String   @map("user_id")
-  sourceSystem    String   @map("source_system")
-  sourceTable     String   @map("source_table")
-  legacyUserId    Int      @map("legacy_user_id")
-  status          String   @default("active")
-  reasonCode      String?  @map("reason_code")
-  canonicalUserId String?  @map("canonical_user_id")
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  sourceSystem    String    @map("source_system")
+  sourceTable     String    @map("source_table")
+  legacyUserId    Int       @map("legacy_user_id")
+  status          String    @default("active")
+  reasonCode      String?   @map("reason_code")
+  canonicalUserId String?   @map("canonical_user_id")
   importedAt      DateTime? @map("imported_at")
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
 
   user      User  @relation("IdentityMapUser", fields: [userId], references: [id], onDelete: Restrict)
   canonical User? @relation("IdentityMapCanonical", fields: [canonicalUserId], references: [id], onDelete: SetNull)
@@ -584,16 +584,16 @@ model UserIdentityMap {
 }
 
 model BlogCategory {
-  id        String   @id @default(cuid())
-  legacyId  Int?     @unique @map("legacy_id")
-  parentId  String?  @map("parent_id")
+  id        String  @id @default(cuid())
+  legacyId  Int?    @unique @map("legacy_id")
+  parentId  String? @map("parent_id")
   title     String
-  sortOrder Int      @default(0) @map("sort_order")
-  active    Boolean  @default(true)
+  sortOrder Int     @default(0) @map("sort_order")
+  active    Boolean @default(true)
 
-  parent  BlogCategory?  @relation("BlogCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  parent   BlogCategory?  @relation("BlogCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children BlogCategory[] @relation("BlogCategoryHierarchy")
-  entries BlogEntry[]
+  entries  BlogEntry[]
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -617,7 +617,7 @@ model BlogEntry {
   commentsPrivacy Int?     @map("comments_privacy")
   views           Int      @default(0)
 
-  author   User         @relation("BlogEntryAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  author   User          @relation("BlogEntryAuthor", fields: [authorId], references: [id], onDelete: Restrict)
   category BlogCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@index([authorId, categoryId])
@@ -627,18 +627,18 @@ model BlogEntry {
 }
 
 model Admin {
-  id            String         @id @default(cuid())
-  legacyId      Int?          @unique @map("legacy_id")
-  username      String        @unique
-  displayName   String        @map("display_name")
-  email         String        @unique
-  passwordHash  String        @map("password_hash")
-  passwordMethod Int           @default(0) @map("password_method")
-  enabled       Boolean        @default(false)
-  isSuperAdmin  Boolean        @default(false) @map("is_super_admin")
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
-  sessions      AdminSession[]
+  id             String         @id @default(cuid())
+  legacyId       Int?           @unique @map("legacy_id")
+  username       String         @unique
+  displayName    String         @map("display_name")
+  email          String         @unique
+  passwordHash   String         @map("password_hash")
+  passwordMethod Int            @default(0) @map("password_method")
+  enabled        Boolean        @default(false)
+  isSuperAdmin   Boolean        @default(false) @map("is_super_admin")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+  sessions       AdminSession[]
 
   @@index([enabled, isSuperAdmin])
   @@map("admins")
@@ -654,4 +654,70 @@ model AdminSession {
   @@index([adminId, expiresAt])
   @@index([expiresAt])
   @@map("admin_sessions")
+}
+
+// Legacy administrative catalogs. These tables are structure-only until an
+// authorized row source and reconciliation plan exist; no User FKs yet.
+model UserLevel {
+  id           String   @id @default(cuid())
+  legacyId     Int?     @unique @map("legacy_id")
+  name         String
+  description  String
+  isDefault    Boolean  @default(false) @map("is_default")
+  isSignup     Boolean  @default(false) @map("is_signup")
+  capabilities Json?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@index([isDefault])
+  @@index([isSignup])
+  @@map("user_levels")
+}
+
+model Subnetwork {
+  id              String   @id @default(cuid())
+  legacyId        Int?     @unique @map("legacy_id")
+  nameLegacyId    Int      @default(0) @map("name_legacy_id")
+  field1Qualifier String   @default("") @map("field1_qualifier")
+  field1Value     String   @default("") @map("field1_value")
+  field2Qualifier String   @default("") @map("field2_qualifier")
+  field2Value     String   @default("") @map("field2_value")
+  themeLegacyId   Int      @default(0) @map("theme_legacy_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([nameLegacyId])
+  @@index([themeLegacyId])
+  @@map("subnetworks")
+}
+
+model LanguageVariable {
+  id           String   @id @default(cuid())
+  legacyId     Int      @map("legacy_id")
+  languageId   Int      @map("language_id")
+  value        String?
+  defaultValue String?  @map("default_value")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@unique([legacyId, languageId])
+  @@index([languageId, legacyId])
+  @@map("language_variables")
+}
+
+model Setting {
+  id              String   @id @default(cuid())
+  legacyId        Int?     @unique @map("legacy_id")
+  key             String   @default("")
+  version         String   @default("")
+  isOnline        Boolean  @default(true) @map("is_online")
+  urlEnabled      Boolean  @default(false) @map("url_enabled")
+  usernameEnabled Boolean  @default(true) @map("username_enabled")
+  subnetField1Id  Int      @default(-2) @map("subnet_field1_id")
+  subnetField2Id  Int      @default(-2) @map("subnet_field2_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([key])
+  @@map("settings")
 }
