@@ -25,7 +25,7 @@ import {
   createFriendRequestNotification,
   deleteFriendRequestNotification,
 } from "@/server/notifications/service";
-import { updateStatusAndPrivacy } from "@/server/activity/service";
+import { recordFriendActivity, updateStatusAndPrivacy } from "@/server/activity/service";
 import { getProfileComments } from "@/server/profile-comments/service";
 import { getPublicProfileViews, recordProfileView } from "@/server/profile-views/service";
 
@@ -488,7 +488,10 @@ async function updateIncomingRequest(
       where: { requesterId: requester.id, addresseeId: actorId, status: "pending" },
       data: { status },
     });
-    if (updated.count > 0) await deleteFriendRequestNotification(transaction, requester.id, actorId);
+    if (updated.count > 0) {
+      await recordFriendActivity(transaction, actorId, requester.id);
+      await deleteFriendRequestNotification(transaction, requester.id, actorId);
+    }
     return updated;
   });
   return result.count > 0 ? { ok: true } : { ok: false, reason: "not_allowed" };

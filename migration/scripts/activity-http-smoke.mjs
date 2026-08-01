@@ -75,6 +75,7 @@ try {
         objectPrivacy: 3,
         createdAt: new Date(Date.now() - (index + 1) * 1000),
       })),
+      { actorId: visibleFriend.id, type: "addfriend", text: "Se ha conectado con Activity viewer", objectPrivacy: 3, createdAt: new Date(Date.now() - 20 * 1000) },
       { actorId: privateFriend.id, type: "editstatus", text: "Estado privado de conexión", objectPrivacy: 1 },
       { actorId: blockedFriend.id, type: "editstatus", text: "Estado bloqueado", objectPrivacy: 63 },
     ],
@@ -132,14 +133,15 @@ try {
   const secondPageHtml = await secondPage.text();
   assert.equal(secondPage.status, 200, "la segunda página del feed debe responder 200");
   assert.match(secondPageHtml, /Estado visible de conexión 10/, "la segunda página debe mostrar las actividades restantes");
+  assert.match(secondPageHtml, /ha creado una conexión/, "la segunda página debe mostrar la actividad addfriend");
   assert.equal(secondPageHtml.includes("Segundo estado HTTP"), false, "la segunda página no debe repetir la actividad más reciente");
-  assert.equal((secondPageHtml.match(/class="activity-item"/g) ?? []).length, 2, "la segunda página debe mostrar las 2 actividades restantes");
+  assert.equal((secondPageHtml.match(/class="activity-item"/g) ?? []).length, 3, "la segunda página debe mostrar las 3 actividades restantes");
 
   const normalizedPage = await fetch("http://localhost:3000/home?activityPage=999", { headers: viewerHeaders });
   const normalizedPageHtml = await normalizedPage.text();
   assert.equal(normalizedPage.status, 200, "una página de feed fuera de rango debe responder 200");
   assert.match(normalizedPageHtml, /Estado visible de conexión 10/);
-  assert.equal((normalizedPageHtml.match(/class="activity-item"/g) ?? []).length, 2, "la página fuera de rango debe normalizarse a la última");
+  assert.equal((normalizedPageHtml.match(/class="activity-item"/g) ?? []).length, 3, "la página fuera de rango debe normalizarse a la última");
 
   await db.activity.updateMany({ where: { actorId: viewer.id, type: "editstatus" }, data: { createdAt: new Date(Date.now() - 601 * 1000) } });
   const boundaryAccount = await fetch("http://localhost:3000/account/profile", { headers: viewerHeaders });

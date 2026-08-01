@@ -88,8 +88,8 @@ export default async function HomePage({
                 <li className="activity-item" key={activity.id}>
                   <span className="friend-avatar" aria-hidden="true">{activity.actor.displayName.slice(0, 1).toUpperCase()}</span>
                   <div>
-                    <p><Link className="activity-actor" href={`/profile/${encodeURIComponent(activity.actor.username)}`}>{activity.actor.displayName}</Link> ha actualizado su estado</p>
-                    <blockquote>{activity.text}</blockquote>
+                    <p><Link className="activity-actor" href={`/profile/${encodeURIComponent(activity.actor.username)}`}>{activity.actor.displayName}</Link>{activity.type === "addfriend" ? " ha creado una conexión" : " ha actualizado su estado"}</p>
+                    {activity.type === "editstatus" ? <blockquote>{activity.text}</blockquote> : null}
                     <time>{formatActivityAge(activity.createdAt)}</time>
                   </div>
                 </li>

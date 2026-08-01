@@ -3,11 +3,35 @@ import { Prisma } from "@prisma/client";
 import {
   ACTIVITY_COALESCE_WINDOW_MS,
   ACTIVITY_FEED_PAGE_SIZE,
+  ACTIVITY_TYPE_FRIEND,
   ACTIVITY_TYPE_STATUS,
   type ActivityFeedResult,
 } from "@domain/activity";
 import { canViewProfile, type ProfileSettingsInput } from "@domain/profile";
 import { db } from "@/server/db/client";
+
+export type ActivityTransaction = Prisma.TransactionClient;
+
+export async function recordFriendActivity(
+  transaction: ActivityTransaction,
+  actorId: string,
+  friendId: string,
+): Promise<void> {
+  const [actor, friend] = await Promise.all([
+    transaction.user.findUnique({ where: { id: actorId }, select: { displayName: true, profilePrivacy: true } }),
+    transaction.user.findUnique({ where: { id: friendId }, select: { displayName: true } }),
+  ]);
+  if (!actor || !friend) return;
+
+  await transaction.activity.create({
+    data: {
+      actorId,
+      type: ACTIVITY_TYPE_FRIEND,
+      text: `Se ha conectado con ${friend.displayName}`,
+      objectPrivacy: actor.profilePrivacy,
+    },
+  });
+}
 
 export async function updateStatusAndPrivacy(
   userId: string,
@@ -113,7 +137,7 @@ export async function getActivityFeed(viewerId: string, requestedPage = 1): Prom
   const activities = await db.activity.findMany({
     where: {
       actorId: { in: candidateIds },
-      type: ACTIVITY_TYPE_STATUS,
+      type: { in: [ACTIVITY_TYPE_STATUS, ACTIVITY_TYPE_FRIEND] },
       actor: { enabled: true },
     },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
@@ -135,7 +159,7 @@ export async function getActivityFeed(viewerId: string, requestedPage = 1): Prom
     })
     .map((activity) => ({
       id: activity.id,
-      type: ACTIVITY_TYPE_STATUS,
+      type: activity.type === ACTIVITY_TYPE_FRIEND ? ACTIVITY_TYPE_FRIEND : ACTIVITY_TYPE_STATUS,
       text: activity.text,
       createdAt: activity.createdAt,
       actor: { username: activity.actor.username, displayName: activity.actor.displayName },
