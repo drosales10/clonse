@@ -4,7 +4,7 @@
 
 `docs/legacy/user_account_pass.php` recibe `password_old`, `password_new` y `password_new2` en `task=dosave`, delega validación en `SEUser::user_password()`, actualiza `se_users.user_password`, reconstruye el usuario y renueva las cookies mediante `user_setcookies()`.
 
-Destino: sección `Seguridad` dentro de `/account/profile`, con Server Action independiente.
+Destino: sección `Seguridad` dentro de `/account/profile`, con Route Handler POST autenticado.
 
 ## Contrato
 
@@ -63,3 +63,7 @@ Cuando se habilite la batería de verificaciones, cubrir al menos:
 5. Verificar que no aparecen contraseñas, hashes ni tokens en HTML, respuestas de acción o logs.
 
 Validación realizada en esta fase: `pnpm exec tsc --noEmit`, `pnpm lint` y `git diff --check` correctos. La batería funcional completa y el smoke HTTP con datos controlados quedan pospuestos según el plan de implementación.
+
+## Evidencia de smoke
+
+`migration/scripts/account-security-http-smoke.mjs` pasa contra el build de producción: cambio `303`, rechazo de confirmación inválida `303` y eliminación posterior `303`. Verifica el hash nuevo, invalida la sesión secundaria y conserva la sesión actual hasta la eliminación.

@@ -1,5 +1,4 @@
-import { DeleteAccountForm } from "@/app/components/access-form";
-import { PasswordChangeForm } from "@/app/components/access-form";
+import { DeleteAccountForm, PasswordChangeForm } from "@/app/components/access-form";
 import { ProfileFieldsForm } from "@/app/components/profile-fields-form";
 import { ProfileSettingsForm } from "@/app/components/profile-settings-form";
 import type { Metadata } from "next";
@@ -14,7 +13,11 @@ export const metadata: Metadata = {
   description: "Configura la privacidad y el estado de tu perfil.",
 };
 
-export default async function ProfileSettingsPage() {
+export default async function ProfileSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ security?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?returnUrl=/account/profile");
 
@@ -23,6 +26,18 @@ export default async function ProfileSettingsPage() {
     getOwnProfileFields(user.id),
   ]);
   if (!settings) redirect("/login?returnUrl=/account/profile");
+  const query = await searchParams;
+  const passwordUpdated = query.security === "password-updated";
+  const passwordError = query.security === "password-invalid"
+    ? "Revisa la contraseña actual y confirma que las nuevas contraseñas coinciden."
+    : query.security === "password-error"
+      ? "No se pudo actualizar la contraseña."
+      : undefined;
+  const deleteError = query.security === "delete-invalid"
+    ? "Introduce tu contraseña actual y escribe ELIMINAR para confirmar."
+    : query.security === "delete-error"
+      ? "La contraseña actual no es correcta."
+      : undefined;
 
   return (
     <main className="authenticated-shell">
@@ -52,13 +67,13 @@ export default async function ProfileSettingsPage() {
         <p className="eyebrow">Cuenta · Seguridad</p>
         <h2 id="password-title">Cambia tu contraseña</h2>
         <p className="lead">Confirma tu contraseña actual para establecer una nueva clave. Las demás sesiones se cerrarán.</p>
-        <PasswordChangeForm />
+        <PasswordChangeForm error={passwordError} message={passwordUpdated ? "Tu contraseña se ha actualizado. Las demás sesiones fueron cerradas." : undefined} />
       </section>
       <section className="profile-panel settings-panel account-danger-zone" aria-labelledby="delete-account-title">
         <p className="eyebrow">Cuenta · Zona peligrosa</p>
         <h2 id="delete-account-title">Eliminar cuenta</h2>
         <p className="lead">Esta acción es irreversible y elimina los datos de cuenta modelados en esta aplicación.</p>
-        <DeleteAccountForm />
+        <DeleteAccountForm error={deleteError} />
       </section>
     </main>
   );

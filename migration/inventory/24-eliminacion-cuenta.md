@@ -4,7 +4,7 @@
 
 `docs/legacy/user_account_delete.php` exige el permiso de nivel `level_profile_delete`, genera un `delete_token` de sesión con expiración de 300 segundos y acepta `task=dodelete`. Si el token es válido, ejecuta `$user->user_delete()`, renueva cookies y devuelve JSON con el resultado.
 
-Destino: una sección de peligro en `/account/profile`, protegida por sesión y contraseña actual. No se modifica PHP/MySQL ni se ejecuta contra la base legacy.
+Destino: una sección de peligro en `/account/profile`, protegida por sesión y contraseña actual mediante Route Handler POST. No se modifica PHP/MySQL ni se ejecuta contra la base legacy.
 
 ## Contrato destino
 
@@ -43,3 +43,7 @@ La acción obtiene el usuario exclusivamente de la sesión HTTP-only. No acepta 
 ## Smoke posterior
 
 Con usuario sintético y limpieza controlada, verificar: confirmación inválida no muta; contraseña incorrecta no muta; sesión ausente no muta; confirmación válida elimina usuario y relaciones destino, invalida la sesión y redirige a `/`. La batería completa se mantiene para la fase posterior.
+
+## Evidencia de smoke
+
+`migration/scripts/account-security-http-smoke.mjs` pasa contra el build de producción: cambia la contraseña, conserva la sesión actual, revoca la secundaria, rechaza una confirmación inválida y elimina finalmente el usuario sintético con redirección `303`. La limpieza no deja datos sintéticos.

@@ -87,7 +87,7 @@ try {
   form.set("password", newPassword);
   form.set("passwordConfirmation", newPassword);
   const changed = await postForm(currentSession, actionUrl, form);
-  assert.equal(changed.status, 200, "cambiar contraseña debe devolver estado de formulario");
+  assert.equal(changed.status, 303, "cambiar contraseña debe redirigir al formulario");
 
   const updated = await db.user.findUnique({ where: { id: user.id }, select: { passwordHash: true } });
   assert.ok(updated && verifyPassword(newPassword, updated.passwordHash), "debe persistir la nueva contraseña");
@@ -99,7 +99,7 @@ try {
   form.set("currentPassword", newPassword);
   form.set("deleteConfirmation", "NO");
   const rejected = await postForm(currentSession, actionUrl, form);
-  assert.equal(rejected.status, 200, "una confirmación inválida debe devolver error de formulario");
+  assert.equal(rejected.status, 303, "una confirmación inválida debe redirigir al formulario");
   assert.equal(await db.user.count({ where: { id: user.id } }), 1, "la confirmación inválida no debe borrar la cuenta");
 
   ({ actionUrl, form } = formFromPage(await profileHtml(currentSession), "deleteConfirmation"));

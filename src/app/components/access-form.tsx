@@ -6,8 +6,6 @@ import { useFormStatus } from "react-dom";
 
 import type { AccessFormState } from "@domain/access";
 import {
-  changePasswordAction,
-  deleteAccountAction,
   loginAction,
   registerAction,
   requestPasswordResetAction,
@@ -120,28 +118,25 @@ export function ResetPasswordForm({ token }: { token: string }) {
   );
 }
 
-export function PasswordChangeForm() {
-  const [state, formAction] = useActionState<AccessFormState, FormData>(changePasswordAction, {});
+export function PasswordChangeForm({ message, error }: { message?: string; error?: string }) {
   return (
-    <form action={formAction} className="auth-form">
-      <div className="field"><label htmlFor="current-password">Contraseña actual</label><input autoComplete="current-password" id="current-password" name="currentPassword" required type="password" /><FieldError errors={state.errors?.currentPassword} /></div>
-      <div className="field"><label htmlFor="new-password">Nueva contraseña</label><input autoComplete="new-password" id="new-password" minLength={6} name="password" required type="password" /><span className="field-help">Mínimo 6 caracteres alfanuméricos.</span><FieldError errors={state.errors?.password} /></div>
-      <div className="field"><label htmlFor="new-password-confirmation">Repite la nueva contraseña</label><input autoComplete="new-password" id="new-password-confirmation" minLength={6} name="passwordConfirmation" required type="password" /><FieldError errors={state.errors?.passwordConfirmation} /></div>
-      <FieldError errors={state.errors?.form} />
-      <FormMessage state={state} />
+    <form action="/account/profile/password" className="auth-form" method="post">
+      <div className="field"><label htmlFor="current-password">Contraseña actual</label><input autoComplete="current-password" id="current-password" name="currentPassword" required type="password" /></div>
+      <div className="field"><label htmlFor="new-password">Nueva contraseña</label><input autoComplete="new-password" id="new-password" minLength={6} name="password" required type="password" /><span className="field-help">Mínimo 6 caracteres alfanuméricos.</span></div>
+      <div className="field"><label htmlFor="new-password-confirmation">Repite la nueva contraseña</label><input autoComplete="new-password" id="new-password-confirmation" minLength={6} name="passwordConfirmation" required type="password" /></div>
+      {error ? <p className="form-error" role="alert">{error}</p> : null}
+      {message ? <p className="form-success" role="status">{message}</p> : null}
       <SubmitButton label="Cambiar contraseña" pendingLabel="Actualizando…" />
     </form>
   );
 }
 
-export function DeleteAccountForm() {
-  const [state, formAction] = useActionState<AccessFormState, FormData>(deleteAccountAction, {});
+export function DeleteAccountForm({ error }: { error?: string }) {
   return (
-    <form action={formAction} className="auth-form">
-      <div className="field"><label htmlFor="delete-current-password">Contraseña actual</label><input autoComplete="current-password" id="delete-current-password" name="currentPassword" required type="password" /><FieldError errors={state.errors?.currentPassword} /></div>
-      <div className="field"><label htmlFor="delete-confirmation">Escribe ELIMINAR para confirmar</label><input autoComplete="off" id="delete-confirmation" name="deleteConfirmation" required type="text" /><FieldError errors={state.errors?.deleteConfirmation} /></div>
-      <FieldError errors={state.errors?.form} />
-      <FormMessage state={state} />
+    <form action="/account/profile/delete" className="auth-form" method="post">
+      <div className="field"><label htmlFor="delete-current-password">Contraseña actual</label><input autoComplete="current-password" id="delete-current-password" name="currentPassword" required type="password" /></div>
+      <div className="field"><label htmlFor="delete-confirmation">Escribe ELIMINAR para confirmar</label><input autoComplete="off" id="delete-confirmation" name="deleteConfirmation" required type="text" /></div>
+      {error ? <p className="form-error" role="alert">{error}</p> : null}
       <SubmitButton label="Eliminar mi cuenta" pendingLabel="Eliminando…" />
     </form>
   );
