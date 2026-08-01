@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 
+import type { BlockRelationship, BlockedUser } from "@domain/blocks";
 import type {
   FriendRelationship,
   PublicProfileFriend,
@@ -19,7 +20,8 @@ import { db } from "@/server/db/client";
 
 export type ProfileLookup =
   | { kind: "profile"; profile: PublicProfile }
-  | { kind: "private" };
+  | { kind: "private" }
+  | { kind: "blocked"; username: string; blockedByViewer: true };
 
 export async function getPublicProfile(
   username: string,
@@ -42,6 +44,12 @@ export async function getPublicProfile(
   });
 
   if (!owner) return null;
+  const blockRelationship = viewerId ? await getBlockRelationship(viewerId, owner.id) : "none";
+  if (blockRelationship === "blocked_by_target") return { kind: "private" };
+  if (blockRelationship === "blocked_by_viewer") {
+    return { kind: "blocked", username: owner.username, blockedByViewer: true };
+  }
+
   const relationship = viewerId ? await getFriendRelationship(viewerId, owner.id) : "none";
   if (!canViewProfile(owner.id, owner.profilePrivacy, viewerId, relationship === "friends")) return { kind: "private" };
 
@@ -72,6 +80,93 @@ export interface OwnProfileSettings {
   status: string | null;
 }
 
+export interface BlockMutationResult {
+  ok: true;
+}
+
+export interface BlockMutationFailure {
+  ok: false;
+  reason: "target_not_found" | "self" | "already_blocked" | "not_allowed";
+}
+
+export async function getBlockRelationship(viewerId: string, targetId: string): Promise<BlockRelationship> {
+  if (viewerId === targetId) return "self";
+
+  const blocks = await db.profileBlock.findMany({
+    where: {
+      OR: [
+        { blockerId: viewerId, blockedId: targetId },
+        { blockerId: targetId, blockedId: viewerId },
+      ],
+    },
+    select: { blockerId: true, blockedId: true },
+  });
+
+  if (blocks.some((block) => block.blockerId === viewerId)) return "blocked_by_viewer";
+  if (blocks.some((block) => block.blockerId === targetId)) return "blocked_by_target";
+  return "none";
+}
+
+export async function getBlockedUsers(userId: string): Promise<BlockedUser[]> {
+  const blocks = await db.profileBlock.findMany({
+    where: { blockerId: userId, blocked: { enabled: true } },
+    orderBy: { createdAt: "desc" },
+    select: { blocked: { select: { username: true, displayName: true } } },
+  });
+  return blocks.map((block) => block.blocked);
+}
+
+export async function blockUser(actorId: string, targetUsername: string): Promise<BlockMutationResult | BlockMutationFailure> {
+  const [actor, target] = await Promise.all([
+    db.user.findUnique({ where: { id: actorId }, select: { id: true, enabled: true } }),
+    findActiveUserWithProfile(targetUsername),
+  ]);
+  if (!actor?.enabled || !target) return { ok: false, reason: "target_not_found" };
+  if (actor.id === target.id) return { ok: false, reason: "self" };
+
+  const existing = await db.profileBlock.findUnique({
+    where: { blockerId_blockedId: { blockerId: actor.id, blockedId: target.id } },
+    select: { id: true },
+  });
+  if (existing) return { ok: false, reason: "already_blocked" };
+
+  try {
+    await db.$transaction([
+      db.profileBlock.create({ data: { blockerId: actor.id, blockedId: target.id } }),
+      db.friendConnection.deleteMany({
+        where: {
+          OR: [
+            { requesterId: actor.id, addresseeId: target.id },
+            { requesterId: target.id, addresseeId: actor.id },
+          ],
+        },
+      }),
+    ]);
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return { ok: false, reason: "already_blocked" };
+    }
+    throw error;
+  }
+}
+
+export async function unblockUser(actorId: string, targetUsername: string): Promise<BlockMutationResult | BlockMutationFailure> {
+  const target = await findActiveUserWithProfile(targetUsername);
+  if (!target || target.id === actorId) return { ok: false, reason: target?.id === actorId ? "self" : "target_not_found" };
+
+  const result = await db.profileBlock.deleteMany({
+    where: { blockerId: actorId, blockedId: target.id },
+  });
+  return result.count > 0 ? { ok: true } : { ok: false, reason: "not_allowed" };
+}
+
+async function findActiveUserWithProfile(username: string): Promise<{ id: string } | null> {
+  return db.user.findFirst({
+    where: { username: { equals: username, mode: "insensitive" }, enabled: true },
+    select: { id: true },
+  });
+}
 export interface FriendListItem {
   username: string;
   displayName: string;

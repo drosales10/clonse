@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { FriendRelationshipActions } from "@/app/components/friend-relationship-actions";
+import { ProfileBlockActions } from "@/app/components/profile-block-actions";
 import { getCurrentUser } from "@/server/auth/session";
 import { getPublicProfile } from "@/server/profile/service";
 
@@ -38,6 +39,13 @@ export default async function ProfilePage({
           <p className="lead">La persona ha limitado quién puede consultar esta información.</p>
           {!viewer ? <Link className="button button-primary" href={`/login?returnUrl=/profile/${encodeURIComponent(username)}`}>Iniciar sesión</Link> : null}
         </section>
+      ) : result.kind === "blocked" ? (
+        <section className="profile-panel profile-private" aria-labelledby="blocked-profile-title">
+          <p className="eyebrow">Bloqueo activo</p>
+          <h1 id="blocked-profile-title">Has bloqueado este perfil</h1>
+          <p className="lead">El contenido y las conexiones permanecen ocultos mientras el bloqueo esté activo.</p>
+          {viewer ? <ProfileBlockActions blockedByViewer username={result.username} /> : null}
+        </section>
       ) : (
         <section className="profile-panel" aria-labelledby="profile-title">
           <div className="profile-identity">
@@ -55,6 +63,7 @@ export default async function ProfilePage({
             <div><dt>Cuenta</dt><dd>{result.profile.verified ? "Email verificado" : "Pendiente de verificación"}</dd></div>
           </dl>
           {viewer ? <FriendRelationshipActions relationship={result.profile.relationship} username={result.profile.username} /> : null}
+          {viewer && result.profile.relationship !== "self" ? <ProfileBlockActions blockedByViewer={false} username={result.profile.username} /> : null}
           {result.profile.fields.length > 0 ? (
             <section className="profile-field-display" aria-labelledby="profile-information-title">
               <h2 id="profile-information-title">Información</h2>

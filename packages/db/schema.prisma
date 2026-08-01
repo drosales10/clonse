@@ -34,6 +34,8 @@ model User {
   profileFieldValues   ProfileFieldValue[]
   friendRequestsSent   FriendConnection[] @relation("FriendRequester")
   friendRequestsReceived FriendConnection[] @relation("FriendAddressee")
+  blocksCreated        ProfileBlock[] @relation("ProfileBlocker")
+  blocksReceived       ProfileBlock[] @relation("ProfileBlocked")
 
   @@index([enabled, verifiedAt])
   @@map("users")
@@ -66,6 +68,20 @@ model FriendConnection {
   @@index([requesterId, status])
   @@index([addresseeId, status])
   @@map("friend_connections")
+}
+
+model ProfileBlock {
+  id        String   @id @default(cuid())
+  blockerId String   @map("blocker_id")
+  blockedId String   @map("blocked_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  blocker User @relation("ProfileBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("ProfileBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("profile_blocks")
 }
 
 model ProfileCategory {

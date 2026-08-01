@@ -93,6 +93,7 @@ h1 em { color: var(--accent); font-family: Georgia, serif; font-weight: 400; }
 .relationship-status { color: var(--forest); font-size: .84rem; font-weight: 700; }
 .relationship-button-row { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; }
 .relationship-feedback { flex-basis: 100%; margin: 0; }
+.profile-block-actions { align-items: center; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 12px; margin-top: 12px; padding-top: 14px; }
 .friends-panel { max-width: 900px; }
 .friends-section { border-top: 1px solid var(--line); margin-top: 42px; padding-top: 25px; }
 .friends-section-heading, .profile-friends-heading { align-items: center; display: flex; justify-content: space-between; }
