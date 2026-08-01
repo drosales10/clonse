@@ -625,3 +625,33 @@ model BlogEntry {
   @@index([searchable, createdAt])
   @@map("blog_entries")
 }
+
+model Admin {
+  id            String         @id @default(cuid())
+  legacyId      Int?          @unique @map("legacy_id")
+  username      String        @unique
+  displayName   String        @map("display_name")
+  email         String        @unique
+  passwordHash  String        @map("password_hash")
+  passwordMethod Int           @default(0) @map("password_method")
+  enabled       Boolean        @default(false)
+  isSuperAdmin  Boolean        @default(false) @map("is_super_admin")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  sessions      AdminSession[]
+
+  @@index([enabled, isSuperAdmin])
+  @@map("admins")
+}
+
+model AdminSession {
+  id        String   @id
+  adminId   String   @map("admin_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  admin     Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId, expiresAt])
+  @@index([expiresAt])
+  @@map("admin_sessions")
+}
