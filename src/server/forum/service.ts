@@ -57,7 +57,7 @@ export async function getForumCatalog(input: Partial<ForumQuery> = {}): Promise<
   const allCategories = await db.forumCategory.findMany({ where: { instanceId: instance.id }, orderBy: [{ position: "asc" }, { id: "asc" }], select: categorySelect });
   const categories = allCategories.filter((category) => isPublicCategory(category, allCategories));
   const categoryId = query.categoryId && categories.some((category) => category.id === query.categoryId) ? query.categoryId : null;
-  const categoryIds = categoryId ? [categoryId] : categories.map((category) => category.id);
+  const categoryIds = categoryId ? resolveForumCategoryIds(categoryId, categories) : categories.map((category) => category.id);
   const rows = categoryIds.length === 0 ? [] : await db.forumPost.findMany({
     where: { instanceId: instance.id, categoryId: { in: categoryIds }, parentId: null, author: { enabled: true } },
     orderBy: [{ isAnnouncement: "desc" }, { isSticky: "desc" }, { createdAt: "desc" }, { id: "asc" }],
@@ -114,4 +114,22 @@ function toTextExcerpt(body: string | null): string | null {
   if (!body) return null;
   const text = body.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   return text.length > 220 ? `${text.slice(0, 217)}...` : text;
+}
+
+function resolveForumCategoryIds(
+  selectedId: string,
+  categories: Array<{ id: string; parentId: string | null }>,
+): string[] {
+  const descendants = new Set([selectedId]);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const category of categories) {
+      if (category.parentId && descendants.has(category.parentId) && !descendants.has(category.id)) {
+        descendants.add(category.id);
+        changed = true;
+      }
+    }
+  }
+  return [...descendants];
 }
