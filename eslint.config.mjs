@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Legacy PHP/JS is evidence, not part of the Next.js lint target.
+    "docs/legacy/**",
   ]),
 ]);
 

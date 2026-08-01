@@ -1,0 +1,37 @@
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
+
+import { normalizeDatabaseUrl } from "@/../packages/db/src/database-url";
+
+const globalForDatabase = globalThis as unknown as {
+  prisma?: PrismaClient;
+  pool?: Pool;
+};
+
+function databaseUrl(): string {
+  const value = process.env.DATABASE_URL;
+  if (!value) throw new Error("DATABASE_URL is required to access PostgreSQL.");
+  return normalizeDatabaseUrl(value);
+}
+
+const pool =
+  globalForDatabase.pool ??
+  new Pool({
+    connectionString: databaseUrl(),
+    max: 10,
+  });
+
+const adapter = new PrismaPg(pool);
+
+export const db =
+  globalForDatabase.prisma ??
+  new PrismaClient({
+    adapter,
+    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForDatabase.pool = pool;
+  globalForDatabase.prisma = db;
+}

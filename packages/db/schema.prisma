@@ -1,0 +1,45 @@
+// Esquema inicial de destino para la vertical de acceso.
+// No ejecutar migraciones hasta inspeccionar el esquema PostgreSQL disponible.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  username             String    @unique
+  displayName          String    @map("display_name")
+  passwordHash         String    @map("password_hash")
+  passwordMethod       Int       @default(0) @map("password_method")
+  verificationTokenHash String?   @map("verification_token_hash")
+  verificationSentAt   DateTime? @map("verification_sent_at")
+  verifiedAt           DateTime? @map("verified_at")
+  enabled              Boolean   @default(true)
+  signUpDate           DateTime  @default(now()) @map("sign_up_date")
+  loginCount            Int       @default(0) @map("login_count")
+  lastLoginAt          DateTime? @map("last_login_at")
+  lastActiveAt         DateTime? @map("last_active_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+  sessions             AuthSession[]
+
+  @@index([enabled, verifiedAt])
+  @@map("users")
+}
+
+model AuthSession {
+  id        String   @id
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("auth_sessions")
+}

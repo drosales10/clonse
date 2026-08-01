@@ -1,0 +1,11 @@
+packages:
+  - "packages/*"
+
+allowBuilds:
+  "@prisma/engines": true
+  prisma: true
+  sharp: true
+  unrs-resolver: true
+
+minimumReleaseAgeExclude:
+  - "@types/pg@8.20.3"

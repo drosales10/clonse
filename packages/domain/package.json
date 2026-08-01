@@ -1,0 +1,5 @@
+{
+  "name": "@social-network/domain",
+  "private": true,
+  "type": "module"
+}
