@@ -141,6 +141,20 @@ try {
   assert.match(normalizedPageHtml, /Estado visible de conexión 10/);
   assert.equal((normalizedPageHtml.match(/class="activity-item"/g) ?? []).length, 2, "la página fuera de rango debe normalizarse a la última");
 
+  await db.activity.updateMany({ where: { actorId: viewer.id, type: "editstatus" }, data: { createdAt: new Date(Date.now() - 601 * 1000) } });
+  const boundaryAccount = await fetch("http://localhost:3000/account/profile", { headers: viewerHeaders });
+  const boundarySave = await saveStatus(sessionId, "Estado posterior a ventana", await boundaryAccount.text());
+  assert.ok([200, 303].includes(boundarySave.status), "el estado posterior a 600 segundos debe aceptarse");
+  assert.equal(await db.activity.count({ where: { actorId: viewer.id, type: "editstatus" } }), 2, "fuera de 600 segundos debe crearse otra actividad");
+
+  const clearAccount = await fetch("http://localhost:3000/account/profile", { headers: viewerHeaders });
+  const clearSave = await saveStatus(sessionId, "", await clearAccount.text());
+  assert.ok([200, 303].includes(clearSave.status), "limpiar el estado debe aceptarse");
+  assert.equal((await db.user.findUnique({ where: { id: viewer.id }, select: { status: true } }))?.status, null, "limpiar debe guardar estado nulo");
+  assert.equal(await db.activity.count({ where: { actorId: viewer.id, type: "editstatus" } }), 2, "limpiar no debe borrar el historial de actividad");
+
+  console.log("ACTIVITY_STATUS_BOUNDARIES_HTTP_SMOKE_PASS", JSON.stringify({ boundarySave: boundarySave.status, clearSave: clearSave.status, activityCountAfterClear: 2 }));
+
   console.log("ACTIVITY_HTTP_SMOKE_PASS", JSON.stringify({ root: root.status, anonymousHome: anonymousHome.status, account: account.status, firstSave: firstSave.status, secondSave: secondSave.status, home: home.status }));
 } finally {
   await db.user.deleteMany({ where: { id: { in: userIds } } });
