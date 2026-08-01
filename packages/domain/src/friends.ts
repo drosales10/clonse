@@ -1,4 +1,5 @@
 export const FRIEND_CONNECTION_STATUSES = ["pending", "accepted"] as const;
+export const FRIEND_LIST_PAGE_SIZE = 10;
 export const PUBLIC_PROFILE_FRIENDS_PAGE_SIZE = 10;
 
 export type FriendConnectionStatus = (typeof FRIEND_CONNECTION_STATUSES)[number];
@@ -18,6 +19,16 @@ export interface PublicProfileFriendsPagination {
   end: number;
   search: string;
   mutualOnly: boolean;
+}
+
+export interface FriendListPagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  pageCount: number;
+  start: number;
+  end: number;
+  search: string;
 }
 
 export interface FriendActionState {

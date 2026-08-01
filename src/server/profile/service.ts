@@ -2,11 +2,12 @@ import { Prisma } from "@prisma/client";
 
 import type { BlockRelationship, BlockedUser } from "@domain/blocks";
 import type {
+  FriendListPagination,
   FriendRelationship,
   PublicProfileFriend,
   PublicProfileFriendsPagination,
 } from "@domain/friends";
-import { PUBLIC_PROFILE_FRIENDS_PAGE_SIZE } from "@domain/friends";
+import { FRIEND_LIST_PAGE_SIZE, PUBLIC_PROFILE_FRIENDS_PAGE_SIZE } from "@domain/friends";
 import type {
   ProfileFieldDefinition,
   ProfileFieldOption,
@@ -199,12 +200,6 @@ export interface FriendListItem {
   displayName: string;
 }
 
-export interface FriendDashboard {
-  friends: FriendListItem[];
-  incomingRequests: FriendListItem[];
-  outgoingRequests: FriendListItem[];
-}
-
 export type FriendMutationResult =
   | { ok: true }
   | {
@@ -212,7 +207,24 @@ export type FriendMutationResult =
       reason: "target_not_found" | "self" | "already_friends" | "already_pending" | "not_allowed";
     };
 
-export async function getFriendDashboard(userId: string): Promise<FriendDashboard> {
+export interface FriendDashboard {
+  friends: FriendListItem[];
+  friendsPagination: FriendListPagination;
+  incomingRequests: FriendListItem[];
+  incomingPagination: FriendListPagination;
+  outgoingRequests: FriendListItem[];
+  outgoingPagination: FriendListPagination;
+}
+
+export interface FriendDashboardQuery {
+  friendsPage?: number;
+  incomingPage?: number;
+  outgoingPage?: number;
+  search?: string;
+}
+
+export async function getFriendDashboard(userId: string, query: FriendDashboardQuery = {}): Promise<FriendDashboard> {
+  const normalizedSearch = (query.search ?? "").trim().slice(0, 64);
   const [friends, incomingRequests, outgoingRequests] = await Promise.all([
     db.friendConnection.findMany({
       where: {
@@ -240,14 +252,52 @@ export async function getFriendDashboard(userId: string): Promise<FriendDashboar
     }),
   ]);
 
+  const friendItems = friends
+    .map((connection) => connection.requesterId === userId ? connection.addressee : connection.requester)
+    .filter((friend) => matchesFriendSearch(friend, normalizedSearch))
+    .sort(compareFriendListItems);
+  const incomingItems = incomingRequests.map((connection) => connection.requester);
+  const outgoingItems = outgoingRequests.map((connection) => connection.addressee);
+
+  const friendsPage = paginateFriendItems(friendItems, query.friendsPage ?? 1, normalizedSearch);
+  const incomingPage = paginateFriendItems(incomingItems, query.incomingPage ?? 1, "");
+  const outgoingPage = paginateFriendItems(outgoingItems, query.outgoingPage ?? 1, "");
+
   return {
-    friends: friends
-      .map((connection) => connection.requesterId === userId ? connection.addressee : connection.requester)
-      .sort(compareFriendListItems),
-    incomingRequests: incomingRequests.map((connection) => connection.requester),
-    outgoingRequests: outgoingRequests.map((connection) => connection.addressee),
+    friends: friendsPage.items,
+    friendsPagination: friendsPage.pagination,
+    incomingRequests: incomingPage.items,
+    incomingPagination: incomingPage.pagination,
+    outgoingRequests: outgoingPage.items,
+    outgoingPagination: outgoingPage.pagination,
   };
 }
+
+function matchesFriendSearch(friend: FriendListItem, search: string): boolean {
+  if (!search) return true;
+  const normalizedName = friend.displayName.toLocaleLowerCase("es");
+  return friend.username.toLocaleLowerCase().includes(search.toLocaleLowerCase())
+    || normalizedName.includes(search.toLocaleLowerCase());
+}
+
+function paginateFriendItems<T extends FriendListItem>(items: T[], requestedPage: number, search: string): { items: T[]; pagination: FriendListPagination } {
+  const pageCount = Math.max(1, Math.ceil(items.length / FRIEND_LIST_PAGE_SIZE));
+  const page = normalizeFriendsPage(requestedPage, pageCount);
+  const skip = (page - 1) * FRIEND_LIST_PAGE_SIZE;
+  return {
+    items: items.slice(skip, skip + FRIEND_LIST_PAGE_SIZE),
+    pagination: {
+      page,
+      pageSize: FRIEND_LIST_PAGE_SIZE,
+      total: items.length,
+      pageCount,
+      start: items.length === 0 ? 0 : skip + 1,
+      end: Math.min(skip + FRIEND_LIST_PAGE_SIZE, items.length),
+      search,
+    },
+  };
+}
+
 
 export async function getPublicProfileFriends(
   userId: string,

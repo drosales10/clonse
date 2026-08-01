@@ -11,6 +11,9 @@ const db = new PrismaClient({ adapter: new PrismaPg(pool) });
 let ownerId;
 let viewerId;
 let friendIds = [];
+let dashboardFriendIds = [];
+let incomingIds = [];
+let outgoingIds = [];
 let sessionId;
 
 try {
@@ -52,11 +55,28 @@ try {
   })));
   friendIds = additionalFriends.map((friend) => friend.id);
 
+  const createSyntheticUsers = async (prefix, count, displayPrefix) => Promise.all(Array.from({ length: count }, async (_, index) => db.user.create({
+    data: {
+      email: `${marker}_${prefix}_${index}@example.invalid`,
+      username: `${marker}_${prefix}_${index}`,
+      displayName: `${displayPrefix} ${String(index).padStart(2, "0")}`,
+      passwordHash: "smoke-only",
+      verifiedAt: new Date(),
+    },
+    select: { id: true },
+  })));
+  dashboardFriendIds = (await createSyntheticUsers("dashboard", 10, "Dashboard Friend")).map((user) => user.id);
+  incomingIds = (await createSyntheticUsers("incoming", 11, "Incoming Request")).map((user) => user.id);
+  outgoingIds = (await createSyntheticUsers("outgoing", 11, "Outgoing Request")).map((user) => user.id);
+
   await db.friendConnection.createMany({
     data: [
       { requesterId: viewerId, addresseeId: ownerId, status: "accepted" },
       ...friendIds.map((friendId) => ({ requesterId: friendId, addresseeId: ownerId, status: "accepted" })),
       { requesterId: viewerId, addresseeId: friendIds[0], status: "accepted" },
+      ...dashboardFriendIds.map((friendId) => ({ requesterId: viewerId, addresseeId: friendId, status: "accepted" })),
+      ...incomingIds.map((requesterId) => ({ requesterId, addresseeId: viewerId, status: "pending" })),
+      ...outgoingIds.map((addresseeId) => ({ requesterId: viewerId, addresseeId, status: "pending" })),
     ],
   });
   sessionId = `${marker}_session`;
@@ -80,8 +100,29 @@ try {
   const accountHtml = await authenticatedAccount.text();
   assert.equal(authenticatedAccount.status, 200, "la cuenta de conexiones debe responder 200 con sesión");
   assert.match(accountHtml, /Tus conexiones/);
-  assert.match(accountHtml, /HTTP Friends Owner/);
+  assert.match(accountHtml, /Dashboard Friend 00/);
   assert.equal(accountHtml.includes(`${marker}_owner@example.invalid`), false, "la cuenta de conexiones no debe mostrar email");
+
+  const dashboardFriendsPage = await fetch(`http://localhost:3000/account/friends?friendsPage=2`, { headers: viewerHeaders });
+  const dashboardFriendsHtml = await dashboardFriendsPage.text();
+  assert.equal(dashboardFriendsPage.status, 200, "la segunda página de conexiones propias debe responder 200");
+  assert.match(dashboardFriendsHtml, /HTTP Friends Owner/);
+
+  const incomingPage = await fetch("http://localhost:3000/account/friends?incomingPage=2", { headers: viewerHeaders });
+  const incomingHtml = await incomingPage.text();
+  assert.equal(incomingPage.status, 200, "la segunda página entrante debe responder 200");
+  assert.match(incomingHtml, /Incoming Request 10/);
+
+  const outgoingPage = await fetch("http://localhost:3000/account/friends?outgoingPage=2", { headers: viewerHeaders });
+  const outgoingHtml = await outgoingPage.text();
+  assert.equal(outgoingPage.status, 200, "la segunda página saliente debe responder 200");
+  assert.match(outgoingHtml, /Outgoing Request 10/);
+
+  const dashboardSearch = await fetch(`http://localhost:3000/account/friends?friendsSearch=${encodeURIComponent("Dashboard Friend 00")}`, { headers: viewerHeaders });
+  const dashboardSearchHtml = await dashboardSearch.text();
+  assert.equal(dashboardSearch.status, 200, "la búsqueda autenticada debe responder 200");
+  assert.match(dashboardSearchHtml, /Dashboard Friend 00/);
+  assert.equal(dashboardSearchHtml.includes("Dashboard Friend 01"), false, "la búsqueda autenticada debe filtrar conexiones");
 
   const authenticatedProfile = await fetch(`http://localhost:3000/profile/${owner.username}`, { headers: viewerHeaders });
   const profileHtml = await authenticatedProfile.text();
@@ -121,8 +162,8 @@ try {
 
   console.log("FRIEND_CONNECTIONS_HTTP_SMOKE_PASS", JSON.stringify({ root: root.status, anonymousAccount: anonymousAccount.status, anonymousProfile: anonymousProfile.status, authenticatedAccount: authenticatedAccount.status, authenticatedProfile: authenticatedProfile.status }));
 } finally {
-  if (ownerId || viewerId || friendIds.length > 0) {
-    await db.user.deleteMany({ where: { id: { in: [ownerId, viewerId, ...friendIds].filter(Boolean) } } });
+  if (ownerId || viewerId || friendIds.length > 0 || dashboardFriendIds.length > 0 || incomingIds.length > 0 || outgoingIds.length > 0) {
+    await db.user.deleteMany({ where: { id: { in: [ownerId, viewerId, ...friendIds, ...dashboardFriendIds, ...incomingIds, ...outgoingIds].filter(Boolean) } } });
   }
   const remainingUsers = await db.user.count({ where: { email: { contains: marker } } });
   const remainingConnections = await db.friendConnection.count({
