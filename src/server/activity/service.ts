@@ -2,9 +2,9 @@ import { Prisma } from "@prisma/client";
 
 import {
   ACTIVITY_COALESCE_WINDOW_MS,
-  ACTIVITY_FEED_LIMIT,
+  ACTIVITY_FEED_PAGE_SIZE,
   ACTIVITY_TYPE_STATUS,
-  type ActivityFeedItem,
+  type ActivityFeedResult,
 } from "@domain/activity";
 import { canViewProfile, type ProfileSettingsInput } from "@domain/profile";
 import { db } from "@/server/db/client";
@@ -76,7 +76,7 @@ export async function updateStatusAndPrivacy(
   }
 }
 
-export async function getActivityFeed(viewerId: string): Promise<ActivityFeedItem[]> {
+export async function getActivityFeed(viewerId: string, requestedPage = 1): Promise<ActivityFeedResult> {
   const [viewer, connections] = await Promise.all([
     db.user.findUnique({ where: { id: viewerId }, select: { id: true, enabled: true, verifiedAt: true } }),
     db.friendConnection.findMany({
@@ -89,7 +89,7 @@ export async function getActivityFeed(viewerId: string): Promise<ActivityFeedIte
       select: { requesterId: true, addresseeId: true },
     }),
   ]);
-  if (!viewer?.enabled || !viewer.verifiedAt) return [];
+  if (!viewer?.enabled || !viewer.verifiedAt) return emptyActivityFeed();
 
   const friendIds = new Set(
     connections.map((connection) => connection.requesterId === viewerId ? connection.addresseeId : connection.requesterId),
@@ -116,8 +116,7 @@ export async function getActivityFeed(viewerId: string): Promise<ActivityFeedIte
       type: ACTIVITY_TYPE_STATUS,
       actor: { enabled: true },
     },
-    orderBy: { createdAt: "desc" },
-    take: ACTIVITY_FEED_LIMIT * 3,
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     select: {
       id: true,
       type: true,
@@ -128,13 +127,12 @@ export async function getActivityFeed(viewerId: string): Promise<ActivityFeedIte
     },
   });
 
-  return activities
+  const visibleActivities = activities
     .filter((activity) => {
       if (blockedIds.has(activity.actor.id)) return false;
       if (activity.actor.id === viewerId) return true;
       return friendIds.has(activity.actor.id) && canViewProfile(activity.actor.id, activity.objectPrivacy, viewerId, true);
     })
-    .slice(0, ACTIVITY_FEED_LIMIT)
     .map((activity) => ({
       id: activity.id,
       type: ACTIVITY_TYPE_STATUS,
@@ -142,4 +140,33 @@ export async function getActivityFeed(viewerId: string): Promise<ActivityFeedIte
       createdAt: activity.createdAt,
       actor: { username: activity.actor.username, displayName: activity.actor.displayName },
     }));
+  const total = visibleActivities.length;
+  const pageCount = Math.max(1, Math.ceil(total / ACTIVITY_FEED_PAGE_SIZE));
+  const page = normalizeActivityPage(requestedPage, pageCount);
+  const startIndex = (page - 1) * ACTIVITY_FEED_PAGE_SIZE;
+  const items = visibleActivities.slice(startIndex, startIndex + ACTIVITY_FEED_PAGE_SIZE);
+
+  return {
+    items,
+    pagination: {
+      page,
+      pageSize: ACTIVITY_FEED_PAGE_SIZE,
+      total,
+      pageCount,
+      start: total === 0 ? 0 : startIndex + 1,
+      end: startIndex + items.length,
+    },
+  };
+}
+
+function normalizeActivityPage(value: number, pageCount: number): number {
+  if (!Number.isInteger(value) || value < 1) return 1;
+  return Math.min(value, pageCount);
+}
+
+function emptyActivityFeed(): ActivityFeedResult {
+  return {
+    items: [],
+    pagination: { page: 1, pageSize: ACTIVITY_FEED_PAGE_SIZE, total: 0, pageCount: 1, start: 0, end: 0 },
+  };
 }

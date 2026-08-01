@@ -1,3 +1,4 @@
+import "dotenv/config";
 import assert from "node:assert/strict";
 
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -67,7 +68,13 @@ try {
   await db.profileBlock.create({ data: { blockerId: viewer.id, blockedId: blockedFriend.id } });
   await db.activity.createMany({
     data: [
-      { actorId: visibleFriend.id, type: "editstatus", text: "Estado visible de conexión", objectPrivacy: 3 },
+      ...Array.from({ length: 11 }, (_, index) => ({
+        actorId: visibleFriend.id,
+        type: "editstatus",
+        text: `Estado visible de conexión ${index}`,
+        objectPrivacy: 3,
+        createdAt: new Date(Date.now() - (index + 1) * 1000),
+      })),
       { actorId: privateFriend.id, type: "editstatus", text: "Estado privado de conexión", objectPrivacy: 1 },
       { actorId: blockedFriend.id, type: "editstatus", text: "Estado bloqueado", objectPrivacy: 63 },
     ],
@@ -119,6 +126,20 @@ try {
   assert.equal(homeHtml.includes("Estado bloqueado"), false, "la actividad bloqueada no debe aparecer");
   assert.equal(homeHtml.includes(`${marker}_visible_friend@example.invalid`), false, "el feed no debe mostrar emails de conexiones");
   assert.equal(homeHtml.includes(`${marker}_private_friend@example.invalid`), false, "el feed no debe mostrar emails privados");
+  assert.equal((homeHtml.match(/class="activity-item"/g) ?? []).length, 10, "la primera página debe mostrar 10 actividades");
+
+  const secondPage = await fetch("http://localhost:3000/home?activityPage=2", { headers: viewerHeaders });
+  const secondPageHtml = await secondPage.text();
+  assert.equal(secondPage.status, 200, "la segunda página del feed debe responder 200");
+  assert.match(secondPageHtml, /Estado visible de conexión 10/, "la segunda página debe mostrar las actividades restantes");
+  assert.equal(secondPageHtml.includes("Segundo estado HTTP"), false, "la segunda página no debe repetir la actividad más reciente");
+  assert.equal((secondPageHtml.match(/class="activity-item"/g) ?? []).length, 2, "la segunda página debe mostrar las 2 actividades restantes");
+
+  const normalizedPage = await fetch("http://localhost:3000/home?activityPage=999", { headers: viewerHeaders });
+  const normalizedPageHtml = await normalizedPage.text();
+  assert.equal(normalizedPage.status, 200, "una página de feed fuera de rango debe responder 200");
+  assert.match(normalizedPageHtml, /Estado visible de conexión 10/);
+  assert.equal((normalizedPageHtml.match(/class="activity-item"/g) ?? []).length, 2, "la página fuera de rango debe normalizarse a la última");
 
   console.log("ACTIVITY_HTTP_SMOKE_PASS", JSON.stringify({ root: root.status, anonymousHome: anonymousHome.status, account: account.status, firstSave: firstSave.status, secondSave: secondSave.status, home: home.status }));
 } finally {

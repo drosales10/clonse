@@ -209,3 +209,6 @@ h1 em { color: var(--accent); font-family: Georgia, serif; font-weight: 400; }
 .dev-link { background: #f5efe4; border: 1px dashed #c9a36d; border-radius: 10px; display: grid; gap: 5px; margin: 12px 0 16px; padding: 12px; }
 .dev-link strong { color: #7e5b2c; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; }
 .dev-link a { color: #7e5b2c; font-size: .82rem; font-weight: 700; overflow-wrap: anywhere; }
+
+.activity-pagination, .profile-comments-pagination { align-items: center; border-top: 1px solid var(--line); color: var(--muted); display: flex; font-size: .78rem; gap: 18px; justify-content: space-between; margin-top: 16px; padding-top: 16px; }
+.activity-pagination [aria-disabled="true"], .profile-comments-pagination [aria-disabled="true"] { color: var(--muted); }

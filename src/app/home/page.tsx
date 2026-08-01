@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { logoutAction } from "@/app/actions/auth";
+import { ActivityPagination } from "@/app/components/activity-pagination";
 import { ProfileViewsResetForm } from "@/app/components/profile-views-reset-form";
 import { getActivityFeed } from "@/server/activity/service";
 import { getCurrentUser } from "@/server/auth/session";
@@ -10,14 +11,15 @@ import { getOwnProfileViews } from "@/server/profile-views/service";
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ welcome?: string; viewsReset?: string }>;
+  searchParams: Promise<{ welcome?: string; viewsReset?: string; activityPage?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?returnUrl=/home");
 
   const params = await searchParams;
-  const [activities, profileViews] = await Promise.all([
-    getActivityFeed(user.id),
+  const activityPage = parseActivityPage(params.activityPage);
+  const [activityFeed, profileViews] = await Promise.all([
+    getActivityFeed(user.id, activityPage),
     getOwnProfileViews(user.id),
   ]);
   return (
@@ -73,9 +75,9 @@ export default async function HomePage({
             </div>
             <Link className="text-link" href="/account/profile">Publicar estado</Link>
           </div>
-          {activities.length > 0 ? (
+          {activityFeed.items.length > 0 ? (
             <ol className="activity-list">
-              {activities.map((activity) => (
+              {activityFeed.items.map((activity) => (
                 <li className="activity-item" key={activity.id}>
                   <span className="friend-avatar" aria-hidden="true">{activity.actor.displayName.slice(0, 1).toUpperCase()}</span>
                   <div>
@@ -87,6 +89,7 @@ export default async function HomePage({
               ))}
             </ol>
           ) : <p className="empty-state">Todavía no hay actividad visible. Publica un estado o conecta con otras personas.</p>}
+          <ActivityPagination pagination={activityFeed.pagination} />
         </section>
         <div className="scope-grid">
           <article><span>01</span><h2>Actividad</h2><p>Estados y actividad de tus conexiones, protegidos por privacidad y bloqueos.</p><Link className="text-link" href="/account/profile">Compartir un estado →</Link></article>
@@ -96,6 +99,11 @@ export default async function HomePage({
       </section>
     </main>
   );
+}
+
+function parseActivityPage(value: string | undefined): number {
+  const page = Number(value);
+  return Number.isInteger(page) && page > 0 ? page : 1;
 }
 
 function formatActivityAge(date: Date): string {
