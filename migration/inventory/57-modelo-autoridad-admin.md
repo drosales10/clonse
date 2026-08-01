@@ -64,7 +64,7 @@ El formato moderno será `scrypt:<salt hex>:<derived key hex>`, igual al contrat
 
 ## Fuera de alcance
 
-No se implementan todavía login/logout UI, recuperación, dashboard, permisos por módulo, niveles, subredes, configuración global, auditoría completa ni CRUD de administradores. Esos flujos requieren sus tablas/contratos y pruebas 401/403/expiración antes de habilitar acciones.
+No se implementan todavía recuperación administrativa, permisos por módulo, niveles, subredes, configuración global, auditoría completa ni CRUD de administradores. Esos flujos requieren sus tablas/contratos y pruebas 401/403/expiración antes de habilitar acciones. El login/logout y un dashboard mínimo de lectura sí se implementan en el incremento posterior documentado abajo.
 
 ## Implementación realizada
 
@@ -74,24 +74,24 @@ No se implementan todavía login/logout UI, recuperación, dashboard, permisos p
 - `src/server/admin/session.ts` implementa autenticación por username, emisión de sesiones, expiración, revocación y lectura del admin actual. La base guarda SHA-256 del token opaco, no el token en claro.
 - `src/server/admin/access.ts` expone `getAdminAccessState()` y `requireAdminAccess()` para que cada superficie protegida autorice en servidor.
 - La cookie administrativa usa `social_admin_session`, `httpOnly`, `sameSite=lax`, `secure` en producción y scope `/admin`.
-- No se creó ninguna cuenta, seed ni acción de login UI; sin datos importados, el acceso permanece no autenticado/denegado.
+- No se creó ninguna cuenta ni seed. La migración local aplicada no contiene datos; sin administradores importados, el acceso permanece no autenticado/denegado.
 
 ## Validación ejecutada
 
 - `pnpm exec prisma generate` ✅
 - `pnpm exec tsc --noEmit` ✅
 - `pnpm exec eslint src/server/admin/access.ts src/server/admin/credentials.ts src/server/admin/session.ts src/app/admin/layout.tsx src/app/admin/page.tsx src/app/admin/login/page.tsx` ✅
-- `pnpm build` ✅; Next.js reconoce `/admin` y `/admin/login` y termina la compilación de producción.
+- `pnpm build` ✅; Next.js reconoce `/admin`, `/admin/login` y `/admin/dashboard` y termina la compilación de producción.
 - `git diff --check` ✅
 
-No se aplicó `prisma migrate`, no se conectó a una base para importar datos y no se modificaron PHP/MySQL ni `docs/legacy`.
+No se crearon cuentas ni se importaron datos. La migración fue aplicada únicamente en PostgreSQL local (`localhost:5432`, base `clonse`) tras verificar que era la única pendiente; no se modificaron PHP/MySQL ni `docs/legacy`.
 
 ## Limitaciones actuales
 
-1. La migración SQL está preparada pero pendiente de aplicación controlada sobre PostgreSQL destino.
-2. No existe aún un flujo UI de login/logout ni recuperación administrativa.
-3. No se ha definido la transformación de hashes legacy ni la asignación de `isSuperAdmin`.
-4. No se han implementado niveles, subredes, permisos por módulo, dashboard, usuarios ni configuración.
+1. La migración está aplicada en el PostgreSQL local verificado; cualquier otro entorno requiere revisar estado y ejecutar `pnpm exec prisma migrate deploy` de forma controlada.
+2. No se ha definido la transformación de hashes legacy ni la asignación de `isSuperAdmin`.
+3. No se han implementado niveles, subredes, permisos por módulo, recuperación, auditoría ni CRUD de administradores.
+4. El dashboard solo muestra conteos de `User` ya modelados; mensajes, reportes, amistades, anuncios, logins y estadísticas legacy requieren contratos destino.
 5. El estado `disabled` se revoca durante la lectura de una sesión; el origen de esa deshabilitación será el campo `Admin.enabled` tras disponer de datos.
 
 ## Flujo de login/logout implementado
@@ -111,7 +111,7 @@ No se aplicó `prisma migrate`, no se conectó a una base para importar datos y 
 - `pnpm build` ✅; Next.js reconoce `/admin`, `/admin/login` y `/admin/dashboard`.
 - `git diff --check` ✅; Windows solo informa normalización LF/CRLF.
 
-No se ejecutó login contra PostgreSQL porque la migración no se aplicó y no hay cuentas administrativas reales.
+No se ejecutó login contra PostgreSQL porque no hay cuentas administrativas reales; la base sí fue verificada y la migración está aplicada localmente.
 
 ## Pendientes
 
@@ -119,3 +119,14 @@ No se ejecutó login contra PostgreSQL porque la migración no se aplicó y no h
 2. Importar o crear administradores mediante un procedimiento controlado, con decisión sobre hashes legacy y `isSuperAdmin`.
 3. Añadir recuperación administrativa, auditoría y límites de intentos si el contrato legacy lo requiere.
 4. Implementar dashboard real, usuarios, niveles, subredes y configuración únicamente después de modelar sus permisos y tablas.
+
+## Activación local y dashboard de lectura
+
+- `pnpm exec prisma migrate status` confirma que el esquema local está actualizado: 20 migraciones aplicadas.
+- `20260802170000_admin_authority` se aplicó con `pnpm exec prisma migrate deploy` contra `localhost:5432`, base `clonse`.
+- La migración no contiene inserciones, por lo que `admins` y `admin_sessions` permanecen sin cuentas ni sesiones.
+- `src/server/admin/dashboard.ts` consulta únicamente conteos verificables de `User`: total, habilitados y con email verificado.
+- `/admin/dashboard` ejecuta primero `getAdminAccessState()`; un visitante o usuario normal no llega a consultar las métricas.
+- Las métricas legacy no modeladas se muestran como pendientes, no se aproximan ni se presentan como equivalentes.
+
+El siguiente paso de activación requiere una decisión explícita sobre la creación/importación del primer administrador y sus credenciales. No se generó automáticamente porque eso sería una operación de identidad y seguridad no reversible desde el código versionado.
