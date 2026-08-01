@@ -48,6 +48,7 @@ model User {
   notificationsSent    Notification[] @relation("NotificationActor")
   notificationsAsProfileOwner Notification[] @relation("NotificationProfileOwner")
   businessesOwned      Business[] @relation("BusinessOwner")
+  classifiedsOwned     Classified[] @relation("ClassifiedOwner")
 
   @@index([enabled, verifiedAt])
   @@map("users")
@@ -295,4 +296,48 @@ model Business {
   @@index([categoryId, searchable, approvedAt, expiresAt])
   @@index([searchable, approvedAt, expiresAt, createdAt])
   @@map("businesses")
+}
+
+model ClassifiedCategory {
+  id        String   @id @default(cuid())
+  legacyId  Int?     @unique @map("legacy_id")
+  parentId  String?  @map("parent_id")
+  title     String
+  sortOrder Int      @default(0) @map("sort_order")
+  active    Boolean  @default(true)
+
+  parent   ClassifiedCategory?  @relation("ClassifiedCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children ClassifiedCategory[] @relation("ClassifiedCategoryHierarchy")
+  classifieds Classified[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([parentId, sortOrder])
+  @@index([active, sortOrder])
+  @@map("classified_categories")
+}
+
+model Classified {
+  id            String   @id @default(cuid())
+  legacyId      Int?     @unique @map("legacy_id")
+  ownerId       String   @map("owner_id")
+  categoryId    String?  @map("category_id")
+  title         String
+  body          String?
+  slug          String?  @unique
+  createdAt     DateTime @map("created_at")
+  updatedAt     DateTime @map("updated_at")
+  searchable    Boolean  @default(true)
+  privacy       Int      @default(63)
+  views         Int      @default(0)
+  totalComments Int      @default(0) @map("total_comments")
+
+  owner    User                @relation("ClassifiedOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  category ClassifiedCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId, categoryId])
+  @@index([categoryId, searchable, createdAt])
+  @@index([searchable, createdAt])
+  @@map("classifieds")
 }
