@@ -1,4 +1,5 @@
 import type { FriendRelationship, PublicProfileFriend } from "./friends";
+import type { PublicPresence } from "./presence";
 import type { PublicProfileField } from "./profile-fields";
 
 export const PROFILE_ACCESS = {
@@ -29,6 +30,7 @@ export interface PublicProfile {
   status: string | null;
   verified: boolean;
   memberSince: Date;
+  presence: PublicPresence;
   visibility: ProfileVisibility;
   fields: PublicProfileField[];
   friends: PublicProfileFriend[];

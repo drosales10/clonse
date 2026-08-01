@@ -115,6 +115,12 @@ export async function getUserBySession(token: string | undefined): Promise<Authe
     return null;
   }
   if (!session.user.enabled || !session.user.verifiedAt) return null;
+
+  const now = new Date();
+  if (!session.user.lastActiveAt || now.getTime() - session.user.lastActiveAt.getTime() >= 2 * 60 * 1000) {
+    await db.user.update({ where: { id: session.user.id }, data: { lastActiveAt: now } });
+  }
+
   return publicUser(session.user);
 }
 

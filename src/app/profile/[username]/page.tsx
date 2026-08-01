@@ -54,6 +54,7 @@ export default async function ProfilePage({
               <p className="eyebrow">Perfil público</p>
               <h1 id="profile-title">{result.profile.displayName}</h1>
               <p className="profile-username">@{result.profile.username}</p>
+              <p className={`presence-status presence-${result.profile.presence.status}`}><span aria-hidden="true" />{result.profile.presence.status === "online" ? "En línea" : "Desconectado"}</p>
             </div>
           </div>
           {result.profile.status ? <p className="profile-status">{result.profile.status}</p> : null}

@@ -15,6 +15,7 @@ import type {
 import { isProfileFieldType } from "@domain/profile-fields";
 import type { ProfileSettingsInput, PublicProfile } from "@domain/profile";
 import { canViewProfile } from "@domain/profile";
+import { presenceFromLastActiveAt } from "@domain/presence";
 
 import { db } from "@/server/db/client";
 
@@ -40,6 +41,7 @@ export async function getPublicProfile(
       profilePrivacy: true,
       verifiedAt: true,
       signUpDate: true,
+      lastActiveAt: true,
     },
   });
 
@@ -65,6 +67,7 @@ export async function getPublicProfile(
       status: owner.status,
       verified: owner.verifiedAt !== null,
       memberSince: owner.signUpDate,
+      presence: presenceFromLastActiveAt(owner.lastActiveAt),
       visibility: "public",
       fields,
       friends,

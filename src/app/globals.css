@@ -84,6 +84,10 @@ h1 em { color: var(--accent); font-family: Georgia, serif; font-weight: 400; }
 .profile-identity { align-items: center; display: flex; gap: 24px; }
 .profile-avatar { align-items: center; background: var(--forest); border-radius: 50%; color: var(--white); display: flex; flex: 0 0 auto; font-size: 2.6rem; font-weight: 800; height: 104px; justify-content: center; width: 104px; }
 .profile-username { color: var(--muted); margin: 12px 0 0; }
+.presence-status { align-items: center; display: flex; font-size: .78rem; font-weight: 700; gap: 7px; margin: 9px 0 0; }
+.presence-status span { background: currentColor; border-radius: 50%; display: inline-block; height: 8px; width: 8px; }
+.presence-online { color: #2f8056; }
+.presence-offline { color: var(--muted); }
 .profile-status { border-left: 3px solid var(--accent); color: var(--forest); font-size: 1.05rem; line-height: 1.5; margin: 38px 0 0; padding-left: 15px; }
 .profile-facts { border-top: 1px solid var(--line); display: grid; gap: 20px; grid-template-columns: repeat(3, 1fr); margin: 45px 0 0; padding-top: 22px; }
 .profile-facts div { display: grid; gap: 7px; }
