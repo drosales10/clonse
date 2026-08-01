@@ -158,3 +158,45 @@ function toPublicBusiness(row: BusinessRow): PublicBusiness {
     category: row.category,
   };
 }
+
+
+export async function getBusinessDetail(viewerId: string | null, businessIdentifier: string): Promise<import("@domain/businesses").PublicBusinessDetail | null> {
+  const legacyId = parseLegacyBusinessId(businessIdentifier);
+  const row = await db.business.findFirst({
+    where: {
+      AND: [
+        {
+          OR: [
+            { id: businessIdentifier },
+            { slug: businessIdentifier },
+            ...(legacyId === null ? [] : [{ legacyId }]),
+          ],
+        },
+        { approvedAt: { not: null } },
+        { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
+        { owner: { enabled: true } },
+      ],
+    },
+    select: businessSelect,
+  });
+  if (!row) return null;
+  if (!canReadBusiness(row.ownerId, row.privacy, viewerId)) return null;
+  return {
+    ...toPublicBusiness(row),
+    description: toSafeText(row.summary),
+    phone: null,
+    url: row.slug ? `/${row.slug}` : null,
+  };
+}
+
+function parseLegacyBusinessId(value: string): number | null {
+  if (!/^\d+$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function toSafeText(value: string | null): string | null {
+  if (!value) return null;
+  const text = value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return text || null;
+}

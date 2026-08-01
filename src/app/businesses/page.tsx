@@ -82,7 +82,7 @@ export default async function BusinessesPage({
                 <div className="business-card-heading">
                   <div>
                     <p className="eyebrow">{business.category?.title ?? "Negocio"}</p>
-                    <h2>{business.title}</h2>
+                    <h2><Link href={`/businesses/${encodeURIComponent(business.id)}`}>{business.title}</Link></h2>
                   </div>
                   {business.featured || business.sponsored ? <span className="business-badge">{business.sponsored ? "Patrocinado" : "Destacado"}</span> : null}
                 </div>

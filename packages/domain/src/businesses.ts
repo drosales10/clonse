@@ -89,3 +89,9 @@ export function isBusinessAvailable(
 ): boolean {
   return searchable && approvedAt !== null && (expiresAt === null || expiresAt > now);
 }
+
+export interface PublicBusinessDetail extends PublicBusiness {
+  description: string | null;
+  phone: string | null;
+  url: string | null;
+}

@@ -442,3 +442,17 @@ h1 em { color: var(--accent); font-family: Georgia, serif; font-weight: 400; }
 .blog-detail-body { margin-top: 34px; }
 .blog-detail-body > p { font-size: 1.05rem; line-height: 1.8; margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 .blog-detail-note { border-left: 3px solid var(--accent); color: var(--muted); font-size: .8rem; line-height: 1.5; margin: 38px 0 0; padding-left: 13px; }
+
+.business-card h2 a { color: var(--forest); text-decoration: none; }
+.business-card h2 a:hover { color: var(--accent-dark); }
+.business-detail-panel { max-width: 900px; }
+.business-back-link { display: inline-block; margin-bottom: 32px; }
+.business-detail-heading { align-items: start; display: flex; justify-content: space-between; gap: 18px; }
+.business-detail-heading h1 { font-size: clamp(3rem, 8vw, 6.5rem); }
+.business-detail-description { border-left: 3px solid var(--accent); font-size: 1.05rem; line-height: 1.7; margin: 38px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.business-detail-facts { border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 22px; margin: 38px 0 0; padding-top: 22px; }
+.business-detail-facts div { display: grid; gap: 5px; }
+.business-detail-facts dt { color: var(--muted); font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.business-detail-facts dd { font-size: .88rem; margin: 0; }
+.business-detail-facts a { color: var(--forest); font-weight: 700; text-decoration: none; }
+.business-detail-note { color: var(--muted); font-size: .8rem; line-height: 1.5; margin: 38px 0 0; }
