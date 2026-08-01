@@ -51,6 +51,7 @@ model User {
   classifiedsOwned     Classified[] @relation("ClassifiedOwner")
   eventsOwned          Event[] @relation("EventOwner")
   groupsOwned          Group[] @relation("GroupOwner")
+  blogEntriesAuthored  BlogEntry[] @relation("BlogEntryAuthor")
   identityMappings     UserIdentityMap[] @relation("IdentityMapUser")
   canonicalMappings    UserIdentityMap[] @relation("IdentityMapCanonical")
 
@@ -461,4 +462,47 @@ model UserIdentityMap {
   @@index([userId, status])
   @@index([status, reasonCode])
   @@map("user_identity_maps")
+}
+
+model BlogCategory {
+  id        String   @id @default(cuid())
+  legacyId  Int?     @unique @map("legacy_id")
+  parentId  String?  @map("parent_id")
+  title     String
+  sortOrder Int      @default(0) @map("sort_order")
+  active    Boolean  @default(true)
+
+  parent  BlogCategory?  @relation("BlogCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children BlogCategory[] @relation("BlogCategoryHierarchy")
+  entries BlogEntry[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([parentId, sortOrder])
+  @@index([active, sortOrder])
+  @@map("blog_categories")
+}
+
+model BlogEntry {
+  id              String   @id @default(cuid())
+  legacyId        Int?     @unique @map("legacy_id")
+  authorId        String   @map("author_id")
+  categoryId      String?  @map("category_id")
+  title           String
+  body            String?
+  createdAt       DateTime @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+  searchable      Boolean  @default(true)
+  privacy         Int      @default(63)
+  commentsPrivacy Int?     @map("comments_privacy")
+  views           Int      @default(0)
+
+  author   User         @relation("BlogEntryAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  category BlogCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([authorId, categoryId])
+  @@index([categoryId, searchable, createdAt])
+  @@index([searchable, createdAt])
+  @@map("blog_entries")
 }
