@@ -50,6 +50,7 @@ model User {
   businessesOwned      Business[] @relation("BusinessOwner")
   classifiedsOwned     Classified[] @relation("ClassifiedOwner")
   eventsOwned          Event[] @relation("EventOwner")
+  groupsOwned          Group[] @relation("GroupOwner")
 
   @@index([enabled, verifiedAt])
   @@map("users")
@@ -388,4 +389,51 @@ model Event {
   @@index([categoryId, searchable, startsAt])
   @@index([searchable, startsAt])
   @@map("events")
+}
+
+model GroupCategory {
+  id        String   @id @default(cuid())
+  legacyId  Int?     @unique @map("legacy_id")
+  parentId  String?  @map("parent_id")
+  title     String
+  sortOrder Int      @default(0) @map("sort_order")
+  active    Boolean  @default(true)
+
+  parent   GroupCategory?  @relation("GroupCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children GroupCategory[] @relation("GroupCategoryHierarchy")
+  groups   Group[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([parentId, sortOrder])
+  @@index([active, sortOrder])
+  @@map("group_categories")
+}
+
+model Group {
+  id            String   @id @default(cuid())
+  legacyId      Int?     @unique @map("legacy_id")
+  ownerId       String   @map("owner_id")
+  categoryId    String?  @map("category_id")
+  title         String
+  description   String?
+  createdAt     DateTime @map("created_at")
+  updatedAt     DateTime @map("updated_at")
+  searchable    Boolean  @default(true)
+  privacy       Int      @default(0)
+  catalogVisible Boolean @default(false) @map("catalog_visible")
+  commentsPrivacy Int?   @map("comments_privacy")
+  discussionPrivacy Int? @map("discussion_privacy")
+  inviteEnabled Boolean   @default(false) @map("invite_enabled")
+  uploadEnabled Boolean   @default(false) @map("upload_enabled")
+  views         Int      @default(0)
+
+  owner    User          @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  category GroupCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
+  @@index([categoryId, searchable, catalogVisible])
+  @@index([searchable, catalogVisible, createdAt])
+  @@map("groups")
 }
