@@ -130,12 +130,15 @@ function toTextExcerpt(body: string | null): string | null {
 
 
 export async function getArticleDetail(viewerId: string | null, articleId: string): Promise<import("@domain/articles").PublicArticleDetail | null> {
+  const legacyId = parseLegacyArticleId(articleId);
   const row = await db.article.findFirst({
     where: {
-      id: articleId,
+      OR: [
+        { id: articleId },
+        ...(legacyId === null ? [] : [{ legacyId }]),
+      ],
       approved: true,
       draft: false,
-      searchable: true,
       author: { enabled: true },
     },
     select: articleSelect,
@@ -151,4 +154,10 @@ function toSafeText(body: string | null): string | null {
   if (!body) return null;
   const text = body.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   return text || null;
+}
+
+function parseLegacyArticleId(value: string): number | null {
+  if (!/^\d+$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
 }
