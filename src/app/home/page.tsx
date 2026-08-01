@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { logoutAction } from "@/app/actions/auth";
+import { getActivityFeed } from "@/server/activity/service";
 import { getCurrentUser } from "@/server/auth/session";
 
 export default async function HomePage({
@@ -13,6 +14,7 @@ export default async function HomePage({
   if (!user) redirect("/login?returnUrl=/home");
 
   const params = await searchParams;
+  const activities = await getActivityFeed(user.id);
   return (
     <main className="authenticated-shell">
       <header className="app-header">
@@ -32,12 +34,45 @@ export default async function HomePage({
         <h1 id="welcome-title">Hola, {user.displayName}</h1>
         <p className="lead">Tu sesión está activa como <strong>{user.email}</strong>.</p>
         {params.welcome === "1" ? <p className="success-message" role="status">Cuenta creada. El siguiente incremento añadirá verificación por email.</p> : null}
+        <section className="activity-panel" aria-labelledby="activity-title">
+          <div className="activity-heading">
+            <div>
+              <p className="eyebrow">Red · Actividad</p>
+              <h2 id="activity-title">Qué está pasando</h2>
+            </div>
+            <Link className="text-link" href="/account/profile">Publicar estado</Link>
+          </div>
+          {activities.length > 0 ? (
+            <ol className="activity-list">
+              {activities.map((activity) => (
+                <li className="activity-item" key={activity.id}>
+                  <span className="friend-avatar" aria-hidden="true">{activity.actor.displayName.slice(0, 1).toUpperCase()}</span>
+                  <div>
+                    <p><Link className="activity-actor" href={`/profile/${encodeURIComponent(activity.actor.username)}`}>{activity.actor.displayName}</Link> ha actualizado su estado</p>
+                    <blockquote>{activity.text}</blockquote>
+                    <time>{formatActivityAge(activity.createdAt)}</time>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          ) : <p className="empty-state">Todavía no hay actividad visible. Publica un estado o conecta con otras personas.</p>}
+        </section>
         <div className="scope-grid">
-          <article><span>01</span><h2>Actividad</h2><p>Feed, estados y comentarios se incorporarán después de cerrar la identidad.</p></article>
+          <article><span>01</span><h2>Actividad</h2><p>Estados y actividad de tus conexiones, protegidos por privacidad y bloqueos.</p><Link className="text-link" href="/account/profile">Compartir un estado →</Link></article>
           <article><span>02</span><h2>Perfil</h2><p>Privacidad y estado ya se pueden gestionar; campos dinámicos y foto requieren el inventario de settings y niveles.</p><Link className="text-link" href="/account/profile">Configurar mi perfil →</Link></article>
           <article><span>03</span><h2>Mensajes</h2><p>La comunicación usará la sesión server-side sin exponer datos privados al cliente.</p></article>
         </div>
       </section>
     </main>
   );
+}
+
+function formatActivityAge(date: Date): string {
+  const elapsedMinutes = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60_000));
+  if (elapsedMinutes < 1) return "Ahora";
+  if (elapsedMinutes < 60) return `Hace ${elapsedMinutes} min`;
+  const elapsedHours = Math.floor(elapsedMinutes / 60);
+  if (elapsedHours < 24) return `Hace ${elapsedHours} h`;
+  const elapsedDays = Math.floor(elapsedHours / 24);
+  return `Hace ${elapsedDays} d`;
 }

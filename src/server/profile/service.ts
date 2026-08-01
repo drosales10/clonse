@@ -18,6 +18,7 @@ import { canViewProfile } from "@domain/profile";
 import { presenceFromLastActiveAt } from "@domain/presence";
 
 import { db } from "@/server/db/client";
+import { updateStatusAndPrivacy } from "@/server/activity/service";
 
 export type ProfileLookup =
   | { kind: "profile"; profile: PublicProfile }
@@ -385,21 +386,7 @@ export async function updateOwnProfileSettings(
   userId: string,
   input: ProfileSettingsInput,
 ): Promise<{ ok: true } | { ok: false; reason: "not_found" }> {
-  try {
-    await db.user.update({
-      where: { id: userId },
-      data: {
-        profilePrivacy: input.profilePrivacy,
-        status: input.status,
-      },
-    });
-    return { ok: true };
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025") {
-      return { ok: false, reason: "not_found" };
-    }
-    throw error;
-  }
+  return updateStatusAndPrivacy(userId, input);
 }
 
 export async function getOwnProfileFields(userId: string): Promise<ProfileFieldRecord[]> {

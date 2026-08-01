@@ -30,6 +30,7 @@ export async function updateProfileSettingsAction(
     if (!result.ok) return { errors: { form: ["No se pudo localizar tu cuenta."] } };
 
     revalidatePath("/account/profile");
+    revalidatePath("/home");
     revalidatePath(`/profile/${encodeURIComponent(user.username)}`);
     return { success: true, message: "Tus ajustes de perfil se han guardado." };
   } catch {

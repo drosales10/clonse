@@ -15,6 +15,7 @@ model User {
   username             String    @unique
   displayName          String    @map("display_name")
   status               String?
+  statusUpdatedAt      DateTime? @map("status_updated_at")
   profilePrivacy       Int       @default(63) @map("profile_privacy")
   passwordHash         String    @map("password_hash")
   passwordMethod       Int       @default(0) @map("password_method")
@@ -36,6 +37,7 @@ model User {
   friendRequestsReceived FriendConnection[] @relation("FriendAddressee")
   blocksCreated        ProfileBlock[] @relation("ProfileBlocker")
   blocksReceived       ProfileBlock[] @relation("ProfileBlocked")
+  activities            Activity[] @relation("ActivityActor")
 
   @@index([enabled, verifiedAt])
   @@map("users")
@@ -149,4 +151,19 @@ model ProfileFieldValue {
   @@unique([userId, fieldId])
   @@index([fieldId])
   @@map("profile_field_values")
+}
+
+model Activity {
+  id              String   @id @default(cuid())
+  actorId         String   @map("actor_id")
+  type            String
+  text            String
+  objectPrivacy   Int      @map("object_privacy")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  actor User @relation("ActivityActor", fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([actorId, type, createdAt])
+  @@index([createdAt])
+  @@map("activities")
 }
