@@ -1,9 +1,31 @@
 export const FRIEND_CONNECTION_STATUSES = ["pending", "accepted"] as const;
 export const FRIEND_LIST_PAGE_SIZE = 10;
 export const PUBLIC_PROFILE_FRIENDS_PAGE_SIZE = 10;
+export const PEOPLE_DIRECTORY_PAGE_SIZE = 20;
 
 export type FriendConnectionStatus = (typeof FRIEND_CONNECTION_STATUSES)[number];
 export type FriendRelationship = "self" | "friends" | "incoming_pending" | "outgoing_pending" | "none";
+
+export interface PeopleDirectoryItem {
+  username: string;
+  displayName: string;
+  relationship: Exclude<FriendRelationship, "self">;
+}
+
+export interface PeopleDirectoryPagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  pageCount: number;
+  start: number;
+  end: number;
+  search: string;
+}
+
+export interface PeopleDirectoryResult {
+  items: PeopleDirectoryItem[];
+  pagination: PeopleDirectoryPagination;
+}
 
 export interface PublicProfileFriend {
   username: string;

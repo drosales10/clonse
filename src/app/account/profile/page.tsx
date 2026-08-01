@@ -30,6 +30,7 @@ export default async function ProfileSettingsPage() {
           <Link className="text-link" href="/home">Inicio</Link>
           <Link className="text-link" href={`/profile/${encodeURIComponent(settings.username)}`}>Mi perfil</Link>
           <Link className="text-link" href="/account/friends">Conexiones</Link>
+          <Link className="text-link" href="/people">Descubrir</Link>
           <Link className="text-link" href="/account/blocks">Bloqueos</Link>
         </nav>
       </header>

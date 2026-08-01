@@ -4,10 +4,12 @@ import type { BlockRelationship, BlockedUser } from "@domain/blocks";
 import type {
   FriendListPagination,
   FriendRelationship,
+  PeopleDirectoryItem,
+  PeopleDirectoryPagination,
   PublicProfileFriend,
   PublicProfileFriendsPagination,
 } from "@domain/friends";
-import { FRIEND_LIST_PAGE_SIZE, PUBLIC_PROFILE_FRIENDS_PAGE_SIZE } from "@domain/friends";
+import { FRIEND_LIST_PAGE_SIZE, PEOPLE_DIRECTORY_PAGE_SIZE, PUBLIC_PROFILE_FRIENDS_PAGE_SIZE } from "@domain/friends";
 import type {
   ProfileFieldDefinition,
   ProfileFieldOption,
@@ -692,4 +694,94 @@ function normalizeProfileFieldValue(value: Prisma.JsonValue): ProfileFieldValue 
   if (typeof value === "string") return value;
   if (Array.isArray(value) && value.every((item) => typeof item === "string")) return value as string[];
   return null;
+}
+
+export interface PeopleDirectoryQuery {
+  page?: number;
+  search?: string;
+}
+
+export async function getPeopleDirectory(
+  viewerId: string,
+  query: PeopleDirectoryQuery = {},
+): Promise<{ items: PeopleDirectoryItem[]; pagination: PeopleDirectoryPagination }> {
+  const search = (query.search ?? "").trim().slice(0, 64);
+  const [viewer, candidates, connections, blocks] = await Promise.all([
+    db.user.findUnique({ where: { id: viewerId }, select: { id: true, enabled: true, verifiedAt: true } }),
+    db.user.findMany({
+      where: {
+        id: { not: viewerId },
+        enabled: true,
+        verifiedAt: { not: null },
+        ...(search ? {
+          OR: [
+            { username: { contains: search, mode: "insensitive" } },
+            { displayName: { contains: search, mode: "insensitive" } },
+          ],
+        } : {}),
+      },
+      select: { id: true, username: true, displayName: true, profilePrivacy: true },
+    }),
+    db.friendConnection.findMany({
+      where: { OR: [{ requesterId: viewerId }, { addresseeId: viewerId }] },
+      select: { requesterId: true, addresseeId: true, status: true },
+    }),
+    db.profileBlock.findMany({
+      where: { OR: [{ blockerId: viewerId }, { blockedId: viewerId }] },
+      select: { blockerId: true, blockedId: true },
+    }),
+  ]);
+
+  if (!viewer?.enabled || !viewer.verifiedAt) {
+    return emptyPeopleDirectory(search);
+  }
+
+  const blockedIds = new Set(blocks.map((block) => block.blockerId === viewerId ? block.blockedId : block.blockerId));
+  const connectionByTarget = new Map(connections.map((connection) => {
+    const targetId = connection.requesterId === viewerId ? connection.addresseeId : connection.requesterId;
+    const relationship: Exclude<FriendRelationship, "self"> = connection.status === "accepted"
+      ? "friends"
+      : connection.requesterId === viewerId ? "outgoing_pending" : "incoming_pending";
+    return [targetId, relationship] as const;
+  }));
+
+  const visible = candidates
+    .filter((candidate) => !blockedIds.has(candidate.id))
+    .filter((candidate) => canViewProfile(candidate.id, candidate.profilePrivacy, viewerId, connectionByTarget.get(candidate.id) === "friends"))
+    .map((candidate): PeopleDirectoryItem => {
+      const relationship: Exclude<FriendRelationship, "self"> = connectionByTarget.get(candidate.id) ?? "none";
+      return {
+        username: candidate.username,
+        displayName: candidate.displayName,
+        relationship,
+      };
+    })
+    .sort((left, right) => left.displayName.localeCompare(right.displayName, "es", { sensitivity: "base" }) || left.username.localeCompare(right.username, "es", { sensitivity: "base" }));
+
+  return paginatePeopleDirectory(visible, query.page ?? 1, search);
+}
+
+function paginatePeopleDirectory(items: PeopleDirectoryItem[], requestedPage: number, search: string): { items: PeopleDirectoryItem[]; pagination: PeopleDirectoryPagination } {
+  const pageCount = Math.max(1, Math.ceil(items.length / PEOPLE_DIRECTORY_PAGE_SIZE));
+  const page = normalizeFriendsPage(requestedPage, pageCount);
+  const skip = (page - 1) * PEOPLE_DIRECTORY_PAGE_SIZE;
+  return {
+    items: items.slice(skip, skip + PEOPLE_DIRECTORY_PAGE_SIZE),
+    pagination: {
+      page,
+      pageSize: PEOPLE_DIRECTORY_PAGE_SIZE,
+      total: items.length,
+      pageCount,
+      start: items.length === 0 ? 0 : skip + 1,
+      end: Math.min(skip + PEOPLE_DIRECTORY_PAGE_SIZE, items.length),
+      search,
+    },
+  };
+}
+
+function emptyPeopleDirectory(search: string): { items: PeopleDirectoryItem[]; pagination: PeopleDirectoryPagination } {
+  return {
+    items: [],
+    pagination: { page: 1, pageSize: PEOPLE_DIRECTORY_PAGE_SIZE, total: 0, pageCount: 1, start: 0, end: 0, search },
+  };
 }

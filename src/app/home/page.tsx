@@ -34,6 +34,7 @@ export default async function HomePage({
         <nav className="profile-navigation" aria-label="Navegación de cuenta">
           <Link className="text-link" href={`/profile/${encodeURIComponent(user.username)}`}>Mi perfil</Link>
           <Link className="text-link" href="/account/friends">Conexiones</Link>
+          <Link className="text-link" href="/people">Descubrir</Link>
           <Link className="text-link" href="/account/blocks">Bloqueos</Link>
           <Link className="text-link" href="/account/profile">Ajustes</Link>
           <form action={logoutAction}>
