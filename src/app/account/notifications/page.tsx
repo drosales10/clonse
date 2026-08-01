@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { markAllNotificationsReadAction } from "@/app/actions/notifications";
+import { NotificationReadForm } from "@/app/components/notification-read-form";
 import { getCurrentUser } from "@/server/auth/session";
 import { getNotificationCenter } from "@/server/notifications/service";
 
@@ -42,11 +42,7 @@ export default async function NotificationsPage({
           {notifications.unreadCount > 0 ? <strong className="profile-view-total">{notifications.unreadCount}</strong> : null}
         </div>
         {params.read === "1" ? <p className="success-message" role="status">Avisos marcados como leídos.</p> : null}
-        {notifications.unreadCount > 0 ? (
-          <form action={markAllNotificationsReadAction}>
-            <button className="button button-quiet" type="submit">Marcar todos como leídos</button>
-          </form>
-        ) : null}
+        {notifications.unreadCount > 0 ? <NotificationReadForm /> : null}
         {notifications.items.length > 0 ? (
           <ul className="notification-list">
             {notifications.items.map((notification) => {

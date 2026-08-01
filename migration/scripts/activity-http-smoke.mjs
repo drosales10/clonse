@@ -26,10 +26,12 @@ async function createUser(suffix, profilePrivacy = 63) {
 }
 
 function formFromPage(html, values) {
-  const match = html.match(/<form[^>]*action=(?:"([^"]*)"|'([^']*)')/);
-  assert.ok(match, `la página de ajustes debe exponer la Server Action del formulario: ${html.match(/<form[^>]{0,300}/g)?.join(" | ") ?? "sin formularios"}`);
+  const firstForm = html.match(/<form[^>]*action=(?:"[^"]*"|'[^']*')[\s\S]*?<\/form>/);
+  assert.ok(firstForm, `la página de ajustes debe exponer la Server Action del formulario: ${html.match(/<form[^>]{0,300}/g)?.join(" | ") ?? "sin formularios"}`);
+  const match = firstForm[0].match(/<form[^>]*action=(?:"([^"]*)"|'([^']*)')/);
+  assert.ok(match, "el primer formulario debe incluir la Server Action");
   const form = new FormData();
-  const hiddenInputs = html.match(/<input[^>]+>/g) ?? [];
+  const hiddenInputs = firstForm[0].match(/<input[^>]+>/g) ?? [];
   for (const input of hiddenInputs) {
     const name = input.match(/name="([^"]+)"/)?.[1];
     const value = decodeHtml(input.match(/value="([^"]*)"/)?.[1] ?? "");

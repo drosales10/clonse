@@ -11,7 +11,7 @@ El destino añade `/account/notifications` para consultar esos avisos y marcar l
 - Solo un usuario autenticado puede abrir el centro.
 - La lectura devuelve como máximo los avisos existentes del destinatario de la sesión, ordenados del más reciente al más antiguo.
 - Se muestran actor, tipo, fecha y enlace permitido al perfil relacionado.
-- La acción `markAllNotificationsReadAction` solo actualiza filas cuyo `recipientId` coincide con la sesión y cuyo `readAt` es nulo.
+- La acción POST `/account/notifications/read` solo actualiza filas cuyo `recipientId` coincide con la sesión y cuyo `readAt` es nulo.
 - No se acepta una lista de IDs ni un destinatario desde el formulario.
 
 ## Privacidad y autorización
