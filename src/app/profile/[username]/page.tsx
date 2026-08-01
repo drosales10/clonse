@@ -15,11 +15,14 @@ export const metadata: Metadata = {
 
 export default async function ProfilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ username: string }>;
+  searchParams: Promise<{ commentsPage?: string }>;
 }) {
-  const [{ username }, viewer] = await Promise.all([params, getCurrentUser()]);
-  const result = await getPublicProfile(username, viewer?.id ?? null);
+  const [{ username }, viewer, query] = await Promise.all([params, getCurrentUser(), searchParams]);
+  const commentsPage = parseCommentsPage(query.commentsPage);
+  const result = await getPublicProfile(username, viewer?.id ?? null, commentsPage);
 
   if (!result) notFound();
 
@@ -96,6 +99,7 @@ export default async function ProfilePage({
           <ProfileComments
             canComment={result.profile.canComment}
             comments={result.profile.comments}
+            commentsPagination={result.profile.commentsPagination}
             ownerUsername={result.profile.username}
             viewer={viewer !== null}
           />
@@ -104,6 +108,11 @@ export default async function ProfilePage({
       )}
     </main>
   );
+}
+
+function parseCommentsPage(value: string | undefined): number {
+  const page = Number(value);
+  return Number.isInteger(page) && page > 0 ? page : 1;
 }
 
 function formatMemberSince(date: Date): string {

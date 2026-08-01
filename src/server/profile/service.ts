@@ -30,6 +30,7 @@ export type ProfileLookup =
 export async function getPublicProfile(
   username: string,
   viewerId: string | null,
+  commentsPage = 1,
 ): Promise<ProfileLookup | null> {
   const owner = await db.user.findFirst({
     where: {
@@ -64,10 +65,10 @@ export async function getPublicProfile(
     ? canCommentOnProfile(owner.id, owner.commentsPrivacy, viewerId, relationship === "friends")
     : false;
   await recordProfileView(owner.id, viewerId);
-  const [fields, friends, comments, views] = await Promise.all([
+  const [fields, friends, commentsResult, views] = await Promise.all([
     getPublicProfileFields(owner.id),
     getPublicProfileFriends(owner.id),
-    getProfileComments(owner.id, viewerId),
+    getProfileComments(owner.id, viewerId, commentsPage),
     getPublicProfileViews(owner.id),
   ]);
   return {
@@ -83,7 +84,8 @@ export async function getPublicProfile(
       visibility: "public",
       fields,
       friends,
-      comments,
+      comments: commentsResult.comments,
+      commentsPagination: commentsResult.pagination,
       canComment,
       relationship,
     },

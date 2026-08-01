@@ -6,6 +6,7 @@ import { PrismaClient } from "@prisma/client";
 import { Pool } from "pg";
 
 const marker = `profile_comments_http_${Date.now()}`;
+const baseUrl = process.env.BASE_URL ?? "http://localhost:3000";
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 2 });
 const db = new PrismaClient({ adapter: new PrismaPg(pool) });
 let userIds = [];
@@ -48,7 +49,7 @@ function actionFormFromPage(html, requiredField, fallbackPath, secondField = "")
     if (name) form.append(name, value);
   }
   const actionPath = actionMatch[1] || actionMatch[2] || fallbackPath;
-  return { actionUrl: new URL(actionPath, "http://localhost:3000/").toString(), form };
+  return { actionUrl: new URL(actionPath, `${baseUrl}/`).toString(), form };
 }
 
 async function postAction(pageHtml, field, path, sessionId, values, secondField = "") {
@@ -56,7 +57,7 @@ async function postAction(pageHtml, field, path, sessionId, values, secondField 
   for (const [name, value] of Object.entries(values)) form.set(name, value);
   return fetch(actionUrl, {
     method: "POST",
-    headers: { Cookie: `social_session=${sessionId}`, Origin: "http://localhost:3000" },
+    headers: { Cookie: `social_session=${sessionId}`, Origin: baseUrl },
     body: form,
     redirect: "manual",
   });
@@ -70,9 +71,13 @@ try {
   const outsider = await createUser("outsider");
   userIds = [owner.id, author.id, blockedOwner.id, privateCommentsOwner.id, outsider.id];
 
-  await db.profileComment.create({
-    data: { profileOwnerId: owner.id, authorId: author.id, body: "Comentario inicial" },
-    select: { id: true },
+  await db.profileComment.createMany({
+    data: Array.from({ length: 11 }, (_, index) => ({
+      profileOwnerId: owner.id,
+      authorId: author.id,
+      body: `Comentario paginado ${index}`,
+      createdAt: new Date(Date.now() - index * 1000),
+    })),
   });
   const blockedSeed = await db.profileComment.create({
     data: { profileOwnerId: blockedOwner.id, authorId: author.id, body: "Comentario oculto por bloqueo" },
@@ -91,18 +96,33 @@ try {
   });
   await db.profileBlock.create({ data: { blockerId: author.id, blockedId: blockedOwner.id } });
 
-  const root = await fetch("http://localhost:3000/");
+  const root = await fetch(`${baseUrl}/`);
   assert.equal(root.status, 200, "la portada debe responder 200");
 
-  const anonymousProfile = await fetch(`http://localhost:3000/profile/${owner.username}`);
+  const anonymousProfile = await fetch(`${baseUrl}/profile/${owner.username}`);
   const anonymousHtml = await anonymousProfile.text();
   assert.equal(anonymousProfile.status, 200, "el perfil público debe responder 200");
-  assert.match(anonymousHtml, /Comentario inicial/);
+  assert.match(anonymousHtml, /Comentario paginado 0/);
+  assert.equal(anonymousHtml.includes("Comentario paginado 10"), false, "la primera página no debe incluir la segunda");
+  assert.equal((anonymousHtml.match(/class="profile-comment"/g) ?? []).length, 10, "la primera página debe mostrar 10 comentarios");
   assert.match(anonymousHtml, /Inicia sesión/);
   assert.equal(anonymousHtml.includes("Escribe un comentario"), false, "el anónimo no debe recibir formulario de alta");
 
+  const secondPage = await fetch(`${baseUrl}/profile/${owner.username}?commentsPage=2`);
+  const secondPageHtml = await secondPage.text();
+  assert.equal(secondPage.status, 200, "la segunda página debe responder 200");
+  assert.match(secondPageHtml, /Comentario paginado 10/);
+  assert.equal(secondPageHtml.includes("Comentario paginado 0"), false, "la segunda página no debe repetir la primera");
+  assert.equal((secondPageHtml.match(/class="profile-comment"/g) ?? []).length, 1, "la segunda página debe mostrar el resto");
+
+  const normalizedPage = await fetch(`${baseUrl}/profile/${owner.username}?commentsPage=999`);
+  const normalizedPageHtml = await normalizedPage.text();
+  assert.equal(normalizedPage.status, 200, "una página fuera de rango debe responder 200");
+  assert.match(normalizedPageHtml, /Comentario paginado 10/);
+  assert.equal((normalizedPageHtml.match(/class="profile-comment"/g) ?? []).length, 1, "la página fuera de rango debe normalizarse a la última");
+
   const authorHeaders = { Cookie: `social_session=${authorSession}` };
-  const authorProfileResponse = await fetch(`http://localhost:3000/profile/${owner.username}`, { headers: authorHeaders });
+  const authorProfileResponse = await fetch(`${baseUrl}/profile/${owner.username}`, { headers: authorHeaders });
   const authorProfileHtml = await authorProfileResponse.text();
   assert.equal(authorProfileResponse.status, 200, "el autor autenticado debe ver el perfil");
   assert.match(authorProfileHtml, /Escribe un comentario/);
@@ -117,7 +137,7 @@ try {
   const created = await db.profileComment.findFirst({ where: { profileOwnerId: owner.id, authorId: author.id, body: "Comentario publicado HTTP" }, select: { id: true } });
   assert.ok(created, "el comentario publicado debe persistir");
 
-  const authorAfterCreate = await (await fetch(`http://localhost:3000/profile/${owner.username}`, { headers: authorHeaders })).text();
+  const authorAfterCreate = await (await fetch(`${baseUrl}/profile/${owner.username}`, { headers: authorHeaders })).text();
   const updatedResponse = await postAction(authorAfterCreate, "commentId", `/profile/${owner.username}`, authorSession, {
     ownerUsername: owner.username,
     commentId: created.id,
@@ -127,9 +147,9 @@ try {
   assert.equal((await db.profileComment.findUnique({ where: { id: created.id }, select: { body: true } }))?.body, "Comentario editado HTTP");
 
   const outsiderHeaders = { Cookie: `social_session=${outsiderSession}` };
-  const outsiderProfileHtml = await (await fetch(`http://localhost:3000/profile/${owner.username}`, { headers: outsiderHeaders })).text();
+  const outsiderProfileHtml = await (await fetch(`${baseUrl}/profile/${owner.username}`, { headers: outsiderHeaders })).text();
   assert.equal(outsiderProfileHtml.includes(`name="commentId"`), false, "un tercero no debe recibir controles de borrado");
-  const ownerProfileHtml = await (await fetch(`http://localhost:3000/profile/${owner.username}`, { headers: { Cookie: `social_session=${ownerSession}` } })).text();
+  const ownerProfileHtml = await (await fetch(`${baseUrl}/profile/${owner.username}`, { headers: { Cookie: `social_session=${ownerSession}` } })).text();
   const deletedByOwner = await postAction(ownerProfileHtml, "commentId", `/profile/${owner.username}`, ownerSession, {
     ownerUsername: owner.username,
     commentId: created.id,
@@ -137,12 +157,12 @@ try {
   assert.equal(deletedByOwner.status, 200, "el propietario debe poder borrar comentarios de su perfil");
   assert.equal(await db.profileComment.count({ where: { id: created.id } }), 0);
 
-  const privateProfile = await fetch(`http://localhost:3000/profile/${privateCommentsOwner.username}`, { headers: authorHeaders });
+  const privateProfile = await fetch(`${baseUrl}/profile/${privateCommentsOwner.username}`, { headers: authorHeaders });
   const privateHtml = await privateProfile.text();
   assert.equal(privateProfile.status, 200);
   assert.match(privateHtml, /Perfil público/);
   assert.equal(privateHtml.includes("Escribe un comentario"), false, "la máscara de comentarios debe ocultar el formulario");
-  const blockedProfile = await fetch(`http://localhost:3000/profile/${blockedOwner.username}`, { headers: authorHeaders });
+  const blockedProfile = await fetch(`${baseUrl}/profile/${blockedOwner.username}`, { headers: authorHeaders });
   const blockedHtml = await blockedProfile.text();
   assert.equal(blockedProfile.status, 200);
   assert.match(blockedHtml, /Perfil restringido|Has bloqueado este perfil/);

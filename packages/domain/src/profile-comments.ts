@@ -1,5 +1,5 @@
 export const PROFILE_COMMENT_MAX_LENGTH = 2000;
-export const PROFILE_COMMENT_LIST_LIMIT = 50;
+export const PROFILE_COMMENT_PAGE_SIZE = 10;
 
 export interface PublicProfileComment {
   id: string;
@@ -11,6 +11,15 @@ export interface PublicProfileComment {
   };
   canEdit: boolean;
   canDelete: boolean;
+}
+
+export interface ProfileCommentsPagination {
+  page: number;
+  pageSize: number;
+  total: number;
+  pageCount: number;
+  start: number;
+  end: number;
 }
 
 export type ProfileCommentFormField = "body" | "form";

@@ -1,6 +1,6 @@
 import type { FriendRelationship, PublicProfileFriend } from "./friends";
 import type { PublicPresence } from "./presence";
-import type { PublicProfileComment } from "./profile-comments";
+import type { PublicProfileComment, ProfileCommentsPagination } from "./profile-comments";
 import type { PublicProfileField } from "./profile-fields";
 
 export const PROFILE_ACCESS = {
@@ -37,6 +37,7 @@ export interface PublicProfile {
   fields: PublicProfileField[];
   friends: PublicProfileFriend[];
   comments: PublicProfileComment[];
+  commentsPagination: ProfileCommentsPagination;
   canComment: boolean;
   relationship: FriendRelationship;
 }

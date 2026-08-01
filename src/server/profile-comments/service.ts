@@ -1,5 +1,5 @@
-import type { PublicProfileComment } from "@domain/profile-comments";
-import { PROFILE_COMMENT_LIST_LIMIT } from "@domain/profile-comments";
+import type { PublicProfileComment, ProfileCommentsPagination } from "@domain/profile-comments";
+import { PROFILE_COMMENT_PAGE_SIZE } from "@domain/profile-comments";
 import { canCommentOnProfile, canViewProfile } from "@domain/profile";
 import { db } from "@/server/db/client";
 
@@ -10,11 +10,21 @@ export type ProfileCommentMutationResult =
       reason: "not_found" | "not_allowed" | "invalid_comment";
     };
 
-export async function getProfileComments(ownerId: string, viewerId: string | null): Promise<PublicProfileComment[]> {
+export async function getProfileComments(
+  ownerId: string,
+  viewerId: string | null,
+  requestedPage = 1,
+): Promise<{ comments: PublicProfileComment[]; pagination: ProfileCommentsPagination }> {
+  const where = { profileOwnerId: ownerId, author: { enabled: true } };
+  const total = await db.profileComment.count({ where });
+  const pageCount = Math.max(1, Math.ceil(total / PROFILE_COMMENT_PAGE_SIZE));
+  const page = normalizePage(requestedPage, pageCount);
+  const skip = (page - 1) * PROFILE_COMMENT_PAGE_SIZE;
   const comments = await db.profileComment.findMany({
-    where: { profileOwnerId: ownerId, author: { enabled: true } },
+    where,
     orderBy: { createdAt: "desc" },
-    take: PROFILE_COMMENT_LIST_LIMIT,
+    skip,
+    take: PROFILE_COMMENT_PAGE_SIZE,
     select: {
       id: true,
       body: true,
@@ -25,14 +35,29 @@ export async function getProfileComments(ownerId: string, viewerId: string | nul
     },
   });
 
-  return comments.map((comment) => ({
-    id: comment.id,
-    body: comment.body,
-    createdAt: comment.createdAt,
-    author: comment.author,
-    canEdit: viewerId === comment.authorId,
-    canDelete: viewerId === comment.authorId || viewerId === comment.profileOwnerId,
-  }));
+  return {
+    comments: comments.map((comment) => ({
+      id: comment.id,
+      body: comment.body,
+      createdAt: comment.createdAt,
+      author: comment.author,
+      canEdit: viewerId === comment.authorId,
+      canDelete: viewerId === comment.authorId || viewerId === comment.profileOwnerId,
+    })),
+    pagination: {
+      page,
+      pageSize: PROFILE_COMMENT_PAGE_SIZE,
+      total,
+      pageCount,
+      start: total === 0 ? 0 : skip + 1,
+      end: skip + comments.length,
+    },
+  };
+}
+
+function normalizePage(value: number, pageCount: number): number {
+  if (!Number.isInteger(value) || value < 1) return 1;
+  return Math.min(value, pageCount);
 }
 
 export async function createProfileComment(

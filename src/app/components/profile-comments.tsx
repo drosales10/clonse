@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 
-import type { PublicProfileComment, ProfileCommentFormState } from "@domain/profile-comments";
+import type { PublicProfileComment, ProfileCommentFormState, ProfileCommentsPagination } from "@domain/profile-comments";
 import {
   createProfileCommentAction,
   deleteProfileCommentAction,
@@ -70,14 +70,35 @@ function ProfileCommentActions({ comment, ownerUsername }: { comment: PublicProf
   );
 }
 
+function ProfileCommentsPager({
+  ownerUsername,
+  pagination,
+}: {
+  ownerUsername: string;
+  pagination: ProfileCommentsPagination;
+}) {
+  const profilePath = `/profile/${encodeURIComponent(ownerUsername)}`;
+  const pageLink = (page: number): string => `${profilePath}?commentsPage=${page}#profile-comments-title`;
+
+  return (
+    <nav aria-label="Paginación de comentarios" className="profile-comments-pagination">
+      {pagination.page > 1 ? <Link className="text-link" href={pageLink(pagination.page - 1)}>Comentarios anteriores</Link> : <span aria-disabled="true">Comentarios anteriores</span>}
+      <span aria-current="page">{pagination.start}-{pagination.end} de {pagination.total}</span>
+      {pagination.page < pagination.pageCount ? <Link className="text-link" href={pageLink(pagination.page + 1)}>Comentarios siguientes</Link> : <span aria-disabled="true">Comentarios siguientes</span>}
+    </nav>
+  );
+}
+
 export function ProfileComments({
   canComment,
   comments,
+  commentsPagination,
   ownerUsername,
   viewer,
 }: {
   canComment: boolean;
   comments: PublicProfileComment[];
+  commentsPagination: ProfileCommentsPagination;
   ownerUsername: string;
   viewer: boolean;
 }) {
@@ -88,7 +109,7 @@ export function ProfileComments({
           <p className="eyebrow">Conversación</p>
           <h2 id="profile-comments-title">Comentarios</h2>
         </div>
-        <span>{comments.length}</span>
+        <span>{commentsPagination.total}</span>
       </div>
       {comments.length > 0 ? (
         <ol className="profile-comments-list">
@@ -107,6 +128,7 @@ export function ProfileComments({
           ))}
         </ol>
       ) : <p className="empty-state">Todavía no hay comentarios en este perfil.</p>}
+      {commentsPagination.pageCount > 1 ? <ProfileCommentsPager ownerUsername={ownerUsername} pagination={commentsPagination} /> : null}
       {viewer && canComment ? <CreateProfileComment ownerUsername={ownerUsername} /> : null}
       {!viewer ? <p className="profile-comments-login"><Link href={`/login?returnUrl=/profile/${encodeURIComponent(ownerUsername)}`}>Inicia sesión</Link> para escribir un comentario.</p> : null}
       {viewer && !canComment ? <p className="profile-comments-note">La persona ha limitado quién puede comentar en su perfil.</p> : null}
