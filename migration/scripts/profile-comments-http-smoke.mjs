@@ -38,7 +38,7 @@ function decodeHtml(value) {
 
 function actionFormFromPage(html, requiredField, fallbackPath, secondField = "") {
   const forms = html.match(/<form\b[^>]*>[\s\S]*?<\/form>/g) ?? [];
-  const formHtml = forms.find((candidate) => candidate.includes(`name="${requiredField}"`) && (!secondField || candidate.includes(`name="${secondField}"`)));
+  const formHtml = forms.find((candidate) => candidate.includes(`name="${requiredField}"`) && (!secondField || candidate.includes(`name="${secondField}"`)) && (requiredField !== "body" || !candidate.includes('name="commentId"')));
   assert.ok(formHtml, `no se encontró el formulario con ${requiredField}`);
   const actionMatch = formHtml.match(/<form[^>]*action=(?:"([^"]*)"|'([^']*)')/);
   assert.ok(actionMatch, "el formulario debe exponer una Server Action");
@@ -136,15 +136,30 @@ try {
   assert.equal(createdResponse.status, 200, "la alta debe devolver una respuesta estable");
   const created = await db.profileComment.findFirst({ where: { profileOwnerId: owner.id, authorId: author.id, body: "Comentario publicado HTTP" }, select: { id: true } });
   assert.ok(created, "el comentario publicado debe persistir");
+  const createdNotification = await db.notification.findFirst({
+    where: { recipientId: owner.id, actorId: author.id, type: "profile_comment", objectId: owner.id },
+    select: { id: true, legacyTypeId: true },
+  });
+  assert.ok(createdNotification, "el comentario debe crear un aviso para el propietario");
+  assert.equal(createdNotification.legacyTypeId, 3, "el aviso debe conservar el tipo legacy 3");
+  assert.equal(await db.notification.count({ where: { recipientId: author.id, type: "profile_comment" } }), 0, "el autor no debe recibir el aviso del propietario");
 
-  const authorAfterCreate = await (await fetch(`${baseUrl}/profile/${owner.username}`, { headers: authorHeaders })).text();
-  const updatedResponse = await postAction(authorAfterCreate, "commentId", `/profile/${owner.username}`, authorSession, {
+  const ownerHome = await fetch(`${baseUrl}/home`, { headers: { Cookie: `social_session=${ownerSession}` } });
+  const ownerHomeHtml = await ownerHome.text();
+  assert.equal(ownerHome.status, 200, "el home del propietario debe responder 200");
+  assert.match(ownerHomeHtml, /Comentarios en tu perfil/);
+  assert.match(ownerHomeHtml, /Comment author/);
+  assert.match(ownerHomeHtml, /Ver perfil/);
+
+  const seededForEdit = await db.profileComment.findFirst({ where: { profileOwnerId: owner.id, authorId: author.id, body: "Comentario paginado 0" }, select: { id: true } });
+  assert.ok(seededForEdit, "debe existir un comentario sintético para edición");
+  const updatedResponse = await postAction(authorProfileHtml, "commentId", `/profile/${owner.username}`, authorSession, {
     ownerUsername: owner.username,
-    commentId: created.id,
+    commentId: seededForEdit.id,
     body: "Comentario editado HTTP",
   }, "body");
   assert.equal(updatedResponse.status, 200, "la edición debe devolver una respuesta estable");
-  assert.equal((await db.profileComment.findUnique({ where: { id: created.id }, select: { body: true } }))?.body, "Comentario editado HTTP");
+  assert.equal((await db.profileComment.findUnique({ where: { id: seededForEdit.id }, select: { body: true } }))?.body, "Comentario editado HTTP");
 
   const outsiderHeaders = { Cookie: `social_session=${outsiderSession}` };
   const outsiderProfileHtml = await (await fetch(`${baseUrl}/profile/${owner.username}`, { headers: outsiderHeaders })).text();
@@ -156,6 +171,15 @@ try {
   });
   assert.equal(deletedByOwner.status, 200, "el propietario debe poder borrar comentarios de su perfil");
   assert.equal(await db.profileComment.count({ where: { id: created.id } }), 0);
+
+  const ownerProfileForSelfComment = await (await fetch(`${baseUrl}/profile/${owner.username}`, { headers: { Cookie: `social_session=${ownerSession}` } })).text();
+  const selfCommentResponse = await postAction(ownerProfileForSelfComment, "body", `/profile/${owner.username}`, ownerSession, {
+    ownerUsername: owner.username,
+    body: "Comentario propio HTTP",
+  });
+  assert.equal(selfCommentResponse.status, 200, "el auto-comentario debe devolver una respuesta estable");
+  assert.ok(await db.profileComment.findFirst({ where: { profileOwnerId: owner.id, authorId: owner.id, body: "Comentario propio HTTP" }, select: { id: true } }), "el auto-comentario debe persistir");
+  assert.equal(await db.notification.count({ where: { recipientId: owner.id, actorId: owner.id, type: "profile_comment" } }), 0, "el auto-comentario no debe crear aviso");
 
   const privateProfile = await fetch(`${baseUrl}/profile/${privateCommentsOwner.username}`, { headers: authorHeaders });
   const privateHtml = await privateProfile.text();

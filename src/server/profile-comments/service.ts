@@ -1,6 +1,7 @@
 import type { PublicProfileComment, ProfileCommentsPagination } from "@domain/profile-comments";
 import { PROFILE_COMMENT_PAGE_SIZE } from "@domain/profile-comments";
 import { canCommentOnProfile, canViewProfile } from "@domain/profile";
+import { NOTIFICATION_LEGACY_PROFILE_COMMENT_TYPE, NOTIFICATION_TYPE_PROFILE_COMMENT } from "@domain/notifications";
 import { db } from "@/server/db/client";
 
 export type ProfileCommentMutationResult =
@@ -60,7 +61,7 @@ function normalizePage(value: number, pageCount: number): number {
   return Math.min(value, pageCount);
 }
 
-export async function createProfileComment(
+export async function createProfileCommentWithNotification(
   actorId: string,
   ownerUsername: string,
   body: string,
@@ -74,7 +75,22 @@ export async function createProfileComment(
   const access = await getProfileCommentAccess(actor.id, owner.id, owner.profilePrivacy, owner.commentsPrivacy);
   if (!access) return { ok: false, reason: "not_allowed" };
 
-  await db.profileComment.create({ data: { profileOwnerId: owner.id, authorId: actor.id, body } });
+  const commentData = { profileOwnerId: owner.id, authorId: actor.id, body };
+  await db.$transaction(async (transaction) => {
+    await transaction.profileComment.create({ data: commentData });
+    if (actor.id !== owner.id) {
+      await transaction.notification.create({
+        data: {
+          recipientId: owner.id,
+          actorId: actor.id,
+          profileOwnerId: owner.id,
+          type: NOTIFICATION_TYPE_PROFILE_COMMENT,
+          legacyTypeId: NOTIFICATION_LEGACY_PROFILE_COMMENT_TYPE,
+          objectId: owner.id,
+        },
+      });
+    }
+  });
   return { ok: true };
 }
 

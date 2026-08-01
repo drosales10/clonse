@@ -9,7 +9,7 @@ import {
 } from "@domain/profile-comments";
 import { getCurrentUser } from "@/server/auth/session";
 import {
-  createProfileComment,
+  createProfileCommentWithNotification,
   deleteProfileComment,
   updateProfileComment,
 } from "@/server/profile-comments/service";
@@ -27,7 +27,7 @@ export async function createProfileCommentAction(
   if (!validation.success) return { errors: validation.errors };
 
   try {
-    const result = await createProfileComment(user.id, ownerUsername, validation.body);
+    const result = await createProfileCommentWithNotification(user.id, ownerUsername, validation.body);
     if (!result.ok) return { errors: { form: commentMutationError(result.reason) } };
     revalidateProfile(ownerUsername);
     return { success: true, message: "Comentario publicado." };
