@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { FriendRelationshipActions } from "@/app/components/friend-relationship-actions";
 import { getCurrentUser } from "@/server/auth/session";
 import { getPublicProfile } from "@/server/profile/service";
 
@@ -53,6 +54,7 @@ export default async function ProfilePage({
             <div><dt>Visibilidad</dt><dd>{result.profile.visibility === "public" ? "Público" : "Restringido"}</dd></div>
             <div><dt>Cuenta</dt><dd>{result.profile.verified ? "Email verificado" : "Pendiente de verificación"}</dd></div>
           </dl>
+          {viewer ? <FriendRelationshipActions relationship={result.profile.relationship} username={result.profile.username} /> : null}
           {result.profile.fields.length > 0 ? (
             <section className="profile-field-display" aria-labelledby="profile-information-title">
               <h2 id="profile-information-title">Información</h2>
@@ -63,7 +65,23 @@ export default async function ProfilePage({
               </dl>
             </section>
           ) : null}
-          <p className="profile-scope-note">Las fotos, amistades y actividad se incorporarán en los siguientes incrementos de esta vertical.</p>
+          <section className="profile-friends-display" aria-labelledby="profile-friends-title">
+            <div className="profile-friends-heading">
+              <h2 id="profile-friends-title">Conexiones</h2>
+              {result.profile.relationship === "self" ? <Link className="text-link" href="/account/friends">Gestionar</Link> : null}
+            </div>
+            {result.profile.friends.length > 0 ? (
+              <div className="public-friends-list">
+                {result.profile.friends.map((friend) => (
+                  <Link className="public-friend" href={`/profile/${encodeURIComponent(friend.username)}`} key={friend.username}>
+                    <span className="friend-avatar" aria-hidden="true">{friend.displayName.slice(0, 1).toUpperCase()}</span>
+                    <span><strong>{friend.displayName}</strong><small>@{friend.username}</small></span>
+                  </Link>
+                ))}
+              </div>
+            ) : <p className="empty-state">Todavía no hay conexiones confirmadas visibles.</p>}
+          </section>
+          <p className="profile-scope-note">Las fotos y la actividad se incorporarán en los siguientes incrementos de esta vertical.</p>
         </section>
       )}
     </main>

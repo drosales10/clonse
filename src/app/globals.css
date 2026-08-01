@@ -89,6 +89,25 @@ h1 em { color: var(--accent); font-family: Georgia, serif; font-weight: 400; }
 .profile-facts div { display: grid; gap: 7px; }
 .profile-facts dt { color: var(--muted); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .profile-facts dd { font-size: .95rem; margin: 0; }
+.relationship-actions { align-items: center; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; padding-top: 22px; }
+.relationship-status { color: var(--forest); font-size: .84rem; font-weight: 700; }
+.relationship-button-row { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; }
+.relationship-feedback { flex-basis: 100%; margin: 0; }
+.friends-panel { max-width: 900px; }
+.friends-section { border-top: 1px solid var(--line); margin-top: 42px; padding-top: 25px; }
+.friends-section-heading, .profile-friends-heading { align-items: center; display: flex; justify-content: space-between; }
+.friends-section-heading h2, .profile-friends-heading h2 { color: var(--forest); font-size: 1.35rem; margin: 0; }
+.friends-section-heading span { background: #e6eee7; border-radius: 999px; color: var(--forest); font-size: .75rem; font-weight: 800; min-width: 28px; padding: 6px 9px; text-align: center; }
+.friends-list { display: grid; gap: 12px; margin-top: 18px; }
+.friend-card { align-items: center; background: #fbfcfa; border: 1px solid var(--line); border-radius: 14px; display: flex; gap: 18px; justify-content: space-between; padding: 14px 16px; }
+.friend-card-identity, .public-friend { align-items: center; display: flex; gap: 12px; min-width: 0; text-decoration: none; }
+.friend-card-identity > span:last-child, .public-friend > span:last-child { display: grid; gap: 3px; min-width: 0; }
+.friend-card-identity strong, .public-friend strong { overflow-wrap: anywhere; }
+.friend-card-identity small, .public-friend small { color: var(--muted); font-size: .75rem; }
+.friend-avatar { align-items: center; background: var(--forest); border-radius: 50%; color: var(--white); display: inline-flex; flex: 0 0 auto; font-size: .9rem; font-weight: 800; height: 38px; justify-content: center; width: 38px; }
+.profile-friends-display { border-top: 1px solid var(--line); margin-top: 40px; padding-top: 30px; }
+.public-friends-list { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 20px; }
+.public-friend { border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
 .profile-scope-note { color: var(--muted); font-size: .82rem; line-height: 1.5; margin: 38px 0 0; }
 .settings-panel { max-width: 700px; }
 .settings-panel + .settings-panel { margin-top: 28px; }
@@ -123,6 +142,8 @@ h1 em { color: var(--accent); font-family: Georgia, serif; font-weight: 400; }
   .hero-orbit { margin: 0 auto; max-width: 320px; }
   .feature-strip, .scope-grid { grid-template-columns: 1fr; }
   .feature-strip { gap: 22px; }
+  .public-friends-list { grid-template-columns: 1fr; }
+  .friend-card { align-items: flex-start; flex-direction: column; }
   h1 { font-size: clamp(3.3rem, 17vw, 6rem); }
 }
 @media (max-width: 480px) {

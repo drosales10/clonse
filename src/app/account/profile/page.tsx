@@ -29,6 +29,7 @@ export default async function ProfileSettingsPage() {
         <nav className="profile-navigation" aria-label="Navegación de cuenta">
           <Link className="text-link" href="/home">Inicio</Link>
           <Link className="text-link" href={`/profile/${encodeURIComponent(settings.username)}`}>Mi perfil</Link>
+          <Link className="text-link" href="/account/friends">Conexiones</Link>
         </nav>
       </header>
       <section className="profile-panel settings-panel" aria-labelledby="settings-title">

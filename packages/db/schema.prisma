@@ -32,6 +32,8 @@ model User {
   updatedAt             DateTime  @updatedAt @map("updated_at")
   sessions             AuthSession[]
   profileFieldValues   ProfileFieldValue[]
+  friendRequestsSent   FriendConnection[] @relation("FriendRequester")
+  friendRequestsReceived FriendConnection[] @relation("FriendAddressee")
 
   @@index([enabled, verifiedAt])
   @@map("users")
@@ -47,6 +49,23 @@ model AuthSession {
   @@index([userId])
   @@index([expiresAt])
   @@map("auth_sessions")
+}
+
+model FriendConnection {
+  id          String   @id @default(cuid())
+  requesterId String   @map("requester_id")
+  addresseeId String   @map("addressee_id")
+  status      String   @default("pending")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  requester User @relation("FriendRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee User @relation("FriendAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@index([requesterId, status])
+  @@index([addresseeId, status])
+  @@map("friend_connections")
 }
 
 model ProfileCategory {

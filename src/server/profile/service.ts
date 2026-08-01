@@ -1,6 +1,10 @@
 import { Prisma } from "@prisma/client";
 
 import type {
+  FriendRelationship,
+  PublicProfileFriend,
+} from "@domain/friends";
+import type {
   ProfileFieldDefinition,
   ProfileFieldOption,
   ProfileFieldRecord,
@@ -38,9 +42,13 @@ export async function getPublicProfile(
   });
 
   if (!owner) return null;
-  if (!canViewProfile(owner.id, owner.profilePrivacy, viewerId)) return { kind: "private" };
+  const relationship = viewerId ? await getFriendRelationship(viewerId, owner.id) : "none";
+  if (!canViewProfile(owner.id, owner.profilePrivacy, viewerId, relationship === "friends")) return { kind: "private" };
 
-  const fields = await getPublicProfileFields(owner.id);
+  const [fields, friends] = await Promise.all([
+    getPublicProfileFields(owner.id),
+    getPublicProfileFriends(owner.id),
+  ]);
   return {
     kind: "profile",
     profile: {
@@ -51,6 +59,8 @@ export async function getPublicProfile(
       memberSince: owner.signUpDate,
       visibility: "public",
       fields,
+      friends,
+      relationship,
     },
   };
 }
@@ -62,6 +72,205 @@ export interface OwnProfileSettings {
   status: string | null;
 }
 
+export interface FriendListItem {
+  username: string;
+  displayName: string;
+}
+
+export interface FriendDashboard {
+  friends: FriendListItem[];
+  incomingRequests: FriendListItem[];
+  outgoingRequests: FriendListItem[];
+}
+
+export type FriendMutationResult =
+  | { ok: true }
+  | {
+      ok: false;
+      reason: "target_not_found" | "self" | "already_friends" | "already_pending" | "not_allowed";
+    };
+
+export async function getFriendDashboard(userId: string): Promise<FriendDashboard> {
+  const [friends, incomingRequests, outgoingRequests] = await Promise.all([
+    db.friendConnection.findMany({
+      where: {
+        status: "accepted",
+        OR: [{ requesterId: userId }, { addresseeId: userId }],
+        requester: { enabled: true },
+        addressee: { enabled: true },
+      },
+      select: {
+        requesterId: true,
+        addresseeId: true,
+        requester: { select: { username: true, displayName: true } },
+        addressee: { select: { username: true, displayName: true } },
+      },
+    }),
+    db.friendConnection.findMany({
+      where: { addresseeId: userId, status: "pending", requester: { enabled: true } },
+      orderBy: { createdAt: "desc" },
+      select: { requester: { select: { username: true, displayName: true } } },
+    }),
+    db.friendConnection.findMany({
+      where: { requesterId: userId, status: "pending", addressee: { enabled: true } },
+      orderBy: { createdAt: "desc" },
+      select: { addressee: { select: { username: true, displayName: true } } },
+    }),
+  ]);
+
+  return {
+    friends: friends
+      .map((connection) => connection.requesterId === userId ? connection.addressee : connection.requester)
+      .sort(compareFriendListItems),
+    incomingRequests: incomingRequests.map((connection) => connection.requester),
+    outgoingRequests: outgoingRequests.map((connection) => connection.addressee),
+  };
+}
+
+export async function getPublicProfileFriends(userId: string): Promise<PublicProfileFriend[]> {
+  const connections = await db.friendConnection.findMany({
+    where: {
+      status: "accepted",
+      OR: [{ requesterId: userId }, { addresseeId: userId }],
+      requester: { enabled: true },
+      addressee: { enabled: true },
+    },
+    select: {
+      requesterId: true,
+      addresseeId: true,
+      requester: { select: { username: true, displayName: true } },
+      addressee: { select: { username: true, displayName: true } },
+    },
+  });
+
+  return connections
+    .map((connection) => connection.requesterId === userId ? connection.addressee : connection.requester)
+    .sort(compareFriendListItems);
+}
+
+export async function getFriendRelationship(viewerId: string, targetId: string): Promise<FriendRelationship> {
+  if (viewerId === targetId) return "self";
+
+  const connections = await db.friendConnection.findMany({
+    where: {
+      OR: [
+        { requesterId: viewerId, addresseeId: targetId },
+        { requesterId: targetId, addresseeId: viewerId },
+      ],
+    },
+    select: { requesterId: true, addresseeId: true, status: true },
+  });
+
+  if (connections.some((connection) => connection.status === "accepted")) return "friends";
+  if (connections.some((connection) => connection.status === "pending" && connection.requesterId === targetId)) {
+    return "incoming_pending";
+  }
+  if (connections.some((connection) => connection.status === "pending" && connection.requesterId === viewerId)) {
+    return "outgoing_pending";
+  }
+  return "none";
+}
+
+export async function sendFriendRequest(actorId: string, targetUsername: string): Promise<FriendMutationResult> {
+  const [actor, target] = await Promise.all([
+    db.user.findUnique({ where: { id: actorId }, select: { id: true, enabled: true } }),
+    db.user.findFirst({ where: { username: { equals: targetUsername, mode: "insensitive" }, enabled: true }, select: { id: true } }),
+  ]);
+  if (!actor?.enabled || !target) return { ok: false, reason: "target_not_found" };
+  if (actor.id === target.id) return { ok: false, reason: "self" };
+
+  const existing = await db.friendConnection.findMany({
+    where: {
+      OR: [
+        { requesterId: actor.id, addresseeId: target.id },
+        { requesterId: target.id, addresseeId: actor.id },
+      ],
+    },
+    select: { status: true },
+  });
+  if (existing.some((connection) => connection.status === "accepted")) return { ok: false, reason: "already_friends" };
+  if (existing.length > 0) return { ok: false, reason: "already_pending" };
+
+  try {
+    await db.friendConnection.create({ data: { requesterId: actor.id, addresseeId: target.id, status: "pending" } });
+    return { ok: true };
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return { ok: false, reason: "already_pending" };
+    }
+    throw error;
+  }
+}
+
+export async function acceptFriendRequest(actorId: string, requesterUsername: string): Promise<FriendMutationResult> {
+  return updateIncomingRequest(actorId, requesterUsername, "accepted");
+}
+
+export async function rejectFriendRequest(actorId: string, requesterUsername: string): Promise<FriendMutationResult> {
+  return deleteIncomingRequest(actorId, requesterUsername);
+}
+
+export async function cancelFriendRequest(actorId: string, addresseeUsername: string): Promise<FriendMutationResult> {
+  const target = await findActiveUser(addresseeUsername);
+  if (!target || target.id === actorId) return { ok: false, reason: target?.id === actorId ? "self" : "target_not_found" };
+
+  const result = await db.friendConnection.deleteMany({
+    where: { requesterId: actorId, addresseeId: target.id, status: "pending" },
+  });
+  return result.count > 0 ? { ok: true } : { ok: false, reason: "not_allowed" };
+}
+
+export async function removeFriend(actorId: string, friendUsername: string): Promise<FriendMutationResult> {
+  const target = await findActiveUser(friendUsername);
+  if (!target || target.id === actorId) return { ok: false, reason: target?.id === actorId ? "self" : "target_not_found" };
+
+  const result = await db.friendConnection.deleteMany({
+    where: {
+      status: "accepted",
+      OR: [
+        { requesterId: actorId, addresseeId: target.id },
+        { requesterId: target.id, addresseeId: actorId },
+      ],
+    },
+  });
+  return result.count > 0 ? { ok: true } : { ok: false, reason: "not_allowed" };
+}
+
+async function updateIncomingRequest(
+  actorId: string,
+  requesterUsername: string,
+  status: "accepted",
+): Promise<FriendMutationResult> {
+  const requester = await findActiveUser(requesterUsername);
+  if (!requester || requester.id === actorId) return { ok: false, reason: requester?.id === actorId ? "self" : "target_not_found" };
+
+  const result = await db.friendConnection.updateMany({
+    where: { requesterId: requester.id, addresseeId: actorId, status: "pending" },
+    data: { status },
+  });
+  return result.count > 0 ? { ok: true } : { ok: false, reason: "not_allowed" };
+}
+
+async function deleteIncomingRequest(actorId: string, requesterUsername: string): Promise<FriendMutationResult> {
+  const requester = await findActiveUser(requesterUsername);
+  if (!requester || requester.id === actorId) return { ok: false, reason: requester?.id === actorId ? "self" : "target_not_found" };
+
+  const result = await db.friendConnection.deleteMany({
+    where: { requesterId: requester.id, addresseeId: actorId, status: "pending" },
+  });
+  return result.count > 0 ? { ok: true } : { ok: false, reason: "not_allowed" };
+}
+
+async function findActiveUser(username: string): Promise<{ id: string } | null> {
+  return db.user.findFirst({
+    where: { username: { equals: username, mode: "insensitive" }, enabled: true },
+    select: { id: true },
+  });
+}
+
+function compareFriendListItems(left: PublicProfileFriend, right: PublicProfileFriend): number {
+  return left.displayName.localeCompare(right.displayName, "es", { sensitivity: "base" });
+}
 export async function getOwnProfileSettings(userId: string): Promise<OwnProfileSettings | null> {
   return db.user.findUnique({
     where: { id: userId },

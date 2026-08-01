@@ -19,6 +19,7 @@ export default async function HomePage({
         <Link className="brand" href="/">nexo<span>.</span></Link>
         <nav className="profile-navigation" aria-label="Navegación de cuenta">
           <Link className="text-link" href={`/profile/${encodeURIComponent(user.username)}`}>Mi perfil</Link>
+          <Link className="text-link" href="/account/friends">Conexiones</Link>
           <Link className="text-link" href="/account/profile">Ajustes</Link>
           <form action={logoutAction}>
             <button className="button button-quiet" type="submit">Cerrar sesión</button>

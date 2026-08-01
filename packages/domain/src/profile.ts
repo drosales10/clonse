@@ -1,3 +1,4 @@
+import type { FriendRelationship, PublicProfileFriend } from "./friends";
 import type { PublicProfileField } from "./profile-fields";
 
 export const PROFILE_ACCESS = {
@@ -30,14 +31,17 @@ export interface PublicProfile {
   memberSince: Date;
   visibility: ProfileVisibility;
   fields: PublicProfileField[];
+  friends: PublicProfileFriend[];
+  relationship: FriendRelationship;
 }
 
 export function isProfilePrivacy(value: number): value is ProfilePrivacy {
   return Object.values(PROFILE_PRIVACY).includes(value as ProfilePrivacy);
 }
 
-export function viewerPrivacyMax(ownerId: string, viewerId: string | null): number {
+export function viewerPrivacyMax(ownerId: string, viewerId: string | null, viewerIsFriend = false): number {
   if (viewerId === ownerId) return PROFILE_ACCESS.OWNER;
+  if (viewerIsFriend) return PROFILE_ACCESS.FRIEND;
   return viewerId ? PROFILE_ACCESS.REGISTERED : PROFILE_ACCESS.ANONYMOUS;
 }
 
@@ -45,10 +49,11 @@ export function canViewProfile(
   ownerId: string,
   profilePrivacy: number,
   viewerId: string | null,
+  viewerIsFriend = false,
 ): boolean {
   if (viewerId === ownerId) return true;
   if (!isProfilePrivacy(profilePrivacy)) return false;
-  return (viewerPrivacyMax(ownerId, viewerId) & profilePrivacy) !== 0;
+  return (viewerPrivacyMax(ownerId, viewerId, viewerIsFriend) & profilePrivacy) !== 0;
 }
 
 export type ProfileSettingsField = "profilePrivacy" | "status" | "form";
