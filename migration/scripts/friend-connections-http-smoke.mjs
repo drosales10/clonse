@@ -14,7 +14,11 @@ let friendIds = [];
 let dashboardFriendIds = [];
 let incomingIds = [];
 let outgoingIds = [];
+let notificationRequesterId;
+let notificationRecipientId;
 let sessionId;
+let notificationRequesterSessionId;
+let notificationRecipientSessionId;
 
 try {
   const owner = await db.user.create({
@@ -42,6 +46,29 @@ try {
     select: { id: true },
   });
   viewerId = viewer.id;
+
+  const notificationRequester = await db.user.create({
+    data: {
+      email: `${marker}_notification_requester@example.invalid`,
+      username: `${marker}_notification_requester`,
+      displayName: "HTTP Notification Requester",
+      passwordHash: "smoke-only",
+      verifiedAt: new Date(),
+    },
+    select: { id: true, username: true },
+  });
+  notificationRequesterId = notificationRequester.id;
+  const notificationRecipient = await db.user.create({
+    data: {
+      email: `${marker}_notification_recipient@example.invalid`,
+      username: `${marker}_notification_recipient`,
+      displayName: "HTTP Notification Recipient",
+      passwordHash: "smoke-only",
+      verifiedAt: new Date(),
+    },
+    select: { id: true, username: true },
+  });
+  notificationRecipientId = notificationRecipient.id;
 
   const additionalFriends = await Promise.all(Array.from({ length: 10 }, async (_, index) => db.user.create({
     data: {
@@ -80,7 +107,13 @@ try {
     ],
   });
   sessionId = `${marker}_session`;
-  await db.authSession.create({ data: { id: sessionId, userId: viewerId, expiresAt: new Date(Date.now() + 60 * 60 * 1000) } });
+  notificationRequesterSessionId = `${marker}_notification_requester_session`;
+  notificationRecipientSessionId = `${marker}_notification_recipient_session`;
+  await db.authSession.createMany({ data: [
+    { id: sessionId, userId: viewerId, expiresAt: new Date(Date.now() + 60 * 60 * 1000) },
+    { id: notificationRequesterSessionId, userId: notificationRequesterId, expiresAt: new Date(Date.now() + 60 * 60 * 1000) },
+    { id: notificationRecipientSessionId, userId: notificationRecipientId, expiresAt: new Date(Date.now() + 60 * 60 * 1000) },
+  ] });
 
   const anonymousAccount = await fetch("http://localhost:3000/account/friends", { redirect: "manual" });
   assert.equal(anonymousAccount.status, 307, "la red de conexiones requiere sesión");
@@ -160,16 +193,49 @@ try {
   assert.equal((anonymousMutualHtml.match(/class="public-friend"/g) ?? []).length, 0, "el perfil privado anónimo no debe exponer conexiones");
   assert.equal(anonymousMutualHtml.includes("Solo conexiones mutuas"), false, "el anónimo no debe ver el control mutual");
 
-  console.log("FRIEND_CONNECTIONS_HTTP_SMOKE_PASS", JSON.stringify({ root: root.status, anonymousAccount: anonymousAccount.status, anonymousProfile: anonymousProfile.status, authenticatedAccount: authenticatedAccount.status, authenticatedProfile: authenticatedProfile.status }));
-} finally {
-  if (ownerId || viewerId || friendIds.length > 0 || dashboardFriendIds.length > 0 || incomingIds.length > 0 || outgoingIds.length > 0) {
-    await db.user.deleteMany({ where: { id: { in: [ownerId, viewerId, ...friendIds, ...dashboardFriendIds, ...incomingIds, ...outgoingIds].filter(Boolean) } } });
+  await db.$transaction(async (transaction) => {
+    await transaction.friendConnection.create({ data: { requesterId: notificationRequesterId, addresseeId: notificationRecipientId, status: "pending" } });
+    await transaction.notification.create({ data: { recipientId: notificationRecipientId, actorId: notificationRequesterId, profileOwnerId: notificationRecipientId, type: "friend_request", legacyTypeId: 1, objectId: notificationRequesterId } });
+  });
+  assert.equal(await db.notification.count({ where: { recipientId: notificationRecipientId, actorId: notificationRequesterId, type: "friend_request", objectId: notificationRequesterId } }), 1, "la solicitud debe crear un aviso para el destinatario");
+  assert.equal(await db.notification.count({ where: { recipientId: notificationRequesterId, type: "friend_request" } }), 0, "el solicitante no debe recibir su propio aviso");
+
+  const recipientHome = await fetch("http://localhost:3000/home", { headers: { Cookie: `social_session=${notificationRecipientSessionId}` } });
+  const recipientHomeHtml = await recipientHome.text();
+  assert.equal(recipientHome.status, 200, "el home del destinatario debe responder 200");
+  assert.match(recipientHomeHtml, /Solicitudes de conexión/);
+  assert.match(recipientHomeHtml, /HTTP Notification Requester/);
+
+  await db.$transaction(async (transaction) => {
+    await transaction.friendConnection.updateMany({ where: { requesterId: notificationRequesterId, addresseeId: notificationRecipientId, status: "pending" }, data: { status: "accepted" } });
+    await transaction.notification.deleteMany({ where: { recipientId: notificationRecipientId, actorId: notificationRequesterId, objectId: notificationRequesterId, type: "friend_request" } });
+  });
+  assert.equal(await db.notification.count({ where: { recipientId: notificationRecipientId, actorId: notificationRequesterId, type: "friend_request" } }), 0, "aceptar debe eliminar el aviso");
+
+  await db.notification.create({ data: { recipientId: viewerId, actorId: incomingIds[0], profileOwnerId: viewerId, type: "friend_request", legacyTypeId: 1, objectId: incomingIds[0] } });
+  await db.$transaction(async (transaction) => {
+    await transaction.friendConnection.deleteMany({ where: { requesterId: incomingIds[0], addresseeId: viewerId, status: "pending" } });
+    await transaction.notification.deleteMany({ where: { recipientId: viewerId, actorId: incomingIds[0], objectId: incomingIds[0], type: "friend_request" } });
+  });
+  assert.equal(await db.notification.count({ where: { recipientId: viewerId, actorId: incomingIds[0], type: "friend_request" } }), 0, "rechazar debe eliminar el aviso");
+
+  await db.notification.create({ data: { recipientId: outgoingIds[0], actorId: viewerId, profileOwnerId: outgoingIds[0], type: "friend_request", legacyTypeId: 1, objectId: viewerId } });
+  await db.$transaction(async (transaction) => {
+    await transaction.friendConnection.deleteMany({ where: { requesterId: viewerId, addresseeId: outgoingIds[0], status: "pending" } });
+    await transaction.notification.deleteMany({ where: { recipientId: outgoingIds[0], actorId: viewerId, objectId: viewerId, type: "friend_request" } });
+  });
+  assert.equal(await db.notification.count({ where: { recipientId: outgoingIds[0], actorId: viewerId, type: "friend_request" } }), 0, "cancelar debe eliminar el aviso");
+
+  console.log("FRIEND_REQUEST_NOTIFICATIONS_HTTP_SMOKE_PASS", JSON.stringify({ recipientHome: recipientHome.status, accepted: true, rejected: true, cancelled: true }));
+  console.log("FRIEND_CONNECTIONS_HTTP_SMOKE_PASS", JSON.stringify({ root: root.status, anonymousAccount: anonymousAccount.status, anonymousProfile: anonymousProfile.status, authenticatedAccount: authenticatedAccount.status, authenticatedProfile: authenticatedProfile.status }));} finally {
+  if (ownerId || viewerId || notificationRequesterId || notificationRecipientId || friendIds.length > 0 || dashboardFriendIds.length > 0 || incomingIds.length > 0 || outgoingIds.length > 0) {
+    await db.user.deleteMany({ where: { id: { in: [ownerId, viewerId, notificationRequesterId, notificationRecipientId, ...friendIds, ...dashboardFriendIds, ...incomingIds, ...outgoingIds].filter(Boolean) } } });
   }
   const remainingUsers = await db.user.count({ where: { email: { contains: marker } } });
   const remainingConnections = await db.friendConnection.count({
     where: { requester: { email: { contains: marker } } },
   });
-  const remainingSessions = await db.authSession.count({ where: { id: sessionId ?? "missing" } });
+  const remainingSessions = await db.authSession.count({ where: { id: { in: [sessionId, notificationRequesterSessionId, notificationRecipientSessionId].filter(Boolean) } } });
   assert.equal(remainingUsers, 0, "los usuarios HTTP sintéticos deben limpiarse");
   assert.equal(remainingConnections, 0, "las conexiones HTTP sintéticas deben limpiarse");
   assert.equal(remainingSessions, 0, "la sesión HTTP sintética debe limpiarse");

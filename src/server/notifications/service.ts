@@ -1,9 +1,48 @@
 import {
+  NOTIFICATION_LEGACY_FRIEND_REQUEST_TYPE,
   NOTIFICATION_LIST_LIMIT,
+  NOTIFICATION_TYPE_FRIEND_REQUEST,
   NOTIFICATION_TYPE_PROFILE_COMMENT,
+  type FriendRequestNotificationList,
   type NotificationList,
 } from "@domain/notifications";
+import { Prisma } from "@prisma/client";
 import { db } from "@/server/db/client";
+
+export type NotificationTransaction = Prisma.TransactionClient;
+
+export async function createFriendRequestNotification(
+  transaction: NotificationTransaction,
+  requesterId: string,
+  addresseeId: string,
+): Promise<void> {
+  await transaction.notification.create({
+    data: {
+      recipientId: addresseeId,
+      actorId: requesterId,
+      profileOwnerId: addresseeId,
+      type: NOTIFICATION_TYPE_FRIEND_REQUEST,
+      legacyTypeId: NOTIFICATION_LEGACY_FRIEND_REQUEST_TYPE,
+      objectId: requesterId,
+    },
+  });
+}
+
+export async function deleteFriendRequestNotification(
+  transaction: NotificationTransaction,
+  requesterId: string,
+  addresseeId: string,
+): Promise<void> {
+  await transaction.notification.deleteMany({
+    where: {
+      recipientId: addresseeId,
+      actorId: requesterId,
+      objectId: requesterId,
+      type: NOTIFICATION_TYPE_FRIEND_REQUEST,
+    },
+  });
+}
+
 
 export async function getProfileCommentNotifications(userId: string): Promise<NotificationList> {
   const where = {
@@ -54,4 +93,35 @@ export async function clearProfileCommentNotifications(userId: string, ownerUser
     },
   });
   return result.count;
+}
+
+export async function getFriendRequestNotifications(userId: string): Promise<FriendRequestNotificationList> {
+  const where = {
+    recipientId: userId,
+    type: NOTIFICATION_TYPE_FRIEND_REQUEST,
+    actor: { enabled: true },
+  } as const;
+  const [unreadCount, notifications] = await Promise.all([
+    db.notification.count({ where: { ...where, readAt: null } }),
+    db.notification.findMany({
+      where,
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: NOTIFICATION_LIST_LIMIT,
+      select: {
+        id: true,
+        createdAt: true,
+        actor: { select: { username: true, displayName: true } },
+      },
+    }),
+  ]);
+
+  return {
+    unreadCount,
+    items: notifications.map((notification) => ({
+      id: notification.id,
+      type: NOTIFICATION_TYPE_FRIEND_REQUEST,
+      actor: notification.actor,
+      createdAt: notification.createdAt,
+    })),
+  };
 }

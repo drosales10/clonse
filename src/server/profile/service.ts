@@ -21,6 +21,10 @@ import { canCommentOnProfile, canViewProfile } from "@domain/profile";
 import { presenceFromLastActiveAt } from "@domain/presence";
 
 import { db } from "@/server/db/client";
+import {
+  createFriendRequestNotification,
+  deleteFriendRequestNotification,
+} from "@/server/notifications/service";
 import { updateStatusAndPrivacy } from "@/server/activity/service";
 import { getProfileComments } from "@/server/profile-comments/service";
 import { getPublicProfileViews, recordProfileView } from "@/server/profile-views/service";
@@ -420,7 +424,10 @@ export async function sendFriendRequest(actorId: string, targetUsername: string)
   if (existing.length > 0) return { ok: false, reason: "already_pending" };
 
   try {
-    await db.friendConnection.create({ data: { requesterId: actor.id, addresseeId: target.id, status: "pending" } });
+    await db.$transaction(async (transaction) => {
+      await transaction.friendConnection.create({ data: { requesterId: actor.id, addresseeId: target.id, status: "pending" } });
+      await createFriendRequestNotification(transaction, actor.id, target.id);
+    });
     return { ok: true };
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
@@ -442,8 +449,12 @@ export async function cancelFriendRequest(actorId: string, addresseeUsername: st
   const target = await findActiveUser(addresseeUsername);
   if (!target || target.id === actorId) return { ok: false, reason: target?.id === actorId ? "self" : "target_not_found" };
 
-  const result = await db.friendConnection.deleteMany({
-    where: { requesterId: actorId, addresseeId: target.id, status: "pending" },
+  const result = await db.$transaction(async (transaction) => {
+    const deleted = await transaction.friendConnection.deleteMany({
+      where: { requesterId: actorId, addresseeId: target.id, status: "pending" },
+    });
+    if (deleted.count > 0) await deleteFriendRequestNotification(transaction, actorId, target.id);
+    return deleted;
   });
   return result.count > 0 ? { ok: true } : { ok: false, reason: "not_allowed" };
 }
@@ -472,9 +483,13 @@ async function updateIncomingRequest(
   const requester = await findActiveUser(requesterUsername);
   if (!requester || requester.id === actorId) return { ok: false, reason: requester?.id === actorId ? "self" : "target_not_found" };
 
-  const result = await db.friendConnection.updateMany({
-    where: { requesterId: requester.id, addresseeId: actorId, status: "pending" },
-    data: { status },
+  const result = await db.$transaction(async (transaction) => {
+    const updated = await transaction.friendConnection.updateMany({
+      where: { requesterId: requester.id, addresseeId: actorId, status: "pending" },
+      data: { status },
+    });
+    if (updated.count > 0) await deleteFriendRequestNotification(transaction, requester.id, actorId);
+    return updated;
   });
   return result.count > 0 ? { ok: true } : { ok: false, reason: "not_allowed" };
 }
@@ -483,8 +498,12 @@ async function deleteIncomingRequest(actorId: string, requesterUsername: string)
   const requester = await findActiveUser(requesterUsername);
   if (!requester || requester.id === actorId) return { ok: false, reason: requester?.id === actorId ? "self" : "target_not_found" };
 
-  const result = await db.friendConnection.deleteMany({
-    where: { requesterId: requester.id, addresseeId: actorId, status: "pending" },
+  const result = await db.$transaction(async (transaction) => {
+    const deleted = await transaction.friendConnection.deleteMany({
+      where: { requesterId: requester.id, addresseeId: actorId, status: "pending" },
+    });
+    if (deleted.count > 0) await deleteFriendRequestNotification(transaction, requester.id, actorId);
+    return deleted;
   });
   return result.count > 0 ? { ok: true } : { ok: false, reason: "not_allowed" };
 }

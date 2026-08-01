@@ -67,11 +67,6 @@ export function FriendRelationshipActions({
     </div>
   );
 
-  function withTarget(formData: FormData): FormData {
-    formData.set("username", username);
-    return formData;
-  }
-
   function ActionForm({
     action,
     label,
@@ -82,7 +77,8 @@ export function FriendRelationshipActions({
     quiet?: boolean;
   }) {
     return (
-      <form action={(formData) => action(withTarget(formData))}>
+      <form action={action}>
+        <input type="hidden" name="username" value={username} />
         <button className={quiet ? "button button-quiet" : "button button-primary button-small"} type="submit">{label}</button>
       </form>
     );

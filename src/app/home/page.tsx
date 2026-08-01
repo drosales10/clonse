@@ -5,8 +5,9 @@ import { logoutAction } from "@/app/actions/auth";
 import { ActivityPagination } from "@/app/components/activity-pagination";
 import { ProfileViewsResetForm } from "@/app/components/profile-views-reset-form";
 import { ProfileCommentNotifications } from "@/app/components/profile-comment-notifications";
+import { FriendRequestNotifications } from "@/app/components/friend-request-notifications";
 import { getActivityFeed } from "@/server/activity/service";
-import { getProfileCommentNotifications } from "@/server/notifications/service";
+import { getFriendRequestNotifications, getProfileCommentNotifications } from "@/server/notifications/service";
 import { getCurrentUser } from "@/server/auth/session";
 import { getOwnProfileViews } from "@/server/profile-views/service";
 
@@ -20,10 +21,11 @@ export default async function HomePage({
 
   const params = await searchParams;
   const activityPage = parseActivityPage(params.activityPage);
-  const [activityFeed, profileViews, notifications] = await Promise.all([
+  const [activityFeed, profileViews, notifications, friendRequestNotifications] = await Promise.all([
     getActivityFeed(user.id, activityPage),
     getOwnProfileViews(user.id),
     getProfileCommentNotifications(user.id),
+    getFriendRequestNotifications(user.id),
   ]);
   return (
     <main className="authenticated-shell">
@@ -70,6 +72,7 @@ export default async function HomePage({
             {profileViews.totalViews > 0 ? <ProfileViewsResetForm /> : null}
           </section>
         ) : null}
+        <FriendRequestNotifications notifications={friendRequestNotifications} />
         <ProfileCommentNotifications notifications={notifications} />
         <section className="activity-panel" aria-labelledby="activity-title">
           <div className="activity-heading">
