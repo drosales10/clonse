@@ -47,6 +47,10 @@ export interface PublicClassified {
   category: { id: string; legacyId: number | null; title: string } | null;
 }
 
+export interface PublicClassifiedDetail extends PublicClassified {
+  body: string | null;
+}
+
 export interface ClassifiedCatalogResult {
   items: PublicClassified[];
   pagination: ClassifiedCatalogPagination;

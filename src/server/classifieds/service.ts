@@ -7,6 +7,7 @@ import {
   type ClassifiedCatalogQuery,
   type ClassifiedCatalogResult,
   type PublicClassified,
+  type PublicClassifiedDetail,
 } from "@domain/classifieds";
 import { db } from "@/server/db/client";
 
@@ -127,4 +128,52 @@ function toPublicClassified(row: ClassifiedRow): PublicClassified {
     owner: { username: row.owner.username, displayName: row.owner.displayName },
     category: row.category,
   };
+}
+
+export async function getClassifiedDetail(
+  viewerId: string | null,
+  identifier: string,
+): Promise<PublicClassifiedDetail | null> {
+  const normalizedIdentifier = identifier.trim();
+  if (!normalizedIdentifier) return null;
+
+  const legacyId = /^\d+$/.test(normalizedIdentifier) ? Number(normalizedIdentifier) : null;
+  const row = await db.classified.findFirst({
+    where: {
+      AND: [
+        {
+          OR: [
+            { id: normalizedIdentifier },
+            { slug: normalizedIdentifier },
+            ...(legacyId !== null && legacyId > 0 ? [{ legacyId }] : []),
+          ],
+        },
+        { owner: { enabled: true } },
+      ],
+    },
+    select: classifiedSelect,
+  });
+
+  if (!row || !canReadClassified(row.ownerId, row.privacy, viewerId)) return null;
+
+  return {
+    ...toPublicClassified(row),
+    body: toSafeText(row.body),
+  };
+}
+
+function toSafeText(value: string | null): string | null {
+  if (!value) return null;
+  const text = value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#039;|&#39;/gi, "'")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n[ \t]+/g, "\n")
+    .trim();
+  return text || null;
 }

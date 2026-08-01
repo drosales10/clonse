@@ -73,7 +73,7 @@ export default async function ClassifiedsPage({
             {catalog.items.map((classified) => (
               <article className="classified-card" key={classified.id}>
                 <p className="eyebrow">{classified.category?.title ?? "Clasificado"}</p>
-                <h2>{classified.title}</h2>
+                <h2><Link className="classified-card-link" href={`/classifieds/${encodeURIComponent(classified.id)}`}>{classified.title}</Link></h2>
                 {classified.body ? <p className="classified-summary">{classified.body}</p> : null}
                 <dl className="classified-facts">
                   <div><dt>Propietario</dt><dd><Link href={`/profile/${encodeURIComponent(classified.owner.username)}`}>{classified.owner.displayName}</Link></dd></div>
