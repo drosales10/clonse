@@ -89,7 +89,7 @@ h1 em { color: var(--accent); font-family: Georgia, serif; font-weight: 400; }
 .presence-online { color: #2f8056; }
 .presence-offline { color: var(--muted); }
 .profile-status { border-left: 3px solid var(--accent); color: var(--forest); font-size: 1.05rem; line-height: 1.5; margin: 38px 0 0; padding-left: 15px; }
-.profile-facts { border-top: 1px solid var(--line); display: grid; gap: 20px; grid-template-columns: repeat(3, 1fr); margin: 45px 0 0; padding-top: 22px; }
+.profile-facts { border-top: 1px solid var(--line); display: grid; gap: 20px; grid-template-columns: repeat(4, 1fr); margin: 45px 0 0; padding-top: 22px; }
 .profile-facts div { display: grid; gap: 7px; }
 .profile-facts dt { color: var(--muted); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 .profile-facts dd { font-size: .95rem; margin: 0; }
@@ -166,6 +166,11 @@ h1 em { color: var(--accent); font-family: Georgia, serif; font-weight: 400; }
 .welcome-panel { margin: 11vh auto 0; max-width: 1050px; }
 .welcome-panel h1 { font-size: clamp(3rem, 8vw, 6.8rem); }
 .activity-panel { background: var(--white); border: 1px solid var(--line); border-radius: 20px; margin-top: 48px; padding: clamp(22px, 4vw, 34px); }
+.profile-views-panel { background: var(--white); border: 1px solid var(--line); border-radius: 20px; margin-top: 28px; padding: clamp(22px, 4vw, 34px); }
+.profile-view-total { align-items: center; background: #e6eee7; border-radius: 999px; color: var(--forest); display: inline-flex; font-size: 1.1rem; min-height: 44px; min-width: 44px; justify-content: center; padding: 0 14px; }
+.profile-viewers-list { border-top: 1px solid var(--line); margin-top: 24px; padding-top: 20px; }
+.profile-viewers-list .field-help { margin: 0; }
+.profile-views-reset-form { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 16px; }
 .activity-heading { align-items: flex-start; display: flex; justify-content: space-between; gap: 20px; }
 .activity-heading .eyebrow { margin-bottom: 10px; }
 .activity-heading h2 { color: var(--forest); font-size: clamp(1.7rem, 4vw, 2.5rem); letter-spacing: -.06em; margin: 0; }
@@ -187,6 +192,7 @@ h1 em { color: var(--accent); font-family: Georgia, serif; font-weight: 400; }
   .hero-orbit { margin: 0 auto; max-width: 320px; }
   .feature-strip, .scope-grid { grid-template-columns: 1fr; }
   .feature-strip { gap: 22px; }
+  .profile-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .public-friends-list { grid-template-columns: 1fr; }
   .friend-card { align-items: flex-start; flex-direction: column; }
   h1 { font-size: clamp(3.3rem, 17vw, 6rem); }

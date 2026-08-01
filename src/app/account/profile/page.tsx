@@ -37,7 +37,7 @@ export default async function ProfileSettingsPage() {
         <p className="eyebrow">Cuenta · Perfil</p>
         <h1 id="settings-title">Tus ajustes</h1>
         <p className="lead">Controla quién puede encontrar tu perfil y qué estado breve quieres mostrar.</p>
-        <ProfileSettingsForm profilePrivacy={settings.profilePrivacy} commentsPrivacy={settings.commentsPrivacy} status={settings.status} username={settings.username} />
+        <ProfileSettingsForm profilePrivacy={settings.profilePrivacy} commentsPrivacy={settings.commentsPrivacy} saveProfileViews={settings.saveProfileViews} status={settings.status} username={settings.username} />
       </section>
       <section className="profile-panel settings-panel" aria-labelledby="fields-title">
         <p className="eyebrow">Perfil · Información</p>

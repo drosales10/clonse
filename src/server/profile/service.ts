@@ -20,6 +20,7 @@ import { presenceFromLastActiveAt } from "@domain/presence";
 import { db } from "@/server/db/client";
 import { updateStatusAndPrivacy } from "@/server/activity/service";
 import { getProfileComments } from "@/server/profile-comments/service";
+import { getPublicProfileViews, recordProfileView } from "@/server/profile-views/service";
 
 export type ProfileLookup =
   | { kind: "profile"; profile: PublicProfile }
@@ -42,6 +43,7 @@ export async function getPublicProfile(
       status: true,
       profilePrivacy: true,
       commentsPrivacy: true,
+      saveProfileViews: true,
       verifiedAt: true,
       signUpDate: true,
       lastActiveAt: true,
@@ -61,10 +63,12 @@ export async function getPublicProfile(
   const canComment = viewerId
     ? canCommentOnProfile(owner.id, owner.commentsPrivacy, viewerId, relationship === "friends")
     : false;
-  const [fields, friends, comments] = await Promise.all([
+  await recordProfileView(owner.id, viewerId);
+  const [fields, friends, comments, views] = await Promise.all([
     getPublicProfileFields(owner.id),
     getPublicProfileFriends(owner.id),
     getProfileComments(owner.id, viewerId),
+    getPublicProfileViews(owner.id),
   ]);
   return {
     kind: "profile",
@@ -75,6 +79,7 @@ export async function getPublicProfile(
       verified: owner.verifiedAt !== null,
       memberSince: owner.signUpDate,
       presence: presenceFromLastActiveAt(owner.lastActiveAt),
+      profileViews: views.totalViews,
       visibility: "public",
       fields,
       friends,
@@ -90,6 +95,7 @@ export interface OwnProfileSettings {
   displayName: string;
   profilePrivacy: number;
   commentsPrivacy: number;
+  saveProfileViews: boolean;
   status: string | null;
 }
 
@@ -387,6 +393,7 @@ export async function getOwnProfileSettings(userId: string): Promise<OwnProfileS
       displayName: true,
       profilePrivacy: true,
       commentsPrivacy: true,
+      saveProfileViews: true,
       status: true,
     },
   });

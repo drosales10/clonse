@@ -18,6 +18,7 @@ model User {
   statusUpdatedAt      DateTime? @map("status_updated_at")
   profilePrivacy       Int       @default(63) @map("profile_privacy")
   commentsPrivacy      Int       @default(63) @map("comments_privacy")
+  saveProfileViews     Boolean   @default(true) @map("save_profile_views")
   passwordHash         String    @map("password_hash")
   passwordMethod       Int       @default(0) @map("password_method")
   verificationTokenHash String?   @map("verification_token_hash")
@@ -41,6 +42,8 @@ model User {
   activities            Activity[] @relation("ActivityActor")
   profileCommentsReceived ProfileComment[] @relation("ProfileCommentOwner")
   profileCommentsAuthored ProfileComment[] @relation("ProfileCommentAuthor")
+  profileViewStats      ProfileViewStats?
+  profileViewers        ProfileViewViewer[] @relation("ProfileViewViewer")
 
   @@index([enabled, verifiedAt])
   @@map("users")
@@ -185,4 +188,32 @@ model ProfileComment {
   @@index([profileOwnerId, createdAt])
   @@index([authorId, createdAt])
   @@map("profile_comments")
+}
+
+model ProfileViewStats {
+  id             String             @id @default(cuid())
+  profileOwnerId String             @unique @map("profile_owner_id")
+  totalViews     Int                @default(0) @map("total_views")
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
+
+  profileOwner User              @relation(fields: [profileOwnerId], references: [id], onDelete: Cascade)
+  viewers      ProfileViewViewer[]
+
+  @@map("profile_view_stats")
+}
+
+model ProfileViewViewer {
+  id       String   @id @default(cuid())
+  statsId  String   @map("stats_id")
+  viewerId String   @map("viewer_id")
+  viewedAt DateTime @default(now()) @map("viewed_at")
+
+  stats  ProfileViewStats @relation(fields: [statsId], references: [id], onDelete: Cascade)
+  viewer User             @relation("ProfileViewViewer", fields: [viewerId], references: [id], onDelete: Cascade)
+
+  @@unique([statsId, viewerId])
+  @@index([statsId, viewedAt])
+  @@index([viewerId, viewedAt])
+  @@map("profile_view_viewers")
 }

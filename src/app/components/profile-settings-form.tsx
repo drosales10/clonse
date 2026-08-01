@@ -25,11 +25,13 @@ function FormMessage({ state }: { state: ProfileSettingsFormState }) {
 export function ProfileSettingsForm({
   profilePrivacy,
   commentsPrivacy,
+  saveProfileViews,
   status,
   username,
 }: {
   profilePrivacy: number;
   commentsPrivacy: number;
+  saveProfileViews: boolean;
   status: string | null;
   username: string;
 }) {
@@ -70,6 +72,15 @@ export function ProfileSettingsForm({
         <textarea defaultValue={status ?? ""} id="profile-status" maxLength={100} name="status" rows={4} />
         <span className="field-help">Máximo 100 caracteres. Déjalo vacío para quitarlo.</span>
         <FieldError errors={state.errors?.status} />
+      </div>
+      <div className="field checkbox-field">
+        <input type="hidden" name="saveProfileViewsControl" value="1" />
+        <label className="checkbox-row" htmlFor="save-profile-views">
+          <input defaultChecked={saveProfileViews} id="save-profile-views" name="saveProfileViews" type="checkbox" value="1" />
+          <span>Guardar y mostrar quién visita mi perfil</span>
+        </label>
+        <span className="field-help">El contador sigue funcionando aunque desactives la lista de visitantes.</span>
+        <FieldError errors={state.errors?.saveProfileViews} />
       </div>
       <FieldError errors={state.errors?.form} />
       <FormMessage state={state} />

@@ -32,6 +32,7 @@ export interface PublicProfile {
   verified: boolean;
   memberSince: Date;
   presence: PublicPresence;
+  profileViews: number;
   visibility: ProfileVisibility;
   fields: PublicProfileField[];
   friends: PublicProfileFriend[];
@@ -70,12 +71,13 @@ export function canCommentOnProfile(
   return canViewProfile(ownerId, commentsPrivacy, viewerId, viewerIsFriend);
 }
 
-export type ProfileSettingsField = "profilePrivacy" | "commentsPrivacy" | "status" | "form";
+export type ProfileSettingsField = "profilePrivacy" | "commentsPrivacy" | "saveProfileViews" | "status" | "form";
 export type ProfileSettingsErrors = Partial<Record<ProfileSettingsField, string[]>>;
 
 export interface ProfileSettingsInput {
   profilePrivacy: ProfilePrivacy;
   commentsPrivacy: ProfilePrivacy;
+  saveProfileViews: boolean;
   status: string | null;
 }
 
@@ -88,15 +90,19 @@ export interface ProfileSettingsFormState {
 export function profileSettingsInputFromFormData(formData: FormData): {
   profilePrivacy: number;
   commentsPrivacy: number;
+  saveProfileViews: boolean;
   status: string;
 } {
   const rawPrivacy = formData.get("profilePrivacy");
   const rawCommentsPrivacy = formData.get("commentsPrivacy");
+  const rawSaveProfileViews = formData.get("saveProfileViews");
+  const hasSaveProfileViewsControl = formData.get("saveProfileViewsControl") === "1";
   const rawStatus = formData.get("status");
 
   return {
     profilePrivacy: typeof rawPrivacy === "string" ? Number(rawPrivacy) : Number.NaN,
     commentsPrivacy: typeof rawCommentsPrivacy === "string" ? Number(rawCommentsPrivacy) : Number.NaN,
+    saveProfileViews: hasSaveProfileViewsControl ? rawSaveProfileViews === "1" : true,
     status: typeof rawStatus === "string" ? rawStatus.trim() : "",
   };
 }
@@ -104,6 +110,7 @@ export function profileSettingsInputFromFormData(formData: FormData): {
 export function validateProfileSettings(input: {
   profilePrivacy: number;
   commentsPrivacy: number;
+  saveProfileViews: boolean;
   status: string;
 }):
   | { success: true; data: ProfileSettingsInput }
@@ -128,6 +135,7 @@ export function validateProfileSettings(input: {
         data: {
           profilePrivacy: input.profilePrivacy as ProfilePrivacy,
           commentsPrivacy: input.commentsPrivacy as ProfilePrivacy,
+          saveProfileViews: input.saveProfileViews,
           status: input.status || null,
         },
       };

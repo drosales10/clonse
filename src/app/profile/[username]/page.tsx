@@ -62,6 +62,7 @@ export default async function ProfilePage({
           <dl className="profile-facts">
             <div><dt>Miembro desde</dt><dd>{formatMemberSince(result.profile.memberSince)}</dd></div>
             <div><dt>Visibilidad</dt><dd>{result.profile.visibility === "public" ? "Público" : "Restringido"}</dd></div>
+            <div><dt>Visitas</dt><dd>{result.profile.profileViews}</dd></div>
             <div><dt>Cuenta</dt><dd>{result.profile.verified ? "Email verificado" : "Pendiente de verificación"}</dd></div>
           </dl>
           {viewer ? <FriendRelationshipActions relationship={result.profile.relationship} username={result.profile.username} /> : null}

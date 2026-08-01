@@ -29,6 +29,7 @@ export async function updateStatusAndPrivacy(
         data: {
           profilePrivacy: input.profilePrivacy,
           commentsPrivacy: input.commentsPrivacy,
+          saveProfileViews: input.saveProfileViews,
           status: input.status,
           statusUpdatedAt: now,
         },

@@ -2,19 +2,24 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { logoutAction } from "@/app/actions/auth";
+import { ProfileViewsResetForm } from "@/app/components/profile-views-reset-form";
 import { getActivityFeed } from "@/server/activity/service";
 import { getCurrentUser } from "@/server/auth/session";
+import { getOwnProfileViews } from "@/server/profile-views/service";
 
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ welcome?: string }>;
+  searchParams: Promise<{ welcome?: string; viewsReset?: string }>;
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login?returnUrl=/home");
 
   const params = await searchParams;
-  const activities = await getActivityFeed(user.id);
+  const [activities, profileViews] = await Promise.all([
+    getActivityFeed(user.id),
+    getOwnProfileViews(user.id),
+  ]);
   return (
     <main className="authenticated-shell">
       <header className="app-header">
@@ -34,6 +39,32 @@ export default async function HomePage({
         <h1 id="welcome-title">Hola, {user.displayName}</h1>
         <p className="lead">Tu sesión está activa como <strong>{user.email}</strong>.</p>
         {params.welcome === "1" ? <p className="success-message" role="status">Cuenta creada. El siguiente incremento añadirá verificación por email.</p> : null}
+        {params.viewsReset === "1" ? <p className="success-message" role="status">Tus estadísticas de visitas se han reiniciado.</p> : null}
+        {profileViews ? (
+          <section className="profile-views-panel" aria-labelledby="profile-views-title">
+            <div className="activity-heading">
+              <div>
+                <p className="eyebrow">Perfil · Estadísticas</p>
+                <h2 id="profile-views-title">Visitas a tu perfil</h2>
+              </div>
+              <strong className="profile-view-total">{profileViews.totalViews}</strong>
+            </div>
+            {profileViews.viewers.length > 0 ? (
+              <div className="profile-viewers-list">
+                <p className="field-help">Visitantes registrados recientes</p>
+                <div className="public-friends-list">
+                  {profileViews.viewers.map((viewer) => (
+                    <Link className="public-friend" href={`/profile/${encodeURIComponent(viewer.username)}`} key={viewer.username}>
+                      <span className="friend-avatar" aria-hidden="true">{viewer.displayName.slice(0, 1).toUpperCase()}</span>
+                      <span><strong>{viewer.displayName}</strong><small>@{viewer.username}</small></span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : <p className="empty-state">Todavía no hay visitantes registrados que mostrar.</p>}
+            {profileViews.totalViews > 0 ? <ProfileViewsResetForm /> : null}
+          </section>
+        ) : null}
         <section className="activity-panel" aria-labelledby="activity-title">
           <div className="activity-heading">
             <div>
