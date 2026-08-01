@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { FriendRelationshipActions } from "@/app/components/friend-relationship-actions";
 import { ProfileBlockActions } from "@/app/components/profile-block-actions";
 import { ProfileComments } from "@/app/components/profile-comments";
+import { ProfileFriends } from "@/app/components/profile-friends";
 import { getCurrentUser } from "@/server/auth/session";
 import { clearProfileCommentNotifications } from "@/server/notifications/service";
 import { getPublicProfile } from "@/server/profile/service";
@@ -19,11 +20,12 @@ export default async function ProfilePage({
   searchParams,
 }: {
   params: Promise<{ username: string }>;
-  searchParams: Promise<{ commentsPage?: string; v?: string }>;
+  searchParams: Promise<{ commentsPage?: string; friendsPage?: string; friendsSearch?: string; v?: string }>;
 }) {
   const [{ username }, viewer, query] = await Promise.all([params, getCurrentUser(), searchParams]);
   const commentsPage = parseCommentsPage(query.commentsPage);
-  const result = await getPublicProfile(username, viewer?.id ?? null, commentsPage);
+  const friendsPage = parseFriendsPage(query.friendsPage);
+  const result = await getPublicProfile(username, viewer?.id ?? null, commentsPage, friendsPage, query.friendsSearch ?? "");
 
   if (!result) notFound();
   if (query.v === "comments" && viewer && result.kind === "profile") {
@@ -84,22 +86,12 @@ export default async function ProfilePage({
               </dl>
             </section>
           ) : null}
-          <section className="profile-friends-display" aria-labelledby="profile-friends-title">
-            <div className="profile-friends-heading">
-              <h2 id="profile-friends-title">Conexiones</h2>
-              {result.profile.relationship === "self" ? <Link className="text-link" href="/account/friends">Gestionar</Link> : null}
-            </div>
-            {result.profile.friends.length > 0 ? (
-              <div className="public-friends-list">
-                {result.profile.friends.map((friend) => (
-                  <Link className="public-friend" href={`/profile/${encodeURIComponent(friend.username)}`} key={friend.username}>
-                    <span className="friend-avatar" aria-hidden="true">{friend.displayName.slice(0, 1).toUpperCase()}</span>
-                    <span><strong>{friend.displayName}</strong><small>@{friend.username}</small></span>
-                  </Link>
-                ))}
-              </div>
-            ) : <p className="empty-state">Todavía no hay conexiones confirmadas visibles.</p>}
-          </section>
+          <ProfileFriends
+            friends={result.profile.friends}
+            pagination={result.profile.friendsPagination}
+            ownerUsername={result.profile.username}
+            isOwner={result.profile.relationship === "self"}
+          />
           <ProfileComments
             canComment={result.profile.canComment}
             comments={result.profile.comments}
@@ -115,6 +107,11 @@ export default async function ProfilePage({
 }
 
 function parseCommentsPage(value: string | undefined): number {
+  const page = Number(value);
+  return Number.isInteger(page) && page > 0 ? page : 1;
+}
+
+function parseFriendsPage(value: string | undefined): number {
   const page = Number(value);
   return Number.isInteger(page) && page > 0 ? page : 1;
 }

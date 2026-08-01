@@ -4,7 +4,9 @@ import type { BlockRelationship, BlockedUser } from "@domain/blocks";
 import type {
   FriendRelationship,
   PublicProfileFriend,
+  PublicProfileFriendsPagination,
 } from "@domain/friends";
+import { PUBLIC_PROFILE_FRIENDS_PAGE_SIZE } from "@domain/friends";
 import type {
   ProfileFieldDefinition,
   ProfileFieldOption,
@@ -31,6 +33,8 @@ export async function getPublicProfile(
   username: string,
   viewerId: string | null,
   commentsPage = 1,
+  friendsPage = 1,
+  friendsSearch = "",
 ): Promise<ProfileLookup | null> {
   const owner = await db.user.findFirst({
     where: {
@@ -67,7 +71,7 @@ export async function getPublicProfile(
   await recordProfileView(owner.id, viewerId);
   const [fields, friends, commentsResult, views] = await Promise.all([
     getPublicProfileFields(owner.id),
-    getPublicProfileFriends(owner.id),
+    getPublicProfileFriends(owner.id, friendsPage, friendsSearch),
     getProfileComments(owner.id, viewerId, commentsPage),
     getPublicProfileViews(owner.id),
   ]);
@@ -83,7 +87,8 @@ export async function getPublicProfile(
       profileViews: views.totalViews,
       visibility: "public",
       fields,
-      friends,
+      friends: friends.items,
+      friendsPagination: friends.pagination,
       comments: commentsResult.comments,
       commentsPagination: commentsResult.pagination,
       canComment,
@@ -243,13 +248,28 @@ export async function getFriendDashboard(userId: string): Promise<FriendDashboar
   };
 }
 
-export async function getPublicProfileFriends(userId: string): Promise<PublicProfileFriend[]> {
+export async function getPublicProfileFriends(
+  userId: string,
+  requestedPage = 1,
+  search = "",
+): Promise<{ items: PublicProfileFriend[]; pagination: PublicProfileFriendsPagination }> {
+  const normalizedSearch = search.trim().slice(0, 64);
   const connections = await db.friendConnection.findMany({
     where: {
       status: "accepted",
       OR: [{ requesterId: userId }, { addresseeId: userId }],
       requester: { enabled: true },
       addressee: { enabled: true },
+      ...(normalizedSearch ? {
+        AND: [{
+          OR: [
+            { requester: { username: { contains: normalizedSearch, mode: "insensitive" } } },
+            { requester: { displayName: { contains: normalizedSearch, mode: "insensitive" } } },
+            { addressee: { username: { contains: normalizedSearch, mode: "insensitive" } } },
+            { addressee: { displayName: { contains: normalizedSearch, mode: "insensitive" } } },
+          ],
+        }],
+      } : {}),
     },
     select: {
       requesterId: true,
@@ -259,9 +279,31 @@ export async function getPublicProfileFriends(userId: string): Promise<PublicPro
     },
   });
 
-  return connections
+  const allFriends = connections
     .map((connection) => connection.requesterId === userId ? connection.addressee : connection.requester)
     .sort(compareFriendListItems);
+  const pageCount = Math.max(1, Math.ceil(allFriends.length / PUBLIC_PROFILE_FRIENDS_PAGE_SIZE));
+  const page = normalizeFriendsPage(requestedPage, pageCount);
+  const skip = (page - 1) * PUBLIC_PROFILE_FRIENDS_PAGE_SIZE;
+  const items = allFriends.slice(skip, skip + PUBLIC_PROFILE_FRIENDS_PAGE_SIZE);
+
+  return {
+    items,
+    pagination: {
+      page,
+      pageSize: PUBLIC_PROFILE_FRIENDS_PAGE_SIZE,
+      total: allFriends.length,
+      pageCount,
+      start: allFriends.length === 0 ? 0 : skip + 1,
+      end: skip + items.length,
+      search: normalizedSearch,
+    },
+  };
+}
+
+function normalizeFriendsPage(value: number, pageCount: number): number {
+  if (!Number.isInteger(value) || value < 1) return 1;
+  return Math.min(value, pageCount);
 }
 
 export async function getFriendRelationship(viewerId: string, targetId: string): Promise<FriendRelationship> {

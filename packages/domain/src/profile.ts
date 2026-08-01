@@ -1,4 +1,4 @@
-import type { FriendRelationship, PublicProfileFriend } from "./friends";
+import type { FriendRelationship, PublicProfileFriend, PublicProfileFriendsPagination } from "./friends";
 import type { PublicPresence } from "./presence";
 import type { PublicProfileComment, ProfileCommentsPagination } from "./profile-comments";
 import type { PublicProfileField } from "./profile-fields";
@@ -36,6 +36,7 @@ export interface PublicProfile {
   visibility: ProfileVisibility;
   fields: PublicProfileField[];
   friends: PublicProfileFriend[];
+  friendsPagination: PublicProfileFriendsPagination;
   comments: PublicProfileComment[];
   commentsPagination: ProfileCommentsPagination;
   canComment: boolean;

@@ -1,3 +1,4 @@
+import "dotenv/config";
 import assert from "node:assert/strict";
 
 import { PrismaPg } from "@prisma/adapter-pg";
@@ -9,6 +10,7 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 2 });
 const db = new PrismaClient({ adapter: new PrismaPg(pool) });
 let ownerId;
 let viewerId;
+let friendIds = [];
 let sessionId;
 
 try {
@@ -38,7 +40,24 @@ try {
   });
   viewerId = viewer.id;
 
-  await db.friendConnection.create({ data: { requesterId: viewerId, addresseeId: ownerId, status: "accepted" } });
+  const additionalFriends = await Promise.all(Array.from({ length: 10 }, async (_, index) => db.user.create({
+    data: {
+      email: `${marker}_friend_${index}@example.invalid`,
+      username: `${marker}_friend_${index}`,
+      displayName: `HTTP Friends Extra ${String(index).padStart(2, "0")}`,
+      passwordHash: "smoke-only",
+      verifiedAt: new Date(),
+    },
+    select: { id: true },
+  })));
+  friendIds = additionalFriends.map((friend) => friend.id);
+
+  await db.friendConnection.createMany({
+    data: [
+      { requesterId: viewerId, addresseeId: ownerId, status: "accepted" },
+      ...friendIds.map((friendId) => ({ requesterId: friendId, addresseeId: ownerId, status: "accepted" })),
+    ],
+  });
   sessionId = `${marker}_session`;
   await db.authSession.create({ data: { id: sessionId, userId: viewerId, expiresAt: new Date(Date.now() + 60 * 60 * 1000) } });
 
@@ -69,11 +88,24 @@ try {
   assert.match(profileHtml, /HTTP Friends Owner/);
   assert.match(profileHtml, /Conexiones/);
   assert.equal(profileHtml.includes(`${marker}_owner@example.invalid`), false, "el perfil público no debe mostrar email");
+  assert.equal((profileHtml.match(/class="public-friend"/g) ?? []).length, 10, "la primera página pública debe mostrar 10 conexiones");
+
+  const secondFriendsPage = await fetch(`http://localhost:3000/profile/${owner.username}?friendsPage=2`, { headers: viewerHeaders });
+  const secondFriendsHtml = await secondFriendsPage.text();
+  assert.equal(secondFriendsPage.status, 200, "la segunda página pública debe responder 200");
+  assert.equal((secondFriendsHtml.match(/class="public-friend"/g) ?? []).length, 1, "la segunda página debe mostrar la conexión restante");
+  assert.equal(secondFriendsHtml.includes("HTTP Friends Viewer"), true, "la segunda página debe contener la última conexión ordenada");
+
+  const searchFriends = await fetch(`http://localhost:3000/profile/${owner.username}?friendsSearch=${encodeURIComponent("Friends Viewer")}`, { headers: viewerHeaders });
+  const searchFriendsHtml = await searchFriends.text();
+  assert.equal(searchFriends.status, 200, "la búsqueda pública debe responder 200");
+  assert.equal((searchFriendsHtml.match(/class="public-friend"/g) ?? []).length, 1, "la búsqueda debe filtrar una conexión");
+  assert.match(searchFriendsHtml, /HTTP Friends Viewer/);
 
   console.log("FRIEND_CONNECTIONS_HTTP_SMOKE_PASS", JSON.stringify({ root: root.status, anonymousAccount: anonymousAccount.status, anonymousProfile: anonymousProfile.status, authenticatedAccount: authenticatedAccount.status, authenticatedProfile: authenticatedProfile.status }));
 } finally {
-  if (ownerId || viewerId) {
-    await db.user.deleteMany({ where: { id: { in: [ownerId, viewerId].filter(Boolean) } } });
+  if (ownerId || viewerId || friendIds.length > 0) {
+    await db.user.deleteMany({ where: { id: { in: [ownerId, viewerId, ...friendIds].filter(Boolean) } } });
   }
   const remainingUsers = await db.user.count({ where: { email: { contains: marker } } });
   const remainingConnections = await db.friendConnection.count({
