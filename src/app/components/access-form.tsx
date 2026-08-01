@@ -7,6 +7,7 @@ import { useFormStatus } from "react-dom";
 import type { AccessFormState } from "@domain/access";
 import {
   changePasswordAction,
+  deleteAccountAction,
   loginAction,
   registerAction,
   requestPasswordResetAction,
@@ -129,6 +130,19 @@ export function PasswordChangeForm() {
       <FieldError errors={state.errors?.form} />
       <FormMessage state={state} />
       <SubmitButton label="Cambiar contraseña" pendingLabel="Actualizando…" />
+    </form>
+  );
+}
+
+export function DeleteAccountForm() {
+  const [state, formAction] = useActionState<AccessFormState, FormData>(deleteAccountAction, {});
+  return (
+    <form action={formAction} className="auth-form">
+      <div className="field"><label htmlFor="delete-current-password">Contraseña actual</label><input autoComplete="current-password" id="delete-current-password" name="currentPassword" required type="password" /><FieldError errors={state.errors?.currentPassword} /></div>
+      <div className="field"><label htmlFor="delete-confirmation">Escribe ELIMINAR para confirmar</label><input autoComplete="off" id="delete-confirmation" name="deleteConfirmation" required type="text" /><FieldError errors={state.errors?.deleteConfirmation} /></div>
+      <FieldError errors={state.errors?.form} />
+      <FormMessage state={state} />
+      <SubmitButton label="Eliminar mi cuenta" pendingLabel="Eliminando…" />
     </form>
   );
 }

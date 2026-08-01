@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import {
   type AccessFormState,
   currentPasswordFromFormData,
+  deleteConfirmationFromFormData,
   emailFromFormData,
   loginInputFromFormData,
   passwordPairFromFormData,
@@ -15,12 +16,14 @@ import {
   validateLogin,
   validatePasswordPair,
   validateRegistration,
+  validateDeleteConfirmation,
 } from "@domain/access";
 import { destroySession, establishSession, getCurrentSessionToken, getCurrentUser } from "@/server/auth/session";
 import {
   authenticateUser,
   changeUserPassword,
   createUser,
+  deleteUserAccount,
   requestPasswordReset,
   resendVerification,
   resetUserPassword,
@@ -145,6 +148,23 @@ export async function changePasswordAction(_previousState: AccessFormState, form
   }
   return { success: true, message: "Tu contraseña se ha actualizado. Las demás sesiones fueron cerradas." };
 }
+export async function deleteAccountAction(_previousState: AccessFormState, formData: FormData): Promise<AccessFormState> {
+  const user = await getCurrentUser();
+  if (!user) return { errors: { form: ["Tu sesión ha caducado. Inicia sesión de nuevo."] } };
+
+  const currentPassword = currentPasswordFromFormData(formData);
+  if (!currentPassword) return { errors: { currentPassword: ["Introduce tu contraseña actual."] } };
+  const confirmation = validateDeleteConfirmation(deleteConfirmationFromFormData(formData));
+  if (!confirmation.success) return { errors: confirmation.errors };
+
+  const result = await deleteUserAccount(user.id, currentPassword);
+  if (!result.ok) {
+    return { errors: { form: [result.reason === "invalid_current" ? "La contraseña actual no es correcta." : "No se pudo localizar tu cuenta."] } };
+  }
+  await destroySession();
+  redirect("/");
+}
+
 export async function logoutAction(): Promise<void> {
   await destroySession();
   redirect("/");

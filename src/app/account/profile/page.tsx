@@ -1,3 +1,4 @@
+import { DeleteAccountForm } from "@/app/components/access-form";
 import { PasswordChangeForm } from "@/app/components/access-form";
 import { ProfileFieldsForm } from "@/app/components/profile-fields-form";
 import { ProfileSettingsForm } from "@/app/components/profile-settings-form";
@@ -52,6 +53,12 @@ export default async function ProfileSettingsPage() {
         <h2 id="password-title">Cambia tu contraseña</h2>
         <p className="lead">Confirma tu contraseña actual para establecer una nueva clave. Las demás sesiones se cerrarán.</p>
         <PasswordChangeForm />
+      </section>
+      <section className="profile-panel settings-panel account-danger-zone" aria-labelledby="delete-account-title">
+        <p className="eyebrow">Cuenta · Zona peligrosa</p>
+        <h2 id="delete-account-title">Eliminar cuenta</h2>
+        <p className="lead">Esta acción es irreversible y elimina los datos de cuenta modelados en esta aplicación.</p>
+        <DeleteAccountForm />
       </section>
     </main>
   );

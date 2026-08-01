@@ -3,6 +3,7 @@ export type AccessField =
   | "username"
   | "password"
   | "currentPassword"
+  | "deleteConfirmation"
   | "passwordConfirmation"
   | "termsAccepted"
   | "token"
@@ -174,4 +175,14 @@ export function safeInternalRedirect(value: string): string {
 
 export function currentPasswordFromFormData(formData: FormData): string {
   return typeof formData.get("currentPassword") === "string" ? String(formData.get("currentPassword")) : "";
+}
+
+export function deleteConfirmationFromFormData(formData: FormData): string {
+  return firstString(formData.get("deleteConfirmation"));
+}
+
+export function validateDeleteConfirmation(value: string): ValidationResult<"ELIMINAR"> {
+  return value === "ELIMINAR"
+    ? { success: true, data: "ELIMINAR" }
+    : { success: false, errors: { deleteConfirmation: ["Escribe ELIMINAR para confirmar la eliminación."] } };
 }

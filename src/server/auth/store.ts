@@ -254,3 +254,20 @@ export async function changeUserPassword(
   });
   return { ok: true };
 }
+
+export async function deleteUserAccount(
+  userId: string,
+  currentPassword: string,
+): Promise<{ ok: true } | { ok: false; reason: "invalid_current" | "not_found" }> {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { id: true, enabled: true, verifiedAt: true, passwordHash: true },
+  });
+  if (!user?.enabled || !user.verifiedAt) return { ok: false, reason: "not_found" };
+  if (!verifyPassword(currentPassword, user.passwordHash)) return { ok: false, reason: "invalid_current" };
+
+  await db.$transaction(async (transaction) => {
+    await transaction.user.delete({ where: { id: user.id } });
+  });
+  return { ok: true };
+}
