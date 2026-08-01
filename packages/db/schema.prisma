@@ -51,6 +51,8 @@ model User {
   classifiedsOwned     Classified[] @relation("ClassifiedOwner")
   eventsOwned          Event[] @relation("EventOwner")
   groupsOwned          Group[] @relation("GroupOwner")
+  identityMappings     UserIdentityMap[] @relation("IdentityMapUser")
+  canonicalMappings    UserIdentityMap[] @relation("IdentityMapCanonical")
 
   @@index([enabled, verifiedAt])
   @@map("users")
@@ -436,4 +438,27 @@ model Group {
   @@index([categoryId, searchable, catalogVisible])
   @@index([searchable, catalogVisible, createdAt])
   @@map("groups")
+}
+
+model UserIdentityMap {
+  id              String   @id @default(cuid())
+  userId          String   @map("user_id")
+  sourceSystem    String   @map("source_system")
+  sourceTable     String   @map("source_table")
+  legacyUserId    Int      @map("legacy_user_id")
+  status          String   @default("active")
+  reasonCode      String?  @map("reason_code")
+  canonicalUserId String?  @map("canonical_user_id")
+  importedAt      DateTime? @map("imported_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  user      User  @relation("IdentityMapUser", fields: [userId], references: [id], onDelete: Restrict)
+  canonical User? @relation("IdentityMapCanonical", fields: [canonicalUserId], references: [id], onDelete: SetNull)
+
+  @@unique([sourceSystem, sourceTable, legacyUserId])
+  @@unique([userId, sourceSystem, sourceTable])
+  @@index([userId, status])
+  @@index([status, reasonCode])
+  @@map("user_identity_maps")
 }
