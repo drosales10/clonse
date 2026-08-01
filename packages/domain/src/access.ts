@@ -2,9 +2,11 @@ export type AccessField =
   | "email"
   | "username"
   | "password"
+  | "currentPassword"
   | "passwordConfirmation"
   | "termsAccepted"
-  | "token";
+  | "token"
+  | "form";
 
 export type AccessErrors = Partial<Record<AccessField, string[]>>;
 
@@ -168,4 +170,8 @@ export function isSafeInternalRedirect(value: string): boolean {
 
 export function safeInternalRedirect(value: string): string {
   return isSafeInternalRedirect(value) ? value : "/home";
+}
+
+export function currentPasswordFromFormData(formData: FormData): string {
+  return typeof formData.get("currentPassword") === "string" ? String(formData.get("currentPassword")) : "";
 }

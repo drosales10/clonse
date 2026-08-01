@@ -226,3 +226,31 @@ async function findTokenUserId(kind: "verification" | "password_reset", rawToken
 function publicUser(user: { id: string; email: string; username: string; displayName: string }): AuthenticatedUser {
   return { id: user.id, email: user.email, username: user.username, displayName: user.displayName };
 }
+
+export async function changeUserPassword(
+  userId: string,
+  currentPassword: string,
+  newPassword: string,
+  currentSessionToken?: string,
+): Promise<{ ok: true } | { ok: false; reason: "invalid_current" | "not_found" }> {
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { id: true, enabled: true, verifiedAt: true, passwordHash: true },
+  });
+  if (!user?.enabled || !user.verifiedAt) return { ok: false, reason: "not_found" };
+  if (!verifyPassword(currentPassword, user.passwordHash)) return { ok: false, reason: "invalid_current" };
+
+  await db.$transaction(async (transaction) => {
+    await transaction.user.update({
+      where: { id: user.id },
+      data: { passwordHash: hashPassword(newPassword) },
+    });
+    await transaction.authSession.deleteMany({
+      where: {
+        userId: user.id,
+        ...(currentSessionToken ? { id: { not: currentSessionToken } } : {}),
+      },
+    });
+  });
+  return { ok: true };
+}

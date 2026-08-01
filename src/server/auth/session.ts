@@ -25,9 +25,14 @@ export async function establishSession(userId: string, persistent: boolean): Pro
   });
 }
 
-export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
+export async function getCurrentSessionToken(): Promise<string | undefined> {
   const cookieStore = await cookies();
-  return getUserBySession(cookieStore.get(sessionCookieName)?.value);
+  return cookieStore.get(sessionCookieName)?.value;
+}
+
+export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
+  const token = await getCurrentSessionToken();
+  return getUserBySession(token);
 }
 
 export async function destroySession(): Promise<void> {

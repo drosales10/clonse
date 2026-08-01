@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 
 import type { AccessFormState } from "@domain/access";
 import {
+  changePasswordAction,
   loginAction,
   registerAction,
   requestPasswordResetAction,
@@ -114,6 +115,20 @@ export function ResetPasswordForm({ token }: { token: string }) {
       <div className="field"><label htmlFor="reset-password-confirmation">Repite la contraseña</label><input autoComplete="new-password" id="reset-password-confirmation" name="passwordConfirmation" required type="password" /><FieldError errors={state.errors?.passwordConfirmation} /></div>
       <FormMessage state={state} /><FieldError errors={state.errors?.token} />
       {state.success ? <Link className="button button-primary" href="/login">Ir a iniciar sesión</Link> : <SubmitButton label="Restablecer contraseña" pendingLabel="Guardando…" />}
+    </form>
+  );
+}
+
+export function PasswordChangeForm() {
+  const [state, formAction] = useActionState<AccessFormState, FormData>(changePasswordAction, {});
+  return (
+    <form action={formAction} className="auth-form">
+      <div className="field"><label htmlFor="current-password">Contraseña actual</label><input autoComplete="current-password" id="current-password" name="currentPassword" required type="password" /><FieldError errors={state.errors?.currentPassword} /></div>
+      <div className="field"><label htmlFor="new-password">Nueva contraseña</label><input autoComplete="new-password" id="new-password" minLength={6} name="password" required type="password" /><span className="field-help">Mínimo 6 caracteres alfanuméricos.</span><FieldError errors={state.errors?.password} /></div>
+      <div className="field"><label htmlFor="new-password-confirmation">Repite la nueva contraseña</label><input autoComplete="new-password" id="new-password-confirmation" minLength={6} name="passwordConfirmation" required type="password" /><FieldError errors={state.errors?.passwordConfirmation} /></div>
+      <FieldError errors={state.errors?.form} />
+      <FormMessage state={state} />
+      <SubmitButton label="Cambiar contraseña" pendingLabel="Actualizando…" />
     </form>
   );
 }
