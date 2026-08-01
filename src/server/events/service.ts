@@ -7,6 +7,7 @@ import {
   type EventCatalogQuery,
   type EventCatalogResult,
   type PublicEvent,
+  type PublicEventDetail,
 } from "@domain/events";
 import { db } from "@/server/db/client";
 
@@ -124,4 +125,51 @@ function toPublicEvent(row: EventRow): PublicEvent {
     owner: { username: row.owner.username, displayName: row.owner.displayName },
     category: row.category,
   };
+}
+
+export async function getEventDetail(
+  viewerId: string | null,
+  identifier: string,
+): Promise<PublicEventDetail | null> {
+  const normalizedIdentifier = identifier.trim();
+  if (!normalizedIdentifier) return null;
+
+  const legacyId = /^\d+$/.test(normalizedIdentifier) ? Number(normalizedIdentifier) : null;
+  const row = await db.event.findFirst({
+    where: {
+      AND: [
+        {
+          OR: [
+            { id: normalizedIdentifier },
+            ...(legacyId !== null && legacyId > 0 ? [{ legacyId }] : []),
+          ],
+        },
+        { owner: { enabled: true } },
+      ],
+    },
+    select: eventSelect,
+  });
+
+  if (!row || !canReadEvent(row.ownerId, row.privacy, row.inviteOnly, viewerId)) return null;
+
+  return {
+    ...toPublicEvent(row),
+    description: toSafeText(row.description),
+  };
+}
+
+function toSafeText(value: string | null): string | null {
+  if (!value) return null;
+  const text = value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#039;|&#39;/gi, "'")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n[ \t]+/g, "\n")
+    .trim();
+  return text || null;
 }

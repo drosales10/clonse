@@ -77,7 +77,7 @@ export default async function EventsPage({
                 <div className="event-card-heading">
                   <div>
                     <p className="eyebrow">{event.category?.title ?? "Evento"}</p>
-                    <h2>{event.title}</h2>
+                    <h2><Link className="event-card-link" href={`/events/${encodeURIComponent(event.id)}`}>{event.title}</Link></h2>
                   </div>
                   {event.inviteOnly ? <span className="event-badge">Solo invitados</span> : null}
                 </div>

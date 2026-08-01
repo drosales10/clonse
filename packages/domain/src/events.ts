@@ -48,6 +48,10 @@ export interface PublicEvent {
   category: { id: string; legacyId: number | null; title: string } | null;
 }
 
+export interface PublicEventDetail extends PublicEvent {
+  description: string | null;
+}
+
 export interface EventCatalogResult {
   items: PublicEvent[];
   pagination: EventCatalogPagination;
