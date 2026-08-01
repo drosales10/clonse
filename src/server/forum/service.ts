@@ -51,12 +51,18 @@ export async function getForumCatalog(input: Partial<ForumQuery> = {}): Promise<
   if (!query.instanceId) {
     return { instances, instance: null, categories: [], topics: [], pagination: makePagination(0, query.page) };
   }
-  const instance = instances.find((item) => item.id === query.instanceId);
+  const instanceIdentifier = query.instanceId;
+  const instance = instances.find((item) => matchesIdentifier(item.id, item.legacyId, instanceIdentifier)) ?? null;
   if (!instance) return { instances, instance: null, categories: [], topics: [], pagination: makePagination(0, query.page) };
 
   const allCategories = await db.forumCategory.findMany({ where: { instanceId: instance.id }, orderBy: [{ position: "asc" }, { id: "asc" }], select: categorySelect });
   const categories = allCategories.filter((category) => isPublicCategory(category, allCategories));
-  const categoryId = query.categoryId && categories.some((category) => category.id === query.categoryId) ? query.categoryId : null;
+  let selectedCategory: PublicForumCategory | null = null;
+  if (query.categoryId) {
+    const categoryIdentifier = query.categoryId;
+    selectedCategory = categories.find((category) => matchesIdentifier(category.id, category.legacyId, categoryIdentifier)) ?? null;
+  }
+  const categoryId = selectedCategory?.id ?? null;
   const categoryIds = categoryId ? resolveForumCategoryIds(categoryId, categories) : categories.map((category) => category.id);
   const rows = categoryIds.length === 0 ? [] : await db.forumPost.findMany({
     where: { instanceId: instance.id, categoryId: { in: categoryIds }, parentId: null, author: { enabled: true } },
@@ -77,12 +83,37 @@ export async function getForumCatalog(input: Partial<ForumQuery> = {}): Promise<
 export async function getForumTopic(input: ForumQuery): Promise<ForumTopicResult | null> {
   const query = normalizeForumQuery(input);
   if (!query.instanceId || !query.categoryId || !query.topicId) return null;
-  const instance = await db.forumInstance.findFirst({ where: { id: query.instanceId, mode: "forum" }, select: instanceSelect });
+  const instanceIdentifier = query.instanceId;
+  const categoryIdentifier = query.categoryId;
+  const topicIdentifier = query.topicId;
+  const instance = await db.forumInstance.findFirst({
+    where: {
+      mode: "forum",
+      OR: [
+        { id: instanceIdentifier },
+        ...(toPositiveLegacyId(instanceIdentifier) !== null ? [{ legacyId: toPositiveLegacyId(instanceIdentifier) }] : []),
+      ],
+    },
+    select: instanceSelect,
+  });
   if (!instance) return null;
   const allCategories = await db.forumCategory.findMany({ where: { instanceId: instance.id }, select: categorySelect });
-  const category = allCategories.find((item) => item.id === query.categoryId);
+  const category = allCategories.find((item) => matchesIdentifier(item.id, item.legacyId, categoryIdentifier));
   if (!category || !isPublicCategory(category, allCategories)) return null;
-  const topic = await db.forumPost.findFirst({ where: { id: query.topicId, instanceId: instance.id, categoryId: category.id, parentId: null, author: { enabled: true } }, select: topicSelect });
+  const topic = await db.forumPost.findFirst({
+    where: {
+      AND: [
+        {
+          OR: [
+            { id: topicIdentifier },
+            ...(toPositiveLegacyId(topicIdentifier) !== null ? [{ legacyId: toPositiveLegacyId(topicIdentifier) }] : []),
+          ],
+        },
+        { instanceId: instance.id, categoryId: category.id, parentId: null, author: { enabled: true } },
+      ],
+    },
+    select: topicSelect,
+  });
   if (!topic) return null;
   const rows = await db.forumPost.findMany({ where: { parentId: topic.id, author: { enabled: true } }, orderBy: [{ createdAt: "asc" }, { id: "asc" }], select: postSelect });
   const pagination = makePagination(rows.length + 1, query.page);
@@ -135,4 +166,15 @@ function resolveForumCategoryIds(
     }
   }
   return [...descendants];
+}
+
+function toPositiveLegacyId(identifier: string | null): number | null {
+  if (!identifier || !/^\d+$/.test(identifier)) return null;
+  const value = Number(identifier);
+  return Number.isSafeInteger(value) && value > 0 ? value : null;
+}
+
+function matchesIdentifier(id: string, legacyId: number | null, identifier: string): boolean {
+  const numericId = toPositiveLegacyId(identifier);
+  return id === identifier || (numericId !== null && legacyId === numericId);
 }

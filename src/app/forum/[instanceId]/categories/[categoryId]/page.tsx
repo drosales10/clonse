@@ -21,7 +21,7 @@ export default async function ForumCategoryPage({
     categoryId,
     page: Number.isInteger(page) ? page : 1,
   }));
-  const category = catalog.categories.find((item) => item.id === categoryId);
+  const category = catalog.categories.find((item) => matchesPublicIdentifier(item.id, item.legacyId, categoryId));
   const parent = category?.parentId ? catalog.categories.find((item) => item.id === category.parentId) : null;
 
   if (!catalog.instance || !category || !parent || category.parentId === null) {
@@ -50,3 +50,7 @@ function ForumPagination({ page, pageCount, instanceId, categoryId }: { page: nu
 function readString(value: string | string[] | undefined): string | undefined { return Array.isArray(value) ? value[0] : value; }
 function toExcerpt(value: string): string { const text = value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(); return text.length > 180 ? `${text.slice(0, 177)}...` : text; }
 function formatDate(value: Date): string { return new Intl.DateTimeFormat("es", { dateStyle: "medium" }).format(value); }
+
+function matchesPublicIdentifier(id: string, legacyId: number | null, identifier: string): boolean {
+  return id === identifier || (legacyId !== null && legacyId > 0 && String(legacyId) === identifier);
+}
