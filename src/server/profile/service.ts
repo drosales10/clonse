@@ -35,6 +35,7 @@ export async function getPublicProfile(
   commentsPage = 1,
   friendsPage = 1,
   friendsSearch = "",
+  mutualOnly = false,
 ): Promise<ProfileLookup | null> {
   const owner = await db.user.findFirst({
     where: {
@@ -71,7 +72,7 @@ export async function getPublicProfile(
   await recordProfileView(owner.id, viewerId);
   const [fields, friends, commentsResult, views] = await Promise.all([
     getPublicProfileFields(owner.id),
-    getPublicProfileFriends(owner.id, friendsPage, friendsSearch),
+    getPublicProfileFriends(owner.id, viewerId, friendsPage, friendsSearch, mutualOnly),
     getProfileComments(owner.id, viewerId, commentsPage),
     getPublicProfileViews(owner.id),
   ]);
@@ -250,8 +251,10 @@ export async function getFriendDashboard(userId: string): Promise<FriendDashboar
 
 export async function getPublicProfileFriends(
   userId: string,
+  viewerId: string | null = null,
   requestedPage = 1,
   search = "",
+  mutualOnly = false,
 ): Promise<{ items: PublicProfileFriend[]; pagination: PublicProfileFriendsPagination }> {
   const normalizedSearch = search.trim().slice(0, 64);
   const connections = await db.friendConnection.findMany({
@@ -279,7 +282,23 @@ export async function getPublicProfileFriends(
     },
   });
 
-  const allFriends = connections
+  let visibleConnections = connections;
+  if (mutualOnly && viewerId) {
+    const viewerConnections = await db.friendConnection.findMany({
+      where: {
+        status: "accepted",
+        OR: [{ requesterId: viewerId }, { addresseeId: viewerId }],
+      },
+      select: { requesterId: true, addresseeId: true },
+    });
+    const viewerFriendIds = new Set(viewerConnections.map((connection) => connection.requesterId === viewerId ? connection.addresseeId : connection.requesterId));
+    visibleConnections = connections.filter((connection) => {
+      const friendId = connection.requesterId === userId ? connection.addresseeId : connection.requesterId;
+      return viewerFriendIds.has(friendId);
+    });
+  }
+
+  const allFriends = visibleConnections
     .map((connection) => connection.requesterId === userId ? connection.addressee : connection.requester)
     .sort(compareFriendListItems);
   const pageCount = Math.max(1, Math.ceil(allFriends.length / PUBLIC_PROFILE_FRIENDS_PAGE_SIZE));
@@ -297,6 +316,7 @@ export async function getPublicProfileFriends(
       start: allFriends.length === 0 ? 0 : skip + 1,
       end: skip + items.length,
       search: normalizedSearch,
+      mutualOnly,
     },
   };
 }

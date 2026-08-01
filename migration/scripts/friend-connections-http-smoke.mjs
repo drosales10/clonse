@@ -56,6 +56,7 @@ try {
     data: [
       { requesterId: viewerId, addresseeId: ownerId, status: "accepted" },
       ...friendIds.map((friendId) => ({ requesterId: friendId, addresseeId: ownerId, status: "accepted" })),
+      { requesterId: viewerId, addresseeId: friendIds[0], status: "accepted" },
     ],
   });
   sessionId = `${marker}_session`;
@@ -101,6 +102,22 @@ try {
   assert.equal(searchFriends.status, 200, "la búsqueda pública debe responder 200");
   assert.equal((searchFriendsHtml.match(/class="public-friend"/g) ?? []).length, 1, "la búsqueda debe filtrar una conexión");
   assert.match(searchFriendsHtml, /HTTP Friends Viewer/);
+
+  const mutualSeedCount = await db.friendConnection.count({ where: { requesterId: viewerId, addresseeId: friendIds[0], status: "accepted" } });
+  assert.equal(mutualSeedCount, 1, "el fixture debe crear la segunda conexión mutual");
+  const mutualFriends = await fetch(`http://localhost:3000/profile/${owner.username}?m=1`, { headers: viewerHeaders });
+  const mutualFriendsHtml = await mutualFriends.text();
+  assert.equal(mutualFriends.status, 200, "el filtro mutual debe responder 200");
+  assert.equal((mutualFriendsHtml.match(/class="public-friend"/g) ?? []).length, 1, "el filtro mutual debe conservar una conexión compartida");
+  assert.match(mutualFriendsHtml, /HTTP Friends Extra 00/);
+  assert.equal(mutualFriendsHtml.includes("HTTP Friends Viewer"), false, "el usuario de sesión no es su propio amigo mutuo");
+  assert.equal(mutualFriendsHtml.includes("HTTP Friends Extra 01"), false, "el filtro mutual debe excluir conexiones no compartidas");
+
+  const anonymousMutual = await fetch(`http://localhost:3000/profile/${owner.username}?m=1`);
+  const anonymousMutualHtml = await anonymousMutual.text();
+  assert.equal(anonymousMutual.status, 200, "el perfil anónimo con m=1 debe responder 200");
+  assert.equal((anonymousMutualHtml.match(/class="public-friend"/g) ?? []).length, 0, "el perfil privado anónimo no debe exponer conexiones");
+  assert.equal(anonymousMutualHtml.includes("Solo conexiones mutuas"), false, "el anónimo no debe ver el control mutual");
 
   console.log("FRIEND_CONNECTIONS_HTTP_SMOKE_PASS", JSON.stringify({ root: root.status, anonymousAccount: anonymousAccount.status, anonymousProfile: anonymousProfile.status, authenticatedAccount: authenticatedAccount.status, authenticatedProfile: authenticatedProfile.status }));
 } finally {

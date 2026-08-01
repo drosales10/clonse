@@ -17,6 +17,7 @@ export interface PublicProfileFriendsPagination {
   start: number;
   end: number;
   search: string;
+  mutualOnly: boolean;
 }
 
 export interface FriendActionState {

@@ -7,11 +7,15 @@ export function ProfileFriends({
   pagination,
   ownerUsername,
   isOwner,
+  mutualOnly,
+  canFilterMutual,
 }: {
   friends: PublicProfileFriend[];
   pagination: PublicProfileFriendsPagination;
   ownerUsername: string;
   isOwner: boolean;
+  mutualOnly: boolean;
+  canFilterMutual: boolean;
 }) {
   return (
     <section className="profile-friends-display" aria-labelledby="profile-friends-title">
@@ -28,6 +32,7 @@ export function ProfileFriends({
           <input id="profile-friends-search" name="friendsSearch" defaultValue={pagination.search} maxLength={64} placeholder="Nombre o usuario" />
           <button className="button button-primary button-small" type="submit">Buscar</button>
         </div>
+        {canFilterMutual ? <label className="profile-friends-mutual"><input defaultChecked={mutualOnly} name="m" type="checkbox" value="1" /> Solo conexiones mutuas</label> : null}
       </form>
       {friends.length > 0 ? (
         <div className="public-friends-list">
@@ -51,6 +56,7 @@ function ProfileFriendsPagination({ ownerUsername, pagination }: { ownerUsername
     const params = new URLSearchParams();
     if (page > 1) params.set("friendsPage", String(page));
     if (pagination.search) params.set("friendsSearch", pagination.search);
+    if (pagination.mutualOnly) params.set("m", "1");
     const query = params.toString();
     return `/profile/${encodeURIComponent(ownerUsername)}${query ? `?${query}` : ""}#profile-friends-title`;
   };

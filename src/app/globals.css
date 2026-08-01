@@ -226,3 +226,5 @@ h1 em { color: var(--accent); font-family: Georgia, serif; font-weight: 400; }
 .profile-friends-search input:focus { border-color: var(--forest); box-shadow: 0 0 0 3px rgba(47,85,74,.12); }
 .profile-friends-pagination { align-items: center; border-top: 1px solid var(--line); color: var(--muted); display: flex; font-size: .78rem; gap: 18px; justify-content: space-between; margin-top: 16px; padding-top: 16px; }
 .profile-friends-pagination [aria-disabled="true"] { color: var(--muted); }
+.profile-friends-mutual { align-items: center; color: var(--muted); display: flex; font-size: .78rem; gap: 8px; margin-top: 10px; }
+.profile-friends-mutual input { accent-color: var(--forest); }

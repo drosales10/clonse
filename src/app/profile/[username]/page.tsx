@@ -20,12 +20,12 @@ export default async function ProfilePage({
   searchParams,
 }: {
   params: Promise<{ username: string }>;
-  searchParams: Promise<{ commentsPage?: string; friendsPage?: string; friendsSearch?: string; v?: string }>;
+  searchParams: Promise<{ commentsPage?: string; friendsPage?: string; friendsSearch?: string; m?: string; v?: string }>;
 }) {
   const [{ username }, viewer, query] = await Promise.all([params, getCurrentUser(), searchParams]);
   const commentsPage = parseCommentsPage(query.commentsPage);
   const friendsPage = parseFriendsPage(query.friendsPage);
-  const result = await getPublicProfile(username, viewer?.id ?? null, commentsPage, friendsPage, query.friendsSearch ?? "");
+  const result = await getPublicProfile(username, viewer?.id ?? null, commentsPage, friendsPage, query.friendsSearch ?? "", query.m === "1" && viewer !== null);
 
   if (!result) notFound();
   if (query.v === "comments" && viewer && result.kind === "profile") {
@@ -91,6 +91,8 @@ export default async function ProfilePage({
             pagination={result.profile.friendsPagination}
             ownerUsername={result.profile.username}
             isOwner={result.profile.relationship === "self"}
+            mutualOnly={result.profile.friendsPagination.mutualOnly}
+            canFilterMutual={viewer !== null}
           />
           <ProfileComments
             canComment={result.profile.canComment}
