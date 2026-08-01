@@ -53,6 +53,7 @@ model User {
   groupsOwned          Group[] @relation("GroupOwner")
   blogEntriesAuthored  BlogEntry[] @relation("BlogEntryAuthor")
   articlesAuthored     Article[]   @relation("ArticleAuthor")
+  forumPostsAuthored   ForumPost[] @relation("ForumPostAuthor")
   identityMappings     UserIdentityMap[] @relation("IdentityMapUser")
   canonicalMappings    UserIdentityMap[] @relation("IdentityMapCanonical")
 
@@ -487,6 +488,76 @@ model Article {
   @@index([approved, draft, searchable, publishedAt])
   @@index([featured, approved, draft, searchable])
   @@map("articles")
+}
+
+model ForumInstance {
+  id                 String         @id @default(cuid())
+  legacyId           Int?           @unique @map("legacy_id")
+  mode               String         @default("forum")
+  name               String?
+  description        String?
+  position           Int            @default(0)
+  categories         ForumCategory[]
+  posts              ForumPost[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([mode, position])
+  @@map("forum_instances")
+}
+
+model ForumCategory {
+  id             String          @id @default(cuid())
+  legacyId       Int?            @unique @map("legacy_id")
+  instanceId     String          @map("instance_id")
+  parentId       String?         @map("parent_id")
+  title          String
+  description    String?
+  position       Int             @default(0)
+  publicCanRead  Boolean         @default(false) @map("public_can_read")
+  isLocked       Boolean         @default(false) @map("is_locked")
+  instance       ForumInstance   @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  parent         ForumCategory?  @relation("ForumCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children       ForumCategory[] @relation("ForumCategoryHierarchy")
+  posts          ForumPost[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([instanceId, parentId, position])
+  @@index([instanceId, publicCanRead])
+  @@map("forum_categories")
+}
+
+model ForumPost {
+  id             String         @id @default(cuid())
+  legacyId       Int?           @unique @map("legacy_id")
+  authorId       String         @map("author_id")
+  instanceId     String         @map("instance_id")
+  categoryId     String         @map("category_id")
+  parentId       String?        @map("parent_id")
+  title          String?
+  body           String?
+  createdAt      DateTime       @map("created_at")
+  modifiedAt     DateTime?      @map("modified_at")
+  views          Int            @default(0)
+  replyCount     Int            @default(0) @map("reply_count")
+  rating         Int?
+  isLocked       Boolean        @default(false) @map("is_locked")
+  isAnnouncement Boolean        @default(false) @map("is_announcement")
+  isSticky       Boolean        @default(false) @map("is_sticky")
+  hasAttachments Boolean        @default(false) @map("has_attachments")
+  author         User           @relation("ForumPostAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+  instance       ForumInstance  @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  category       ForumCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  parent         ForumPost?     @relation("ForumPostReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies        ForumPost[]    @relation("ForumPostReplies")
+
+  @@index([instanceId, categoryId, parentId, createdAt])
+  @@index([categoryId, parentId, isSticky, isAnnouncement])
+  @@index([parentId, createdAt])
+  @@map("forum_posts")
 }
 
 model UserIdentityMap {
