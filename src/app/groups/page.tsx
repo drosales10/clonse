@@ -53,7 +53,7 @@ export default async function GroupsPage({
             {catalog.items.map((group) => (
               <article className="group-card" key={group.id}>
                 <p className="eyebrow">{group.category?.title ?? "Grupo"}</p>
-                <h2>{group.title}</h2>
+                <h2><Link className="group-card-link" href={`/groups/${encodeURIComponent(group.id)}`}>{group.title}</Link></h2>
                 {group.description ? <p className="group-summary">{group.description}</p> : null}
                 <dl className="group-facts">
                   <div><dt>Propietario</dt><dd><Link href={`/profile/${encodeURIComponent(group.owner.username)}`}>{group.owner.displayName}</Link></dd></div>

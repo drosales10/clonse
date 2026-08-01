@@ -7,6 +7,7 @@ import {
   type GroupCatalogQuery,
   type GroupCatalogResult,
   type PublicGroup,
+  type PublicGroupDetail,
 } from "@domain/groups";
 import { db } from "@/server/db/client";
 
@@ -102,4 +103,51 @@ function toPublicGroup(row: GroupRow): PublicGroup {
     owner: { username: row.owner.username, displayName: row.owner.displayName },
     category: row.category,
   };
+}
+
+export async function getGroupDetail(
+  viewerId: string | null,
+  identifier: string,
+): Promise<PublicGroupDetail | null> {
+  const normalizedIdentifier = identifier.trim();
+  if (!normalizedIdentifier) return null;
+
+  const legacyId = /^\d+$/.test(normalizedIdentifier) ? Number(normalizedIdentifier) : null;
+  const row = await db.group.findFirst({
+    where: {
+      AND: [
+        {
+          OR: [
+            { id: normalizedIdentifier },
+            ...(legacyId !== null && legacyId > 0 ? [{ legacyId }] : []),
+          ],
+        },
+        { owner: { enabled: true } },
+      ],
+    },
+    select: groupSelect,
+  });
+
+  if (!row || !canReadGroup(row.ownerId, row.catalogVisible, viewerId)) return null;
+
+  return {
+    ...toPublicGroup(row),
+    description: toSafeText(row.description),
+  };
+}
+
+function toSafeText(value: string | null): string | null {
+  if (!value) return null;
+  const text = value
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#039;|&#39;/gi, "'")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n[ \t]+/g, "\n")
+    .trim();
+  return text || null;
 }

@@ -35,6 +35,10 @@ export interface PublicGroup {
   category: { id: string; legacyId: number | null; title: string } | null;
 }
 
+export interface PublicGroupDetail extends PublicGroup {
+  description: string | null;
+}
+
 export interface GroupCatalogResult {
   items: PublicGroup[];
   pagination: GroupCatalogPagination;
