@@ -49,6 +49,7 @@ model User {
   notificationsAsProfileOwner Notification[] @relation("NotificationProfileOwner")
   businessesOwned      Business[] @relation("BusinessOwner")
   classifiedsOwned     Classified[] @relation("ClassifiedOwner")
+  eventsOwned          Event[] @relation("EventOwner")
 
   @@index([enabled, verifiedAt])
   @@map("users")
@@ -340,4 +341,51 @@ model Classified {
   @@index([categoryId, searchable, createdAt])
   @@index([searchable, createdAt])
   @@map("classifieds")
+}
+
+model EventCategory {
+  id        String   @id @default(cuid())
+  legacyId  Int?     @unique @map("legacy_id")
+  parentId  String?  @map("parent_id")
+  title     String
+  sortOrder Int      @default(0) @map("sort_order")
+  active    Boolean  @default(true)
+
+  parent   EventCategory?  @relation("EventCategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children EventCategory[] @relation("EventCategoryHierarchy")
+  events   Event[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([parentId, sortOrder])
+  @@index([active, sortOrder])
+  @@map("event_categories")
+}
+
+model Event {
+  id          String   @id @default(cuid())
+  legacyId    Int?     @unique @map("legacy_id")
+  ownerId     String   @map("owner_id")
+  categoryId  String?  @map("category_id")
+  title       String
+  description String?
+  host        String?
+  location    String?
+  startsAt    DateTime? @map("starts_at")
+  endsAt      DateTime? @map("ends_at")
+  createdAt   DateTime @map("created_at")
+  updatedAt   DateTime @map("updated_at")
+  searchable  Boolean  @default(true)
+  privacy     Int      @default(64)
+  inviteOnly  Boolean  @default(false) @map("invite_only")
+  views       Int      @default(0)
+
+  owner    User          @relation("EventOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  category EventCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@index([ownerId])
+  @@index([categoryId, searchable, startsAt])
+  @@index([searchable, startsAt])
+  @@map("events")
 }
