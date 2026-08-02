@@ -72,3 +72,9 @@ El estado actual de las cuatro tablas es vacío, por lo que las rutas muestran e
 `src/server/admin/dashboard.ts` consulta de forma explícita seis conteos respaldados por destino: usuarios totales, usuarios habilitados, usuarios verificados, niveles, subredes y registros `Setting`. `/admin/dashboard` muestra estos valores y enlaza las tres lecturas de catálogo.
 
 Los conteos de `UserLevel`, `Subnetwork` y `Setting` son actualmente `0` porque la migración structure-only no importó filas. Ese valor es una observación del estado destino, no una afirmación sobre el número legacy ni una autorización para hacer backfill. No se añadieron métricas de módulos, capacidades, relaciones por nivel/subred o estadísticas sin contrato verificable.
+
+## Verificación estructural no destructiva del destino
+
+Se reforzó `migration/scripts/admin-catalog-verify.mjs` para comprobar, mediante metadatos PostgreSQL de solo lectura, las cuatro tablas destino, sus columnas esperadas, los índices únicos de correspondencia (`legacy_id` y `(legacy_id, language_id)`) y la ausencia de claves foráneas en los catálogos structure-only. Los conteos se siguen obteniendo con Prisma y no se interpretan como conteos legacy.
+
+El comando reproducible es `pnpm migration:admin-catalog:verify`. No inserta, actualiza ni elimina filas; tampoco lee una conexión MySQL legacy. La comprobación no impone que los catálogos permanezcan vacíos: reporta sus conteos actuales para permitir una futura carga autorizada sin cambiar el verificador estructural. La resolución i18n, los imports, el backfill y las relaciones con `User` continúan pendientes de una fuente autorizada y reconciliación controlada.
