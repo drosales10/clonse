@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminGroupControls } from "@/app/components/admin-catalog-controls";
+import { AdminListToolbar } from "@/app/components/admin/admin-list-toolbar";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { getAdminAccessState } from "@/server/admin/access";
 import { listAdminGroups } from "@/server/admin/group-mutations";
@@ -18,6 +19,7 @@ export default async function AdminGroupsPage() {
         <p className="eyebrow">Administración · Grupos</p>
         <h1 id="admin-groups-title">Grupos</h1>
         <p className="lead">{groups.length} grupos. Controla la visibilidad en el catálogo cliente.</p>
+        <AdminListToolbar newHref="/admin/groups/new" newLabel="Nuevo grupo" />
 
         {groups.length > 0 ? (
           <div className="admin-table-wrap">
@@ -35,7 +37,7 @@ export default async function AdminGroupsPage() {
                 {groups.map((group) => (
                   <tr key={group.id}>
                     <th scope="row">
-                      <Link className="admin-user-link" href={`/groups/${encodeURIComponent(group.id)}`}>
+                      <Link className="admin-user-link" href={`/admin/groups/${encodeURIComponent(group.id)}`}>
                         <strong>{group.title}</strong>
                         <small>{formatDate(group.createdAt)}</small>
                       </Link>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminAlbumControls } from "@/app/components/admin-album-controls";
+import { AdminListToolbar } from "@/app/components/admin/admin-list-toolbar";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { getAdminAccessState } from "@/server/admin/access";
 import { listAdminAlbums } from "@/server/admin/album-mutations";
@@ -20,6 +21,12 @@ export default async function AdminAlbumsPage() {
         <p className="lead">
           {albums.length} álbumes. Controla la visibilidad en el catálogo cliente.
         </p>
+        <AdminListToolbar
+          listHref="/admin/albums"
+          listLabel="Álbumes"
+          newHref="/admin/albums/new"
+          newLabel="Nuevo álbum"
+        />
 
         {albums.length > 0 ? (
           <div className="admin-table-wrap">
@@ -37,7 +44,7 @@ export default async function AdminAlbumsPage() {
                 {albums.map((album) => (
                   <tr key={album.id}>
                     <th scope="row">
-                      <Link className="admin-user-link" href={`/albums/${encodeURIComponent(album.id)}`}>
+                      <Link className="admin-user-link" href={`/admin/albums/${encodeURIComponent(album.id)}`}>
                         <strong>{album.title}</strong>
                         <small>{formatDate(album.createdAt)}</small>
                       </Link>

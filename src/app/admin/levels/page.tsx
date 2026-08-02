@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { AdminListToolbar } from "@/app/components/admin/admin-list-toolbar";
+import { AdminShell } from "@/components/admin/AdminShell";
 import { getAdminAccessState } from "@/server/admin/access";
 import { getAdminLevels } from "@/server/admin/catalogs";
-import { AdminShell } from "@/components/admin/AdminShell";
 
 export default async function AdminLevelsPage() {
   const access = await getAdminAccessState();
@@ -15,14 +17,42 @@ export default async function AdminLevelsPage() {
       <section className="profile-panel admin-users-panel" aria-labelledby="admin-levels-title">
         <p className="eyebrow">Administración · Niveles</p>
         <h1 id="admin-levels-title">Niveles de usuario</h1>
-        <p className="lead">{levels.length} niveles en el catálogo destino. Este módulo es de solo lectura.</p>
+        <p className="lead">{levels.length} niveles en el catálogo destino.</p>
+        <AdminListToolbar
+          listHref="/admin/levels"
+          listLabel="Niveles"
+          newHref="/admin/levels/new"
+          newLabel="Nuevo nivel"
+        />
         {levels.length === 0 ? (
           <p className="empty-state">El catálogo todavía no contiene filas importadas desde `se_levels`.</p>
         ) : (
           <div className="admin-table-wrap">
             <table className="admin-table">
-              <thead><tr><th scope="col">Nombre</th><th scope="col">ID legacy</th><th scope="col">Registro</th><th scope="col">Predeterminado</th><th scope="col">Descripción</th></tr></thead>
-              <tbody>{levels.map((level) => <tr key={level.id}><th scope="row">{level.name}</th><td>{level.legacyId ?? "—"}</td><td>{level.isSignup ? "Sí" : "No"}</td><td>{level.isDefault ? "Sí" : "No"}</td><td>{level.description || "—"}</td></tr>)}</tbody>
+              <thead>
+                <tr>
+                  <th scope="col">Nombre</th>
+                  <th scope="col">ID legacy</th>
+                  <th scope="col">Registro</th>
+                  <th scope="col">Predeterminado</th>
+                  <th scope="col">Descripción</th>
+                </tr>
+              </thead>
+              <tbody>
+                {levels.map((level) => (
+                  <tr key={level.id}>
+                    <th scope="row">
+                      <Link className="admin-user-link" href={`/admin/levels/${encodeURIComponent(level.id)}`}>
+                        <strong>{level.name}</strong>
+                      </Link>
+                    </th>
+                    <td>{level.legacyId ?? "—"}</td>
+                    <td>{level.isSignup ? "Sí" : "No"}</td>
+                    <td>{level.isDefault ? "Sí" : "No"}</td>
+                    <td>{level.description || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
         )}
@@ -30,4 +60,3 @@ export default async function AdminLevelsPage() {
     </AdminShell>
   );
 }
-

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminArticleControls } from "@/app/components/admin-catalog-controls";
+import { AdminListToolbar } from "@/app/components/admin/admin-list-toolbar";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { getAdminAccessState } from "@/server/admin/access";
 import { listAdminArticles } from "@/server/admin/article-mutations";
@@ -18,6 +19,12 @@ export default async function AdminArticlesPage() {
         <p className="eyebrow">Administración · Artículos</p>
         <h1 id="admin-articles-title">Artículos</h1>
         <p className="lead">{articles.length} artículos. Controla la visibilidad en el catálogo cliente.</p>
+        <AdminListToolbar
+          listHref="/admin/articles"
+          listLabel="Artículos"
+          newHref="/admin/articles/new"
+          newLabel="Nuevo artículo"
+        />
 
         {articles.length > 0 ? (
           <div className="admin-table-wrap">
@@ -35,7 +42,7 @@ export default async function AdminArticlesPage() {
                 {articles.map((article) => (
                   <tr key={article.id}>
                     <th scope="row">
-                      <Link className="admin-user-link" href={`/articles/${encodeURIComponent(article.id)}`}>
+                      <Link className="admin-user-link" href={`/admin/articles/${encodeURIComponent(article.id)}`}>
                         <strong>{article.title}</strong>
                         <small>{formatDate(article.publishedAt)}</small>
                       </Link>

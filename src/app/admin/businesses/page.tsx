@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminBusinessControls } from "@/app/components/admin-catalog-controls";
+import { AdminListToolbar } from "@/app/components/admin/admin-list-toolbar";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { getAdminAccessState } from "@/server/admin/access";
 import { listAdminBusinesses } from "@/server/admin/business-mutations";
@@ -18,6 +19,12 @@ export default async function AdminBusinessesPage() {
         <p className="eyebrow">Administración · Negocios</p>
         <h1 id="admin-businesses-title">Negocios</h1>
         <p className="lead">{businesses.length} negocios. Controla la visibilidad en el catálogo cliente.</p>
+        <AdminListToolbar
+          listHref="/admin/businesses"
+          listLabel="Negocios"
+          newHref="/admin/businesses/new"
+          newLabel="Nuevo negocio"
+        />
 
         {businesses.length > 0 ? (
           <div className="admin-table-wrap">
@@ -37,7 +44,7 @@ export default async function AdminBusinessesPage() {
                     <th scope="row">
                       <Link
                         className="admin-user-link"
-                        href={`/businesses/${encodeURIComponent(business.id)}`}
+                        href={`/admin/businesses/${encodeURIComponent(business.id)}`}
                       >
                         <strong>{business.title}</strong>
                         <small>{formatDate(business.createdAt)}</small>

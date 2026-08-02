@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminClassifiedControls } from "@/app/components/admin-catalog-controls";
+import { AdminListToolbar } from "@/app/components/admin/admin-list-toolbar";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { getAdminAccessState } from "@/server/admin/access";
 import { listAdminClassifieds } from "@/server/admin/classified-mutations";
@@ -20,6 +21,12 @@ export default async function AdminClassifiedsPage() {
         <p className="lead">
           {classifieds.length} clasificados. Controla la visibilidad en el catálogo cliente.
         </p>
+        <AdminListToolbar
+          listHref="/admin/classifieds"
+          listLabel="Clasificados"
+          newHref="/admin/classifieds/new"
+          newLabel="Nuevo clasificado"
+        />
 
         {classifieds.length > 0 ? (
           <div className="admin-table-wrap">
@@ -39,7 +46,7 @@ export default async function AdminClassifiedsPage() {
                     <th scope="row">
                       <Link
                         className="admin-user-link"
-                        href={`/classifieds/${encodeURIComponent(classified.id)}`}
+                        href={`/admin/classifieds/${encodeURIComponent(classified.id)}`}
                       >
                         <strong>{classified.title}</strong>
                         <small>{formatDate(classified.createdAt)}</small>

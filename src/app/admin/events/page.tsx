@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminEventControls } from "@/app/components/admin-catalog-controls";
+import { AdminListToolbar } from "@/app/components/admin/admin-list-toolbar";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { getAdminAccessState } from "@/server/admin/access";
 import { listAdminEvents } from "@/server/admin/event-mutations";
@@ -18,6 +19,12 @@ export default async function AdminEventsPage() {
         <p className="eyebrow">Administración · Eventos</p>
         <h1 id="admin-events-title">Eventos</h1>
         <p className="lead">{events.length} eventos. Controla la visibilidad en el catálogo cliente.</p>
+        <AdminListToolbar
+          listHref="/admin/events"
+          listLabel="Eventos"
+          newHref="/admin/events/new"
+          newLabel="Nuevo evento"
+        />
 
         {events.length > 0 ? (
           <div className="admin-table-wrap">
@@ -35,7 +42,7 @@ export default async function AdminEventsPage() {
                 {events.map((event) => (
                   <tr key={event.id}>
                     <th scope="row">
-                      <Link className="admin-user-link" href={`/events/${encodeURIComponent(event.id)}`}>
+                      <Link className="admin-user-link" href={`/admin/events/${encodeURIComponent(event.id)}`}>
                         <strong>{event.title}</strong>
                         <small>{event.category?.title ?? "Sin categoría"}</small>
                       </Link>

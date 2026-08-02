@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { AdminPollControls } from "@/app/components/admin-poll-controls";
+import { AdminListToolbar } from "@/app/components/admin/admin-list-toolbar";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { getAdminAccessState } from "@/server/admin/access";
 import { listAdminPolls } from "@/server/admin/poll-mutations";
@@ -21,6 +22,12 @@ export default async function AdminPollsPage() {
           {polls.length} encuestas. Cierra o reabre votaciones y controla la visibilidad en el
           catálogo cliente.
         </p>
+        <AdminListToolbar
+          listHref="/admin/polls"
+          listLabel="Encuestas"
+          newHref="/admin/polls/new"
+          newLabel="Nueva encuesta"
+        />
 
         {polls.length > 0 ? (
           <div className="admin-table-wrap">
@@ -39,7 +46,7 @@ export default async function AdminPollsPage() {
                 {polls.map((poll) => (
                   <tr key={poll.id}>
                     <th scope="row">
-                      <Link className="admin-user-link" href={`/polls/${encodeURIComponent(poll.id)}`}>
+                      <Link className="admin-user-link" href={`/admin/polls/${encodeURIComponent(poll.id)}`}>
                         <strong>{poll.title}</strong>
                         <small>{formatDate(poll.createdAt)}</small>
                       </Link>

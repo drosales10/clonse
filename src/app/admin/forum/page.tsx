@@ -51,7 +51,7 @@ export default async function AdminForumPage() {
                     <th scope="row">
                       <Link
                         className="admin-user-link"
-                        href={`/forum/${encodeURIComponent(topic.instance.id)}/topics/${encodeURIComponent(topic.id)}?categoryId=${encodeURIComponent(topic.category.id)}`}
+                        href={`/admin/forum/topics/${encodeURIComponent(topic.id)}`}
                       >
                         <strong>{topic.title}</strong>
                         <small>{topic.replyCount} respuestas</small>
@@ -97,7 +97,14 @@ export default async function AdminForumPage() {
               <tbody>
                 {categories.map((category) => (
                   <tr key={category.id}>
-                    <th scope="row">{category.title}</th>
+                    <th scope="row">
+                      <Link
+                        className="admin-user-link"
+                        href={`/admin/forum/categories/${encodeURIComponent(category.id)}`}
+                      >
+                        <strong>{category.title}</strong>
+                      </Link>
+                    </th>
                     <td>{category.instance.name ?? category.instance.id}</td>
                     <td>{category.publicCanRead ? "Sí" : "No"}</td>
                     <td>{category.isLocked ? "Bloqueada" : "Abierta"}</td>
