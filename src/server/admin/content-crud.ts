@@ -125,9 +125,7 @@ export async function updateAdminGroup(
     title: string;
     description: string | null;
     categoryId: string | null;
-    membershipApprovalRequired: boolean;
   },
-  flags: AdminCatalogFlags,
 ): Promise<AdminContentMutationResult> {
   const group = await db.group.findUnique({ where: { id: groupId }, select: { id: true } });
   if (!group) return { ok: false, reason: "not_found" };
@@ -140,9 +138,6 @@ export async function updateAdminGroup(
       title: input.title,
       description: input.description,
       categoryId: input.categoryId,
-      membershipApprovalRequired: input.membershipApprovalRequired,
-      catalogVisible: flags.catalogVisible,
-      searchable: flags.searchable,
       updatedAt: new Date(),
     },
   });
@@ -254,9 +249,7 @@ export async function updateAdminEvent(
     startsAt: Date | null;
     endsAt: Date | null;
     categoryId: string | null;
-    inviteOnly: boolean;
   },
-  flags: AdminCatalogFlags,
 ): Promise<AdminContentMutationResult> {
   const event = await db.event.findUnique({ where: { id: eventId }, select: { id: true } });
   if (!event) return { ok: false, reason: "not_found" };
@@ -273,9 +266,6 @@ export async function updateAdminEvent(
       startsAt: input.startsAt,
       endsAt: input.endsAt,
       categoryId: input.categoryId,
-      inviteOnly: input.inviteOnly,
-      catalogVisible: flags.catalogVisible,
-      searchable: flags.searchable,
       updatedAt: new Date(),
     },
   });
@@ -365,9 +355,7 @@ export async function updateAdminPoll(
     title: string;
     description: string | null;
     options: string[] | null;
-    closed: boolean;
   },
-  flags: AdminCatalogFlags,
 ): Promise<AdminContentMutationResult> {
   const poll = await db.poll.findUnique({
     where: { id: pollId },
@@ -381,9 +369,6 @@ export async function updateAdminPoll(
     data: {
       title: input.title,
       description: input.description,
-      closed: input.closed,
-      catalogVisible: flags.catalogVisible,
-      searchable: flags.searchable,
       updatedAt: new Date(),
       ...(input.options ? { options: input.options } : {}),
     },
@@ -460,7 +445,6 @@ export async function createAdminAlbum(
 export async function updateAdminAlbum(
   albumId: string,
   input: { title: string; description: string | null },
-  flags: AdminCatalogFlags,
 ): Promise<AdminContentMutationResult> {
   const album = await db.album.findUnique({ where: { id: albumId }, select: { id: true } });
   if (!album) return { ok: false, reason: "not_found" };
@@ -469,8 +453,6 @@ export async function updateAdminAlbum(
     data: {
       title: input.title,
       description: input.description,
-      catalogVisible: flags.catalogVisible,
-      searchable: flags.searchable,
       updatedAt: new Date(),
     },
   });
@@ -553,7 +535,6 @@ export async function createAdminClassified(
 export async function updateAdminClassified(
   classifiedId: string,
   input: { title: string; body: string | null; categoryId: string | null },
-  flags: AdminCatalogFlags,
 ): Promise<AdminContentMutationResult> {
   const classified = await db.classified.findUnique({ where: { id: classifiedId }, select: { id: true } });
   if (!classified) return { ok: false, reason: "not_found" };
@@ -566,8 +547,6 @@ export async function updateAdminClassified(
       title: input.title,
       body: input.body,
       categoryId: input.categoryId,
-      catalogVisible: flags.catalogVisible,
-      searchable: flags.searchable,
       updatedAt: new Date(),
     },
   });
@@ -648,7 +627,6 @@ export async function createAdminBlog(
 export async function updateAdminBlog(
   entryId: string,
   input: { title: string; body: string | null; categoryId: string | null },
-  flags: AdminCatalogFlags,
 ): Promise<AdminContentMutationResult> {
   const entry = await db.blogEntry.findUnique({ where: { id: entryId }, select: { id: true } });
   if (!entry) return { ok: false, reason: "not_found" };
@@ -661,8 +639,6 @@ export async function updateAdminBlog(
       title: input.title,
       body: input.body,
       categoryId: input.categoryId,
-      catalogVisible: flags.catalogVisible,
-      searchable: flags.searchable,
       updatedAt: new Date(),
     },
   });
@@ -772,7 +748,6 @@ export async function updateAdminBusiness(
     country: string | null;
     categoryId: string | null;
   },
-  flags: AdminCatalogFlags,
 ): Promise<AdminContentMutationResult> {
   const business = await db.business.findUnique({ where: { id: businessId }, select: { id: true } });
   if (!business) return { ok: false, reason: "not_found" };
@@ -789,8 +764,6 @@ export async function updateAdminBusiness(
       province: input.province,
       country: input.country,
       categoryId: input.categoryId,
-      catalogVisible: flags.catalogVisible,
-      searchable: flags.searchable,
       updatedAt: new Date(),
     },
   });
@@ -880,10 +853,7 @@ export async function updateAdminArticle(
     title: string;
     body: string | null;
     categoryId: string | null;
-    draft: boolean;
-    approved: boolean;
   },
-  flags: AdminCatalogFlags,
 ): Promise<AdminContentMutationResult> {
   const article = await db.article.findUnique({ where: { id: articleId }, select: { id: true } });
   if (!article) return { ok: false, reason: "not_found" };
@@ -896,10 +866,6 @@ export async function updateAdminArticle(
       title: input.title,
       body: input.body,
       categoryId: input.categoryId,
-      draft: input.draft,
-      approved: input.approved,
-      catalogVisible: flags.catalogVisible,
-      searchable: flags.searchable,
       updatedAt: new Date(),
     },
   });

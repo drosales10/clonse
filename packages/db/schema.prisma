@@ -31,6 +31,8 @@ model User {
   loginCount                  Int                 @default(0) @map("login_count")
   lastLoginAt                 DateTime?           @map("last_login_at")
   lastActiveAt                DateTime?           @map("last_active_at")
+  levelId                     String?             @map("level_id")
+  subnetworkId                String?             @map("subnetwork_id")
   createdAt                   DateTime            @default(now()) @map("created_at")
   updatedAt                   DateTime            @updatedAt @map("updated_at")
   sessions                    AuthSession[]
@@ -61,8 +63,12 @@ model User {
   albumsOwned                 Album[]             @relation("AlbumOwner")
   pollsOwned                  Poll[]              @relation("PollOwner")
   pollVotes                   PollVote[]          @relation("PollVoter")
+  level                       UserLevel?          @relation(fields: [levelId], references: [id], onDelete: SetNull)
+  subnetwork                  Subnetwork?         @relation(fields: [subnetworkId], references: [id], onDelete: SetNull)
 
   @@index([enabled, verifiedAt])
+  @@index([levelId])
+  @@index([subnetworkId])
   @@map("users")
 }
 
@@ -689,9 +695,25 @@ model Admin {
   createdAt      DateTime       @default(now()) @map("created_at")
   updatedAt      DateTime       @updatedAt @map("updated_at")
   sessions       AdminSession[]
+  auditLogs      AdminAuditLog[]
 
   @@index([enabled, isSuperAdmin])
   @@map("admins")
+}
+
+model AdminAuditLog {
+  id           String   @id @default(cuid())
+  adminId      String   @map("admin_id")
+  resourceKind String   @map("resource_kind")
+  resourceId   String   @map("resource_id")
+  summary      String
+  changes      Json
+  createdAt    DateTime @default(now()) @map("created_at")
+  admin        Admin    @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([resourceKind, resourceId, createdAt])
+  @@index([adminId, createdAt])
+  @@map("admin_audit_logs")
 }
 
 model AdminSession {
@@ -718,6 +740,7 @@ model UserLevel {
   capabilities Json?
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
+  users        User[]
 
   @@index([isDefault])
   @@index([isSignup])
@@ -735,6 +758,7 @@ model Subnetwork {
   themeLegacyId   Int      @default(0) @map("theme_legacy_id")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
+  users           User[]
 
   @@index([nameLegacyId])
   @@index([themeLegacyId])

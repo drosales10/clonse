@@ -37,9 +37,9 @@ type GroupFormData = {
   title: string;
   description: string | null;
   categoryId: string | null;
-  catalogVisible: boolean;
-  searchable: boolean;
-  membershipApprovalRequired: boolean;
+  catalogVisible?: boolean;
+  searchable?: boolean;
+  membershipApprovalRequired?: boolean;
 };
 
 type EventFormData = {
@@ -51,9 +51,9 @@ type EventFormData = {
   startsAt: Date | null;
   endsAt: Date | null;
   categoryId: string | null;
-  catalogVisible: boolean;
-  searchable: boolean;
-  inviteOnly: boolean;
+  catalogVisible?: boolean;
+  searchable?: boolean;
+  inviteOnly?: boolean;
 };
 
 type PollFormData = {
@@ -61,18 +61,17 @@ type PollFormData = {
   title: string;
   description: string | null;
   options: string[];
-  closed: boolean;
-  catalogVisible: boolean;
-  searchable: boolean;
   totalVotes: number;
+  catalogVisible?: boolean;
+  searchable?: boolean;
 };
 
 type AlbumFormData = {
   id: string;
   title: string;
   description: string | null;
-  catalogVisible: boolean;
-  searchable: boolean;
+  catalogVisible?: boolean;
+  searchable?: boolean;
 };
 
 type ClassifiedFormData = {
@@ -80,8 +79,8 @@ type ClassifiedFormData = {
   title: string;
   body: string | null;
   categoryId: string | null;
-  catalogVisible: boolean;
-  searchable: boolean;
+  catalogVisible?: boolean;
+  searchable?: boolean;
 };
 
 type BlogFormData = {
@@ -89,8 +88,8 @@ type BlogFormData = {
   title: string;
   body: string | null;
   categoryId: string | null;
-  catalogVisible: boolean;
-  searchable: boolean;
+  catalogVisible?: boolean;
+  searchable?: boolean;
 };
 
 type BusinessFormData = {
@@ -102,8 +101,8 @@ type BusinessFormData = {
   province: string | null;
   country: string | null;
   categoryId: string | null;
-  catalogVisible: boolean;
-  searchable: boolean;
+  catalogVisible?: boolean;
+  searchable?: boolean;
 };
 
 type ArticleFormData = {
@@ -111,10 +110,10 @@ type ArticleFormData = {
   title: string;
   body: string | null;
   categoryId: string | null;
-  catalogVisible: boolean;
-  searchable: boolean;
-  draft: boolean;
-  approved: boolean;
+  catalogVisible?: boolean;
+  searchable?: boolean;
+  draft?: boolean;
+  approved?: boolean;
 };
 
 function toDatetimeLocal(value: Date | null): string {
@@ -150,11 +149,22 @@ export function AdminGroupForm({
         <AdminFieldError errors={state.errors?.description} />
       </div>
       <AdminCategorySelect categories={categories} defaultValue={group?.categoryId} id="group-category" />
-      <label className="checkbox-label">
-        <input defaultChecked={group?.membershipApprovalRequired ?? false} name="membershipApprovalRequired" type="checkbox" value="1" />
-        Requiere aprobación de membresía
-      </label>
-      <AdminCatalogFlagsFields catalogVisible={group?.catalogVisible ?? true} searchable={group?.searchable ?? true} />
+      {mode === "create" ? (
+        <>
+          <label className="checkbox-label">
+            <input
+              defaultChecked={group?.membershipApprovalRequired ?? false}
+              name="membershipApprovalRequired"
+              type="checkbox"
+              value="1"
+            />
+            Requiere aprobación de membresía
+          </label>
+          <AdminCatalogFlagsFields catalogVisible={group?.catalogVisible ?? true} searchable={group?.searchable ?? true} />
+        </>
+      ) : (
+        <p className="field-help">Visibilidad, búsqueda y activación se gestionan en el panel superior.</p>
+      )}
       <AdminFormFeedback errors={state.errors} message={state.message} success={state.success} />
       <AdminSubmitButton label={mode === "create" ? "Crear grupo" : "Guardar cambios"} pendingLabel="Guardando…" />
     </form>
@@ -210,11 +220,17 @@ export function AdminEventForm({
         </div>
       </div>
       <AdminCategorySelect categories={categories} defaultValue={event?.categoryId} id="event-category" />
-      <label className="checkbox-label">
-        <input defaultChecked={event?.inviteOnly ?? false} name="inviteOnly" type="checkbox" value="1" />
-        Solo por invitación
-      </label>
-      <AdminCatalogFlagsFields catalogVisible={event?.catalogVisible ?? true} searchable={event?.searchable ?? true} />
+      {mode === "create" ? (
+        <>
+          <label className="checkbox-label">
+            <input defaultChecked={event?.inviteOnly ?? false} name="inviteOnly" type="checkbox" value="1" />
+            Solo por invitación
+          </label>
+          <AdminCatalogFlagsFields catalogVisible={event?.catalogVisible ?? true} searchable={event?.searchable ?? true} />
+        </>
+      ) : (
+        <p className="field-help">Visibilidad, búsqueda y activación se gestionan en el panel superior.</p>
+      )}
       <AdminFormFeedback errors={state.errors} message={state.message} success={state.success} />
       <AdminSubmitButton label={mode === "create" ? "Crear evento" : "Guardar cambios"} pendingLabel="Guardando…" />
     </form>
@@ -256,13 +272,11 @@ export function AdminPollForm({ mode, poll }: { mode: "create" | "edit"; poll?: 
         </span>
         <AdminFieldError errors={state.errors?.options} />
       </div>
-      {mode === "edit" ? (
-        <label className="checkbox-label">
-          <input defaultChecked={poll?.closed ?? false} name="closed" type="checkbox" value="1" />
-          Encuesta cerrada
-        </label>
-      ) : null}
-      <AdminCatalogFlagsFields catalogVisible={poll?.catalogVisible ?? true} searchable={poll?.searchable ?? true} />
+      {mode === "create" ? (
+        <AdminCatalogFlagsFields catalogVisible={poll?.catalogVisible ?? true} searchable={poll?.searchable ?? true} />
+      ) : (
+        <p className="field-help">Visibilidad, búsqueda y activación se gestionan en el panel superior.</p>
+      )}
       <AdminFormFeedback errors={state.errors} message={state.message} success={state.success} />
       <AdminSubmitButton label={mode === "create" ? "Crear encuesta" : "Guardar cambios"} pendingLabel="Guardando…" />
     </form>
@@ -287,7 +301,11 @@ export function AdminAlbumForm({ mode, album }: { mode: "create" | "edit"; album
         <textarea defaultValue={album?.description ?? ""} id="album-description" maxLength={1000} name="description" rows={4} />
         <AdminFieldError errors={state.errors?.description} />
       </div>
-      <AdminCatalogFlagsFields catalogVisible={album?.catalogVisible ?? true} searchable={album?.searchable ?? true} />
+      {mode === "create" ? (
+        <AdminCatalogFlagsFields catalogVisible={album?.catalogVisible ?? true} searchable={album?.searchable ?? true} />
+      ) : (
+        <p className="field-help">Visibilidad, búsqueda y activación se gestionan en el panel superior.</p>
+      )}
       <AdminFormFeedback errors={state.errors} message={state.message} success={state.success} />
       <AdminSubmitButton label={mode === "create" ? "Crear álbum" : "Guardar cambios"} pendingLabel="Guardando…" />
     </form>
@@ -321,7 +339,11 @@ export function AdminClassifiedForm({
         <AdminFieldError errors={state.errors?.body} />
       </div>
       <AdminCategorySelect categories={categories} defaultValue={classified?.categoryId} id="classified-category" />
-      <AdminCatalogFlagsFields catalogVisible={classified?.catalogVisible ?? true} searchable={classified?.searchable ?? true} />
+      {mode === "create" ? (
+        <AdminCatalogFlagsFields catalogVisible={classified?.catalogVisible ?? true} searchable={classified?.searchable ?? true} />
+      ) : (
+        <p className="field-help">Visibilidad, búsqueda y activación se gestionan en el panel superior.</p>
+      )}
       <AdminFormFeedback errors={state.errors} message={state.message} success={state.success} />
       <AdminSubmitButton label={mode === "create" ? "Crear clasificado" : "Guardar cambios"} pendingLabel="Guardando…" />
     </form>
@@ -355,7 +377,11 @@ export function AdminBlogForm({
         <AdminFieldError errors={state.errors?.body} />
       </div>
       <AdminCategorySelect categories={categories} defaultValue={entry?.categoryId} id="blog-category" />
-      <AdminCatalogFlagsFields catalogVisible={entry?.catalogVisible ?? true} searchable={entry?.searchable ?? true} />
+      {mode === "create" ? (
+        <AdminCatalogFlagsFields catalogVisible={entry?.catalogVisible ?? true} searchable={entry?.searchable ?? true} />
+      ) : (
+        <p className="field-help">Visibilidad, búsqueda y activación se gestionan en el panel superior.</p>
+      )}
       <AdminFormFeedback errors={state.errors} message={state.message} success={state.success} />
       <AdminSubmitButton label={mode === "create" ? "Crear entrada" : "Guardar cambios"} pendingLabel="Guardando…" />
     </form>
@@ -411,7 +437,11 @@ export function AdminBusinessForm({
         </div>
       </div>
       <AdminCategorySelect categories={categories} defaultValue={business?.categoryId} id="business-category" />
-      <AdminCatalogFlagsFields catalogVisible={business?.catalogVisible ?? true} searchable={business?.searchable ?? true} />
+      {mode === "create" ? (
+        <AdminCatalogFlagsFields catalogVisible={business?.catalogVisible ?? true} searchable={business?.searchable ?? true} />
+      ) : (
+        <p className="field-help">Visibilidad, búsqueda y activación se gestionan en el panel superior.</p>
+      )}
       <AdminFormFeedback errors={state.errors} message={state.message} success={state.success} />
       <AdminSubmitButton label={mode === "create" ? "Crear negocio" : "Guardar cambios"} pendingLabel="Guardando…" />
     </form>
@@ -445,15 +475,21 @@ export function AdminArticleForm({
         <AdminFieldError errors={state.errors?.body} />
       </div>
       <AdminCategorySelect categories={categories} defaultValue={article?.categoryId} id="article-category" />
-      <label className="checkbox-label">
-        <input defaultChecked={article?.draft ?? false} name="draft" type="checkbox" value="1" />
-        Borrador
-      </label>
-      <label className="checkbox-label">
-        <input defaultChecked={article?.approved ?? true} name="approved" type="checkbox" value="1" />
-        Aprobado
-      </label>
-      <AdminCatalogFlagsFields catalogVisible={article?.catalogVisible ?? true} searchable={article?.searchable ?? true} />
+      {mode === "create" ? (
+        <>
+          <label className="checkbox-label">
+            <input defaultChecked={article?.draft ?? false} name="draft" type="checkbox" value="1" />
+            Borrador
+          </label>
+          <label className="checkbox-label">
+            <input defaultChecked={article?.approved ?? true} name="approved" type="checkbox" value="1" />
+            Aprobado
+          </label>
+          <AdminCatalogFlagsFields catalogVisible={article?.catalogVisible ?? true} searchable={article?.searchable ?? true} />
+        </>
+      ) : (
+        <p className="field-help">Visibilidad, búsqueda y activación se gestionan en el panel superior.</p>
+      )}
       <AdminFormFeedback errors={state.errors} message={state.message} success={state.success} />
       <AdminSubmitButton label={mode === "create" ? "Crear artículo" : "Guardar cambios"} pendingLabel="Guardando…" />
     </form>

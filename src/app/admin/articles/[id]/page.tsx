@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { adminDeleteArticleAction } from "@/app/actions/admin-content";
+import { AdminModuleFlagsSection } from "@/app/components/admin/admin-module-flags-section";
 import { AdminDeleteForm } from "@/app/components/admin/admin-delete-form";
 import { AdminArticleForm } from "@/app/components/admin/content-forms";
 import { AdminShell } from "@/components/admin/AdminShell";
@@ -65,6 +66,7 @@ export default async function AdminArticleDetailPage({ params }: { params: Promi
             Ver página pública →
           </Link>
         </p>
+        <AdminModuleFlagsSection kind="article" resourceId={item.id} />
         <AdminArticleForm
           mode="edit"
           categories={categoryOptions}

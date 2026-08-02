@@ -62,9 +62,6 @@ type ForumTopicData = {
   id: string;
   title: string;
   body: string | null;
-  isLocked: boolean;
-  isSticky: boolean;
-  isAnnouncement: boolean;
 };
 
 type ForumCategoryData = {
@@ -72,8 +69,6 @@ type ForumCategoryData = {
   title: string;
   description: string | null;
   position: number;
-  isLocked: boolean;
-  publicCanRead: boolean;
 };
 
 export function AdminLevelForm({ mode, level }: { mode: "create" | "edit"; level?: LevelData }) {
@@ -260,18 +255,7 @@ export function AdminForumTopicForm({ topic }: { topic: ForumTopicData }) {
         <textarea defaultValue={topic.body ?? ""} id="forum-topic-body" maxLength={8000} name="body" required rows={10} />
         <AdminFieldError errors={state.errors?.body} />
       </div>
-      <label className="checkbox-label">
-        <input defaultChecked={topic.isLocked} name="isLocked" type="checkbox" value="1" />
-        Bloqueado
-      </label>
-      <label className="checkbox-label">
-        <input defaultChecked={topic.isSticky} name="isSticky" type="checkbox" value="1" />
-        Fijado (sticky)
-      </label>
-      <label className="checkbox-label">
-        <input defaultChecked={topic.isAnnouncement} name="isAnnouncement" type="checkbox" value="1" />
-        Anuncio
-      </label>
+      <p className="field-help">Bloqueo, sticky y anuncio se gestionan en el panel superior.</p>
       <AdminFormFeedback errors={state.errors} message={state.message} success={state.success} />
       <AdminSubmitButton label="Guardar cambios" pendingLabel="Guardando…" />
     </form>
@@ -298,14 +282,7 @@ export function AdminForumCategoryForm({ category }: { category: ForumCategoryDa
         <input defaultValue={category.position} id="forum-cat-pos" min={0} name="position" required type="number" />
         <AdminFieldError errors={state.errors?.position} />
       </div>
-      <label className="checkbox-label">
-        <input defaultChecked={category.isLocked} name="isLocked" type="checkbox" value="1" />
-        Bloqueada
-      </label>
-      <label className="checkbox-label">
-        <input defaultChecked={category.publicCanRead} name="publicCanRead" type="checkbox" value="1" />
-        Lectura pública
-      </label>
+      <p className="field-help">Bloqueo y lectura pública se gestionan en el panel superior.</p>
       <AdminFormFeedback errors={state.errors} message={state.message} success={state.success} />
       <AdminSubmitButton label="Guardar cambios" pendingLabel="Guardando…" />
     </form>

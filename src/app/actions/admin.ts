@@ -8,6 +8,10 @@ import {
   type AdminLoginFormState,
   validateAdminLogin,
 } from "@domain/admin-access";
+import {
+  adminPasswordResetInputFromFormData,
+  validateAdminPasswordResetInput,
+} from "@domain/admin-users";
 import { requireAdminAccess } from "@/server/admin/access";
 import { setAdminAlbumCatalogVisible } from "@/server/admin/album-mutations";
 import { setAdminArticleCatalogVisible } from "@/server/admin/article-mutations";
@@ -24,13 +28,25 @@ import {
 import { setAdminGroupCatalogVisible } from "@/server/admin/group-mutations";
 import { setAdminPollClosed, setAdminPollCatalogVisible } from "@/server/admin/poll-mutations";
 import { destroyAdminSession, establishAdminSession, authenticateAdmin } from "@/server/admin/session";
-import { setAdminUserEnabled, setAdminUserVerified } from "@/server/admin/user-mutations";
+import { setAdminUserEnabled, setAdminUserVerified, resetAdminUserPassword, setAdminUserLevel, setAdminUserSubnetwork, deleteAdminUser, type AdminUserMutationResult } from "@/server/admin/user-mutations";
 
 export type AdminActionState = {
-  errors?: { form?: string[] };
+  errors?: { form?: string[]; [key: string]: string[] | undefined };
   message?: string;
   success?: boolean;
 };
+
+const USER_MUTATION_MESSAGES: Record<string, string> = {
+  not_found: "No se encontró el usuario.",
+  invalid_level: "Nivel no válido.",
+  invalid_subnetwork: "Subred no válida.",
+  has_content: "No se puede eliminar: el usuario tiene contenido o mapeos asociados.",
+};
+
+function userMutationError(result: AdminUserMutationResult): AdminActionState {
+  if (result.ok) return { success: true };
+  return { errors: { form: [USER_MUTATION_MESSAGES[result.reason] ?? "Operación no permitida."] } };
+}
 
 export async function adminLoginAction(
   _previousState: AdminLoginFormState,
@@ -104,6 +120,102 @@ export async function adminSetUserVerifiedAction(
     };
   } catch {
     return { errors: { form: ["No se pudo actualizar la verificación."] } };
+  }
+}
+
+export async function adminResetUserPasswordAction(
+  _previous: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireAdminAccess();
+  const userId = String(formData.get("userId") ?? "").trim();
+  if (!userId) return { errors: { form: ["Usuario no válido."] } };
+
+  const input = adminPasswordResetInputFromFormData(formData);
+  const validation = validateAdminPasswordResetInput(input);
+  if (!validation.success) return { errors: validation.errors };
+
+  try {
+    const result = await resetAdminUserPassword(userId, validation.data.password);
+    if (!result.ok) return userMutationError(result);
+    revalidatePath("/admin/users");
+    revalidatePath(`/admin/users/${userId}`);
+    return {
+      success: true,
+      message: "Contraseña actualizada. Se cerraron las sesiones activas del usuario.",
+    };
+  } catch {
+    return { errors: { form: ["No se pudo restablecer la contraseña."] } };
+  }
+}
+
+export async function adminSetUserLevelAction(
+  _previous: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireAdminAccess();
+  const userId = String(formData.get("userId") ?? "").trim();
+  const rawLevelId = String(formData.get("levelId") ?? "").trim();
+  const levelId = rawLevelId || null;
+  if (!userId) return { errors: { form: ["Usuario no válido."] } };
+
+  try {
+    const result = await setAdminUserLevel(userId, levelId);
+    if (!result.ok) return userMutationError(result);
+    revalidatePath("/admin/users");
+    revalidatePath(`/admin/users/${userId}`);
+    return { success: true, message: levelId ? "Nivel asignado." : "Nivel retirado." };
+  } catch {
+    return { errors: { form: ["No se pudo actualizar el nivel."] } };
+  }
+}
+
+export async function adminSetUserSubnetworkAction(
+  _previous: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireAdminAccess();
+  const userId = String(formData.get("userId") ?? "").trim();
+  const rawSubnetworkId = String(formData.get("subnetworkId") ?? "").trim();
+  const subnetworkId = rawSubnetworkId || null;
+  if (!userId) return { errors: { form: ["Usuario no válido."] } };
+
+  try {
+    const result = await setAdminUserSubnetwork(userId, subnetworkId);
+    if (!result.ok) return userMutationError(result);
+    revalidatePath("/admin/users");
+    revalidatePath(`/admin/users/${userId}`);
+    return { success: true, message: subnetworkId ? "Subred asignada." : "Subred retirada." };
+  } catch {
+    return { errors: { form: ["No se pudo actualizar la subred."] } };
+  }
+}
+
+export async function adminDeleteUserAction(
+  _previous: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireAdminAccess();
+  const userId = String(formData.get("userId") ?? "").trim();
+  const listPath = String(formData.get("listPath") ?? "/admin/users");
+  if (!userId) return { errors: { form: ["Usuario no válido."] } };
+
+  try {
+    const result = await deleteAdminUser(userId);
+    if (!result.ok) return userMutationError(result);
+    revalidatePath("/admin/users");
+    revalidatePath("/admin/dashboard");
+    redirect(listPath);
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "digest" in error &&
+      String((error as { digest?: string }).digest).startsWith("NEXT_REDIRECT")
+    ) {
+      throw error;
+    }
+    return { errors: { form: ["No se pudo eliminar el usuario."] } };
   }
 }
 

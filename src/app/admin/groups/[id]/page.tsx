@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { adminDeleteGroupAction } from "@/app/actions/admin-content";
+import { AdminModuleFlagsSection } from "@/app/components/admin/admin-module-flags-section";
 import { AdminDeleteForm } from "@/app/components/admin/admin-delete-form";
 import { AdminGroupForm } from "@/app/components/admin/content-forms";
 import { AdminShell } from "@/components/admin/AdminShell";
@@ -57,6 +58,7 @@ export default async function AdminGroupDetailPage({ params }: { params: Promise
             Ver página pública →
           </Link>
         </p>
+        <AdminModuleFlagsSection kind="group" resourceId={item.id} />
         <AdminGroupForm
           mode="edit"
           categories={categoryOptions}

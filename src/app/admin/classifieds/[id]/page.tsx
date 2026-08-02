@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { adminDeleteClassifiedAction } from "@/app/actions/admin-content";
+import { AdminModuleFlagsSection } from "@/app/components/admin/admin-module-flags-section";
 import { AdminDeleteForm } from "@/app/components/admin/admin-delete-form";
 import { AdminClassifiedForm } from "@/app/components/admin/content-forms";
 import { AdminShell } from "@/components/admin/AdminShell";
@@ -57,6 +58,7 @@ export default async function AdminClassifiedDetailPage({ params }: { params: Pr
             Ver página pública →
           </Link>
         </p>
+        <AdminModuleFlagsSection kind="classified" resourceId={item.id} />
         <AdminClassifiedForm
           mode="edit"
           categories={categoryOptions}

@@ -37,7 +37,7 @@ export function AdminFormFeedback({
   message,
   success,
 }: {
-  errors?: Record<string, string[]>;
+  errors?: Record<string, string[] | undefined>;
   message?: string;
   success?: boolean;
 }) {

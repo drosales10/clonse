@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { adminDeleteEventAction } from "@/app/actions/admin-content";
+import { AdminModuleFlagsSection } from "@/app/components/admin/admin-module-flags-section";
 import { AdminDeleteForm } from "@/app/components/admin/admin-delete-form";
 import { AdminEventForm } from "@/app/components/admin/content-forms";
 import { AdminShell } from "@/components/admin/AdminShell";
@@ -61,6 +62,7 @@ export default async function AdminEventDetailPage({ params }: { params: Promise
             Ver página pública →
           </Link>
         </p>
+        <AdminModuleFlagsSection kind="event" resourceId={item.id} />
         <AdminEventForm
           mode="edit"
           categories={categoryOptions}

@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { AdminModuleFlagsSection } from "@/app/components/admin/admin-module-flags-section";
 import { AdminUserControls } from "@/app/components/admin-user-controls";
 import { AdminShell } from "@/components/admin/AdminShell";
 import { getAdminAccessState } from "@/server/admin/access";
+import { getAdminLevels, getAdminSubnetworks } from "@/server/admin/catalogs";
 import { getAdminUserDetail } from "@/server/admin/user-detail";
 
 export default async function AdminUserDetailPage({ params }: { params: Promise<{ userId: string }> }) {
@@ -11,7 +13,11 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
   if (!access.admin) redirect("/admin/login");
 
   const { userId } = await params;
-  const user = await getAdminUserDetail(userId);
+  const [user, levels, subnetworks] = await Promise.all([
+    getAdminUserDetail(userId),
+    getAdminLevels(),
+    getAdminSubnetworks(),
+  ]);
   if (!user) redirect("/admin/users");
 
   return (
@@ -44,6 +50,14 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
             <dd>{user.verifiedAt ? formatDate(user.verifiedAt) : "No"}</dd>
           </div>
           <div>
+            <dt>Nivel</dt>
+            <dd>{user.level?.name ?? "Sin asignar"}</dd>
+          </div>
+          <div>
+            <dt>Subred</dt>
+            <dd>{user.subnetwork ? formatSubnetwork(user.subnetwork.legacyId) : "Sin asignar"}</dd>
+          </div>
+          <div>
             <dt>Alta</dt>
             <dd>{formatDate(user.signUpDate)}</dd>
           </div>
@@ -57,7 +71,25 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
           </div>
         </dl>
 
-        <AdminUserControls enabled={user.enabled} userId={user.id} verified={user.verifiedAt !== null} />
+        <p>
+          <Link className="text-link" href={`/profile/${encodeURIComponent(user.username)}`}>
+            Ver perfil público →
+          </Link>
+        </p>
+
+        <AdminModuleFlagsSection kind="user-profile" resourceId={user.id} />
+
+        <AdminUserControls
+          levelId={user.level?.id ?? null}
+          levels={levels.map((level) => ({ id: level.id, name: level.name }))}
+          subnetworkId={user.subnetwork?.id ?? null}
+          subnetworks={subnetworks.map((subnetwork) => ({
+            id: subnetwork.id,
+            label: formatSubnetworkLabel(subnetwork.legacyId, subnetwork.field1Value, subnetwork.field2Value),
+          }))}
+          userId={user.id}
+          username={user.username}
+        />
 
         <div className="scope-grid admin-user-stats">
           <article>
@@ -76,13 +108,23 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
             <p>Actividades registradas.</p>
           </article>
         </div>
-        <p className="empty-state">
-          Cambio de contraseña, niveles, subredes y eliminación siguen pendientes de contratos
-          administrativos adicionales.
-        </p>
       </section>
     </AdminShell>
   );
+}
+
+function formatSubnetwork(legacyId: number | null): string {
+  return legacyId !== null ? `Legacy #${legacyId}` : "Subred destino";
+}
+
+function formatSubnetworkLabel(
+  legacyId: number | null,
+  field1Value: string,
+  field2Value: string,
+): string {
+  const id = legacyId !== null ? `#${legacyId}` : "sin legacy";
+  const hint = [field1Value, field2Value].filter(Boolean).join(" · ");
+  return hint ? `${id} — ${hint}` : id;
 }
 
 function formatDate(value: Date): string {

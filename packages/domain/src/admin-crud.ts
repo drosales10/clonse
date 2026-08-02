@@ -1,5 +1,5 @@
 export type AdminResourceFormState = {
-  errors?: Record<string, string[]>;
+  errors?: Record<string, string[] | undefined>;
   message?: string;
   success?: boolean;
 };

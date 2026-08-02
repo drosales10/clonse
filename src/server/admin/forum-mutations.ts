@@ -197,7 +197,7 @@ export async function getAdminForumCategoryDetail(
 
 export async function updateAdminForumTopic(
   topicId: string,
-  input: { title: string; body: string; isLocked: boolean; isSticky: boolean; isAnnouncement: boolean },
+  input: { title: string; body: string },
 ): Promise<AdminForumMutationResult> {
   const topic = await db.forumPost.findFirst({
     where: { id: topicId, parentId: null },
@@ -209,9 +209,6 @@ export async function updateAdminForumTopic(
     data: {
       title: input.title,
       body: input.body,
-      isLocked: input.isLocked,
-      isSticky: input.isSticky,
-      isAnnouncement: input.isAnnouncement,
       modifiedAt: new Date(),
     },
   });
@@ -234,8 +231,6 @@ export async function updateAdminForumCategory(
     title: string;
     description: string | null;
     position: number;
-    isLocked: boolean;
-    publicCanRead: boolean;
   },
 ): Promise<AdminForumMutationResult> {
   const category = await db.forumCategory.findUnique({ where: { id: categoryId }, select: { id: true } });

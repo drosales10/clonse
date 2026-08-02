@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { adminDeletePollAction } from "@/app/actions/admin-content";
+import { AdminModuleFlagsSection } from "@/app/components/admin/admin-module-flags-section";
 import { AdminDeleteForm } from "@/app/components/admin/admin-delete-form";
 import { AdminPollForm } from "@/app/components/admin/content-forms";
 import { AdminShell } from "@/components/admin/AdminShell";
@@ -56,9 +57,10 @@ export default async function AdminPollDetailPage({ params }: { params: Promise<
             Ver página pública →
           </Link>
         </p>
+        <AdminModuleFlagsSection kind="poll" resourceId={item.id} />
         <AdminPollForm
           mode="edit"
-          poll={{ id: item.id, title: item.title, description: item.description, options: item.options, closed: item.closed, catalogVisible: item.catalogVisible, searchable: item.searchable, totalVotes: item.totalVotes }}
+          poll={{ id: item.id, title: item.title, description: item.description, options: item.options, totalVotes: item.totalVotes }}
         />
         <AdminDeleteForm
           action={adminDeletePollAction}

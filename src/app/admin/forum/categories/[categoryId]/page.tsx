@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { adminDeleteForumCategoryAction } from "@/app/actions/admin-content";
+import { AdminModuleFlagsSection } from "@/app/components/admin/admin-module-flags-section";
 import { AdminDeleteForm } from "@/app/components/admin/admin-delete-form";
 import { AdminForumCategoryForm } from "@/app/components/admin/catalog-forms";
 import { AdminShell } from "@/components/admin/AdminShell";
@@ -50,14 +51,13 @@ export default async function AdminForumCategoryDetailPage({ params }: { params:
             Ver página pública →
           </Link>
         </p>
+        <AdminModuleFlagsSection kind="forum-category" resourceId={category.id} />
         <AdminForumCategoryForm
           category={{
             id: category.id,
             title: category.title,
             description: category.description,
             position: category.position,
-            isLocked: category.isLocked,
-            publicCanRead: category.publicCanRead,
           }}
         />
         <AdminDeleteForm

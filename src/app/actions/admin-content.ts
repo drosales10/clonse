@@ -195,15 +195,8 @@ export async function adminUpdateGroupAction(
   const validation = validateGroupWriteInput(input);
   if (!validation.success) return { errors: validation.errors };
 
-  const flags = catalogFlagsFromFormData(formData);
-  const membershipApprovalRequired = checkboxFromFormData(formData, "membershipApprovalRequired");
-
   try {
-    const result = await updateAdminGroup(
-      groupId,
-      { ...validation.data, membershipApprovalRequired },
-      flags,
-    );
+    const result = await updateAdminGroup(groupId, validation.data);
     if (!result.ok) return mutationError(result);
     revalidatePath("/admin/groups");
     revalidatePath(`/admin/groups/${groupId}`);
@@ -267,11 +260,8 @@ export async function adminUpdateEventAction(
   const validation = validateEventWriteInput(input);
   if (!validation.success) return { errors: validation.errors };
 
-  const flags = catalogFlagsFromFormData(formData);
-  const inviteOnly = checkboxFromFormData(formData, "inviteOnly");
-
   try {
-    const result = await updateAdminEvent(eventId, { ...validation.data, inviteOnly }, flags);
+    const result = await updateAdminEvent(eventId, validation.data);
     if (!result.ok) return mutationError(result);
     revalidatePath("/admin/events");
     revalidatePath(`/admin/events/${eventId}`);
@@ -350,15 +340,8 @@ export async function adminUpdatePollAction(
     options = optionsValidation.data.options;
   }
 
-  const flags = catalogFlagsFromFormData(formData);
-  const closed = checkboxFromFormData(formData, "closed");
-
   try {
-    const result = await updateAdminPoll(
-      pollId,
-      { ...pollValidation.data, options, closed },
-      flags,
-    );
+    const result = await updateAdminPoll(pollId, { ...pollValidation.data, options });
     if (!result.ok) return mutationError(result);
     revalidatePath("/admin/polls");
     revalidatePath(`/admin/polls/${pollId}`);
@@ -419,10 +402,8 @@ export async function adminUpdateAlbumAction(
   const validation = validateAlbumWriteInput(input);
   if (!validation.success) return { errors: validation.errors };
 
-  const flags = catalogFlagsFromFormData(formData);
-
   try {
-    const result = await updateAdminAlbum(albumId, validation.data, flags);
+    const result = await updateAdminAlbum(albumId, validation.data);
     if (!result.ok) return mutationError(result);
     revalidatePath("/admin/albums");
     revalidatePath(`/admin/albums/${albumId}`);
@@ -485,10 +466,8 @@ export async function adminUpdateClassifiedAction(
   const validation = validateClassifiedWriteInput(input);
   if (!validation.success) return { errors: validation.errors };
 
-  const flags = catalogFlagsFromFormData(formData);
-
   try {
-    const result = await updateAdminClassified(classifiedId, validation.data, flags);
+    const result = await updateAdminClassified(classifiedId, validation.data);
     if (!result.ok) return mutationError(result);
     revalidatePath("/admin/classifieds");
     revalidatePath(`/admin/classifieds/${classifiedId}`);
@@ -551,10 +530,8 @@ export async function adminUpdateBlogAction(
   const validation = validateBlogWriteInput(input);
   if (!validation.success) return { errors: validation.errors };
 
-  const flags = catalogFlagsFromFormData(formData);
-
   try {
-    const result = await updateAdminBlog(entryId, validation.data, flags);
+    const result = await updateAdminBlog(entryId, validation.data);
     if (!result.ok) return mutationError(result);
     revalidatePath("/admin/blogs");
     revalidatePath(`/admin/blogs/${entryId}`);
@@ -615,10 +592,8 @@ export async function adminUpdateBusinessAction(
   const validation = validateBusinessWriteInput(input);
   if (!validation.success) return { errors: validation.errors };
 
-  const flags = catalogFlagsFromFormData(formData);
-
   try {
-    const result = await updateAdminBusiness(businessId, validation.data, flags);
+    const result = await updateAdminBusiness(businessId, validation.data);
     if (!result.ok) return mutationError(result);
     revalidatePath("/admin/businesses");
     revalidatePath(`/admin/businesses/${businessId}`);
@@ -687,16 +662,8 @@ export async function adminUpdateArticleAction(
   const validation = validateArticleWriteInput(input);
   if (!validation.success) return { errors: validation.errors };
 
-  const flags = catalogFlagsFromFormData(formData);
-  const draft = checkboxFromFormData(formData, "draft");
-  const approved = checkboxFromFormData(formData, "approved");
-
   try {
-    const result = await updateAdminArticle(
-      articleId,
-      { ...validation.data, draft, approved },
-      flags,
-    );
+    const result = await updateAdminArticle(articleId, validation.data);
     if (!result.ok) return mutationError(result);
     revalidatePath("/admin/articles");
     revalidatePath(`/admin/articles/${articleId}`);
@@ -734,12 +701,7 @@ export async function adminUpdateForumTopicAction(
   if (!validation.success) return { errors: validation.errors };
 
   try {
-    const result = await updateAdminForumTopic(topicId, {
-      ...validation.data,
-      isLocked: checkboxFromFormData(formData, "isLocked"),
-      isSticky: checkboxFromFormData(formData, "isSticky"),
-      isAnnouncement: checkboxFromFormData(formData, "isAnnouncement"),
-    });
+    const result = await updateAdminForumTopic(topicId, validation.data);
     if (!result.ok) return mutationError(result);
     revalidatePath("/admin/forum");
     revalidatePath(`/admin/forum/topics/${topicId}`);
@@ -783,8 +745,6 @@ export async function adminUpdateForumCategoryAction(
       title,
       description: description || null,
       position,
-      isLocked: checkboxFromFormData(formData, "isLocked"),
-      publicCanRead: checkboxFromFormData(formData, "publicCanRead"),
     });
     if (!result.ok) return mutationError(result);
     revalidatePath("/admin/forum");

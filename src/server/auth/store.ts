@@ -1,29 +1,15 @@
-import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { randomBytes } from "node:crypto";
 
 import { Prisma } from "@prisma/client";
 
 import type { AuthenticatedUser, LoginInput, RegisterInput } from "@domain/access";
 import { db } from "@/server/db/client";
+import { hashPassword, verifyPassword } from "@/server/auth/password";
 import { issueAuthToken, hashAuthToken, tokenHasExpired, tokenMatches } from "./token-service";
 
 interface StoredSessionResult {
   token: string;
   expiresAt: Date;
-}
-
-function hashPassword(password: string): string {
-  const salt = randomBytes(16);
-  const derivedKey = scryptSync(password, salt, 64);
-  return `scrypt:${salt.toString("hex")}:${derivedKey.toString("hex")}`;
-}
-
-function verifyPassword(password: string, encodedHash: string): boolean {
-  const [, saltHex, keyHex] = encodedHash.split(":");
-  if (!saltHex || !keyHex) return false;
-
-  const expected = Buffer.from(keyHex, "hex");
-  const actual = scryptSync(password, Buffer.from(saltHex, "hex"), expected.length);
-  return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
 export async function createUser(
