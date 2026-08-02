@@ -9,6 +9,7 @@ import { ProfileFriends } from "@/app/components/profile-friends";
 import { getCurrentUser } from "@/server/auth/session";
 import { clearProfileCommentNotifications } from "@/server/notifications/service";
 import { getPublicProfile } from "@/server/profile/service";
+import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = {
   title: "Perfil | Red Social",
@@ -33,15 +34,7 @@ export default async function ProfilePage({
   }
 
   return (
-    <main className="authenticated-shell">
-      <header className="app-header">
-        <Link className="brand" href="/">nexo<span>.</span></Link>
-        <nav className="profile-navigation" aria-label="Navegación del perfil">
-          {viewer ? <Link className="text-link" href="/home">Inicio</Link> : <Link className="text-link" href="/login">Iniciar sesión</Link>}
-          {viewer && result.kind === "profile" && viewer.username.toLowerCase() === result.profile.username.toLowerCase() ? <Link className="text-link" href="/account/profile">Ajustes</Link> : null}
-        </nav>
-      </header>
-
+    <ClientShell current="profile">
       {result.kind === "private" ? (
         <section className="profile-panel profile-private" aria-labelledby="private-profile-title">
           <p className="eyebrow">Perfil restringido</p>
@@ -104,7 +97,7 @@ export default async function ProfilePage({
           <p className="profile-scope-note">Las fotos, las notificaciones y otras interacciones se incorporarán en los siguientes incrementos de esta vertical.</p>
         </section>
       )}
-    </main>
+    </ClientShell>
   );
 }
 

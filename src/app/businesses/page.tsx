@@ -4,6 +4,7 @@ import Link from "next/link";
 import { normalizeBusinessQuery, type BusinessSort } from "@domain/businesses";
 import { getCurrentUser } from "@/server/auth/session";
 import { getBusinessCatalog } from "@/server/businesses/service";
+import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = {
   title: "Negocios | Red Social",
@@ -26,16 +27,7 @@ export default async function BusinessesPage({
   const catalog = await getBusinessCatalog(viewer?.id ?? null, query);
 
   return (
-    <main className="authenticated-shell">
-      <header className="app-header">
-        <Link className="brand" href="/">nexo<span>.</span></Link>
-        <nav className="profile-navigation" aria-label="Navegación principal">
-          {viewer ? <Link className="text-link" href="/home">Inicio</Link> : <Link className="text-link" href="/login">Iniciar sesión</Link>}
-          {viewer ? <Link className="text-link" href={`/profile/${encodeURIComponent(viewer.username)}`}>Mi perfil</Link> : null}
-          <Link className="text-link" href="/people">Personas</Link>
-        </nav>
-      </header>
-
+    <ClientShell current="explore">
       <section className="profile-panel business-panel" aria-labelledby="businesses-title">
         <p className="eyebrow">Comunidad · Negocios</p>
         <h1 id="businesses-title">Encuentra un negocio</h1>
@@ -101,7 +93,7 @@ export default async function BusinessesPage({
 
         <BusinessPagination page={catalog.pagination.page} pageCount={catalog.pagination.pageCount} search={query.search} sort={query.sort} categoryId={query.categoryId} />
       </section>
-    </main>
+    </ClientShell>
   );
 }
 

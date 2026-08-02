@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 
 import { AdminLoginForm } from "@/app/components/admin-access-form";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { getAdminAccessState } from "@/server/admin/access";
 
 export default async function AdminLoginPage() {
@@ -11,12 +12,17 @@ export default async function AdminLoginPage() {
 
   return (
     <main className="public-shell">
-      <section className="auth-card" aria-labelledby="admin-login-title">
-        <p className="eyebrow">Administración</p>
-        <h1 id="admin-login-title">Acceso administrativo</h1>
+      <div className="auth-theme-slot">
+        <ThemeToggle />
+      </div>
+      <section className="auth-card admin-auth-card" aria-labelledby="admin-login-title">
+        <p className="eyebrow">Operaciones</p>
+        <h1 id="admin-login-title">nexo. ops</h1>
         <p className="lead">{access.message}</p>
         <AdminLoginForm />
-        <p className="form-footnote"><Link href="/">Volver al sitio</Link></p>
+        <p className="form-footnote">
+          <Link href="/">Volver al sitio</Link>
+        </p>
       </section>
     </main>
   );

@@ -1,43 +1,76 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
-import { adminLogoutAction } from "@/app/actions/admin";
+import { AdminShell } from "@/components/admin/AdminShell";
 import { getAdminDashboardStats } from "@/server/admin/dashboard";
-import { getAdminAccessState } from "@/server/admin/access";
 
 export default async function AdminDashboardPage() {
-  const access = await getAdminAccessState();
-  if (!access.admin) redirect("/admin/login");
   const stats = await getAdminDashboardStats();
 
   return (
-    <main className="authenticated-shell admin-shell">
-      <header className="app-header">
-        <span className="brand">nexo<span>.</span></span>
-        <nav className="profile-navigation" aria-label="Navegación administrativa">
-          <Link className="text-link" href="/admin/users">Usuarios</Link>
-          <Link className="text-link" href="/admin/levels">Niveles</Link>
-          <Link className="text-link" href="/admin/subnetworks">Subredes</Link>
-          <Link className="text-link" href="/admin/settings">Configuración</Link>
-          <Link className="text-link" href="/admin/language-variables">Idioma</Link>
-          <form action={adminLogoutAction}><button className="button button-quiet" type="submit">Cerrar sesión</button></form>
-        </nav>
-      </header>
-      <section className="welcome-panel" aria-labelledby="admin-dashboard-title">
-        <p className="eyebrow">Consola administrativa</p>
-        <h1 id="admin-dashboard-title">Hola, {access.admin.displayName}</h1>
-        <p className="lead">La sesión administrativa está activa para <strong>{access.admin.username}</strong>.</p>
-        <div className="scope-grid">
-          <article><span>01</span><h2>{stats.totalUsers}</h2><p>Usuarios registrados en el destino.</p></article>
-          <article><span>02</span><h2>{stats.enabledUsers}</h2><p>Usuarios habilitados actualmente.</p></article>
-          <article><span>03</span><h2>{stats.verifiedUsers}</h2><p>Usuarios con email verificado.</p></article>
-          <article><span>04</span><h2>{stats.totalLevels}</h2><p><Link className="text-link" href="/admin/levels">Niveles en catálogo.</Link></p></article>
-          <article><span>05</span><h2>{stats.totalSubnetworks}</h2><p><Link className="text-link" href="/admin/subnetworks">Subredes en catálogo.</Link></p></article>
-          <article><span>06</span><h2>{stats.totalSettings}</h2><p><Link className="text-link" href="/admin/settings">Configuraciones no sensibles.</Link></p></article>
-          <article><span>07</span><h2>{stats.totalLanguageVariables}</h2><p><Link className="text-link" href="/admin/language-variables">Variables de idioma.</Link></p></article>
+    <AdminShell current="dashboard" title="Panel">
+      <section className="welcome-panel" aria-labelledby="admin-dashboard-lead">
+        <p className="lead" id="admin-dashboard-lead">
+          Métricas disponibles con modelos destino verificados. El resto de indicadores legacy queda
+          pendiente de contrato.
+        </p>
+        <div className="admin-stat-grid">
+          <article>
+            <span>01</span>
+            <h2>{stats.totalUsers}</h2>
+            <p>Usuarios registrados</p>
+          </article>
+          <article>
+            <span>02</span>
+            <h2>{stats.enabledUsers}</h2>
+            <p>Usuarios habilitados</p>
+          </article>
+          <article>
+            <span>03</span>
+            <h2>{stats.verifiedUsers}</h2>
+            <p>Email verificado</p>
+          </article>
+          <article>
+            <span>04</span>
+            <h2>{stats.totalLevels}</h2>
+            <p>
+              <Link className="text-link" href="/admin/levels">
+                Niveles
+              </Link>
+            </p>
+          </article>
+          <article>
+            <span>05</span>
+            <h2>{stats.totalSubnetworks}</h2>
+            <p>
+              <Link className="text-link" href="/admin/subnetworks">
+                Subredes
+              </Link>
+            </p>
+          </article>
+          <article>
+            <span>06</span>
+            <h2>{stats.totalSettings}</h2>
+            <p>
+              <Link className="text-link" href="/admin/settings">
+                Configuración
+              </Link>
+            </p>
+          </article>
+          <article>
+            <span>07</span>
+            <h2>{stats.totalLanguageVariables}</h2>
+            <p>
+              <Link className="text-link" href="/admin/language-variables">
+                Variables de idioma
+              </Link>
+            </p>
+          </article>
         </div>
-        <p className="empty-state">Estas son las únicas métricas administrativas disponibles con modelos destino verificados. Mensajes, reportes, amistades, anuncios, logins y estadísticas legacy quedan pendientes de sus contratos.</p>
+        <p className="empty-state">
+          Mensajes, reportes, amistades, anuncios, logins y estadísticas legacy requieren contratos
+          destino adicionales.
+        </p>
       </section>
-    </main>
+    </AdminShell>
   );
 }

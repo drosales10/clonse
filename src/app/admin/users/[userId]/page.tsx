@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { adminLogoutAction } from "@/app/actions/admin";
 import { getAdminAccessState } from "@/server/admin/access";
 import { getAdminUserDetail } from "@/server/admin/user-detail";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 export default async function AdminUserDetailPage({ params }: { params: Promise<{ userId: string }> }) {
   const access = await getAdminAccessState();
@@ -14,15 +14,8 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
   if (!user) redirect("/admin/users");
 
   return (
-    <main className="authenticated-shell admin-shell">
-      <header className="app-header">
-        <Link className="brand" href="/admin/dashboard">nexo<span>.</span></Link>
-        <nav className="profile-navigation" aria-label="Navegación administrativa">
-          <Link className="text-link" href="/admin/dashboard">Panel</Link>
-          <Link className="text-link" href="/admin/users">Usuarios</Link>
-          <form action={adminLogoutAction}><button className="button button-quiet" type="submit">Cerrar sesión</button></form>
-        </nav>
-      </header>
+    <AdminShell current="users" title="Detalle de usuario">
+      
       <section className="profile-panel admin-user-detail" aria-labelledby="admin-user-title">
         <Link className="text-link" href="/admin/users">← Volver a usuarios</Link>
         <p className="eyebrow">Administración · Detalle de usuario</p>
@@ -45,7 +38,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
         </div>
         <p className="empty-state">Este detalle es de solo lectura. Edición, verificación manual, cambio de contraseña, niveles, subredes y eliminación requieren contratos administrativos adicionales.</p>
       </section>
-    </main>
+    </AdminShell>
   );
 }
 

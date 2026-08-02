@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { getCurrentUser } from "@/server/auth/session";
 import { getClassifiedDetail } from "@/server/classifieds/service";
+import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = {
   title: "Clasificado | Red Social",
@@ -21,15 +22,7 @@ export default async function ClassifiedDetailPage({
   if (!classified) notFound();
 
   return (
-    <main className="authenticated-shell">
-      <header className="app-header">
-        <Link className="brand" href="/">nexo<span>.</span></Link>
-        <nav className="profile-navigation" aria-label="Navegación principal">
-          <Link className="text-link" href="/classifieds">Clasificados</Link>
-          {viewer ? <Link className="text-link" href={`/profile/${encodeURIComponent(viewer.username)}`}>Mi perfil</Link> : <Link className="text-link" href="/login">Iniciar sesión</Link>}
-        </nav>
-      </header>
-
+    <ClientShell current="explore">
       <article className="profile-panel classified-detail-panel" aria-labelledby="classified-title">
         <Link className="text-link classified-back-link" href="/classifieds">← Volver a clasificados</Link>
         <p className="eyebrow">{classified.category?.title ?? "Clasificado"}</p>
@@ -43,7 +36,7 @@ export default async function ClassifiedDetailPage({
         </dl>
         <p className="classified-detail-note">El cuerpo se muestra como texto seguro. Fotos, comentarios, campos dinámicos, estilos y notificaciones requieren contratos separados.</p>
       </article>
-    </main>
+    </ClientShell>
   );
 }
 

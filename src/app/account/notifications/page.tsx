@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { NotificationReadForm } from "@/app/components/notification-read-form";
 import { getCurrentUser } from "@/server/auth/session";
 import { getNotificationCenter } from "@/server/notifications/service";
+import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = {
   title: "Avisos | Red Social",
@@ -22,17 +23,7 @@ export default async function NotificationsPage({
   const [notifications, params] = await Promise.all([getNotificationCenter(user.id), searchParams]);
 
   return (
-    <main className="authenticated-shell">
-      <header className="app-header">
-        <Link className="brand" href="/">nexo<span>.</span></Link>
-        <nav className="profile-navigation" aria-label="Navegación de cuenta">
-          <Link className="text-link" href="/home">Inicio</Link>
-          <Link className="text-link" href={`/profile/${encodeURIComponent(user.username)}`}>Mi perfil</Link>
-          <Link className="text-link" href="/account/friends">Conexiones</Link>
-          <Link className="text-link" href="/people">Descubrir</Link>
-          <Link className="text-link" href="/account/profile">Ajustes</Link>
-        </nav>
-      </header>
+    <ClientShell current="notifications">
       <section className="profile-panel notifications-panel" aria-labelledby="notifications-title">
         <div className="activity-heading">
           <div>
@@ -64,7 +55,7 @@ export default async function NotificationsPage({
           </ul>
         ) : <p className="empty-state">No tienes avisos recientes.</p>}
       </section>
-    </main>
+    </ClientShell>
   );
 }
 

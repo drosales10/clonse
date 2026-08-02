@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { adminLogoutAction } from "@/app/actions/admin";
 import { getAdminAccessState } from "@/server/admin/access";
 import { getAdminUsers } from "@/server/admin/users";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 export default async function AdminUsersPage({
   searchParams,
@@ -24,20 +24,9 @@ export default async function AdminUsersPage({
   });
 
   return (
-    <main className="authenticated-shell admin-shell">
-      <header className="app-header">
-        <Link className="brand" href="/admin/dashboard">nexo<span>.</span></Link>
-        <nav className="profile-navigation" aria-label="Navegación administrativa">
-          <Link className="text-link" href="/admin/dashboard">Panel</Link>
-          <span className="text-link" aria-current="page">Usuarios</span>
-          <Link className="text-link" href="/admin/levels">Niveles</Link>
-          <Link className="text-link" href="/admin/subnetworks">Subredes</Link>
-          <Link className="text-link" href="/admin/settings">Configuración</Link>
-          <form action={adminLogoutAction}><button className="button button-quiet" type="submit">Cerrar sesión</button></form>
-        </nav>
-      </header>
+    <AdminShell current="users" title="Usuarios">
+      
       <section className="profile-panel admin-users-panel" aria-labelledby="admin-users-title">
-        <Link className="text-link" href="/admin/dashboard">← Volver al panel</Link>
         <p className="eyebrow">Administración · Usuarios</p>
         <h1 id="admin-users-title">Usuarios</h1>
         <p className="lead">{result.total} usuarios encontrados. Este módulo es de solo lectura en esta fase.</p>
@@ -58,7 +47,7 @@ export default async function AdminUsersPage({
         ) : <p className="empty-state">No hay usuarios que coincidan con los filtros.</p>}
         <AdminUsersPagination page={result.page} pageCount={result.pageCount} query={result.query} />
       </section>
-    </main>
+    </AdminShell>
   );
 }
 

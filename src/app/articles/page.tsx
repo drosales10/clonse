@@ -4,6 +4,7 @@ import Link from "next/link";
 import { normalizeArticleQuery, type ArticleSort } from "@domain/articles";
 import { getCurrentUser } from "@/server/auth/session";
 import { getArticleCatalog } from "@/server/articles/service";
+import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = {
   title: "Artículos | Red Social",
@@ -27,16 +28,7 @@ export default async function ArticlesPage({
   const catalog = await getArticleCatalog(viewer?.id ?? null, query);
 
   return (
-    <main className="authenticated-shell">
-      <header className="app-header">
-        <Link className="brand" href="/">nexo<span>.</span></Link>
-        <nav className="profile-navigation" aria-label="Navegación principal">
-          {viewer ? <Link className="text-link" href="/home">Inicio</Link> : <Link className="text-link" href="/login">Iniciar sesión</Link>}
-          {viewer ? <Link className="text-link" href={`/profile/${encodeURIComponent(viewer.username)}`}>Mi perfil</Link> : null}
-          <Link className="text-link" href="/blogs">Blogs</Link>
-        </nav>
-      </header>
-
+    <ClientShell current="explore">
       <section className="profile-panel article-panel" aria-labelledby="articles-title">
         <p className="eyebrow">Publicación · Artículos</p>
         <h1 id="articles-title">Conocimiento compartido</h1>
@@ -95,7 +87,7 @@ export default async function ArticlesPage({
 
         <ArticlePagination page={catalog.pagination.page} pageCount={catalog.pagination.pageCount} search={query.search} sort={query.sort} featured={query.featured} categoryId={query.categoryId} />
       </section>
-    </main>
+    </ClientShell>
   );
 }
 

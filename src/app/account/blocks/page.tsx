@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { ProfileBlockActions } from "@/app/components/profile-block-actions";
 import { getBlockedUsers } from "@/server/profile/service";
 import { getCurrentUser } from "@/server/auth/session";
+import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = {
   title: "Bloqueos | Red Social",
@@ -18,15 +19,7 @@ export default async function BlocksPage() {
   const blockedUsers = await getBlockedUsers(user.id);
 
   return (
-    <main className="authenticated-shell">
-      <header className="app-header">
-        <Link className="brand" href="/">nexo<span>.</span></Link>
-        <nav className="profile-navigation" aria-label="Navegación de cuenta">
-          <Link className="text-link" href="/home">Inicio</Link>
-          <Link className="text-link" href="/account/friends">Conexiones</Link>
-          <Link className="text-link" href="/account/profile">Ajustes</Link>
-        </nav>
-      </header>
+    <ClientShell current="friends">
       <section className="profile-panel friends-panel" aria-labelledby="blocks-title">
         <p className="eyebrow">Cuenta · Privacidad</p>
         <h1 id="blocks-title">Perfiles bloqueados</h1>
@@ -45,6 +38,6 @@ export default async function BlocksPage() {
           </div>
         ) : <p className="empty-state">No has bloqueado ningún perfil.</p>}
       </section>
-    </main>
+    </ClientShell>
   );
 }

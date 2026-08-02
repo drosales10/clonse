@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { getCurrentUser } from "@/server/auth/session";
 import { getBlogEntryDetail } from "@/server/blogs/service";
+import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = {
   title: "Entrada de blog | Red Social",
@@ -16,8 +17,7 @@ export default async function BlogEntryDetailPage({ params }: { params: Promise<
   const entry = await getBlogEntryDetail(viewer?.id ?? null, entryId);
   if (!entry) notFound();
 
-  return <main className="authenticated-shell">
-    <header className="app-header"><Link className="brand" href="/">nexo<span>.</span></Link><nav className="profile-navigation" aria-label="Navegación principal"><Link className="text-link" href="/blogs">Blogs</Link>{viewer ? <Link className="text-link" href={`/profile/${encodeURIComponent(viewer.username)}`}>Mi perfil</Link> : <Link className="text-link" href="/login">Iniciar sesión</Link>}</nav></header>
+  return <ClientShell current="explore">
     <article className="profile-panel blog-detail-panel" aria-labelledby="blog-entry-title">
       <Link className="text-link blog-back-link" href="/blogs">← Volver a blogs</Link>
       <p className="eyebrow">{entry.category?.title ?? "Blog"}</p>
@@ -26,7 +26,7 @@ export default async function BlogEntryDetailPage({ params }: { params: Promise<
       <div className="blog-detail-body">{entry.body ? <p>{entry.body}</p> : <p className="empty-state">Esta entrada no tiene contenido visible.</p>}</div>
       <p className="blog-detail-note">El contenido se muestra como texto seguro; comentarios, trackbacks, suscripciones y estilos legacy no forman parte de esta lectura.</p>
     </article>
-  </main>;
+  </ClientShell>;
 }
 
 function formatDate(value: Date): string { return new Intl.DateTimeFormat("es", { dateStyle: "medium" }).format(value); }

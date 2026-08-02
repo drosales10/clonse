@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { getCurrentUser } from "@/server/auth/session";
 import { getEventDetail } from "@/server/events/service";
+import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = {
   title: "Evento | Red Social",
@@ -21,15 +22,7 @@ export default async function EventDetailPage({
   if (!event) notFound();
 
   return (
-    <main className="authenticated-shell">
-      <header className="app-header">
-        <Link className="brand" href="/">nexo<span>.</span></Link>
-        <nav className="profile-navigation" aria-label="Navegación principal">
-          <Link className="text-link" href="/events">Eventos</Link>
-          {viewer ? <Link className="text-link" href={`/profile/${encodeURIComponent(viewer.username)}`}>Mi perfil</Link> : <Link className="text-link" href="/login">Iniciar sesión</Link>}
-        </nav>
-      </header>
-
+    <ClientShell current="explore">
       <article className="profile-panel event-detail-panel" aria-labelledby="event-title">
         <Link className="text-link event-back-link" href="/events">← Volver a eventos</Link>
         <div className="event-detail-heading">
@@ -51,7 +44,7 @@ export default async function EventDetailPage({
         </dl>
         <p className="event-detail-note">La descripción se muestra como texto seguro. Miembros, RSVP, fotos, comentarios, campos dinámicos y acciones de invitación requieren contratos separados.</p>
       </article>
-    </main>
+    </ClientShell>
   );
 }
 

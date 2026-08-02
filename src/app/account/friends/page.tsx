@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { FriendRelationshipActions } from "@/app/components/friend-relationship-actions";
 import { getCurrentUser } from "@/server/auth/session";
 import { getFriendDashboard } from "@/server/profile/service";
+import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = {
   title: "Conexiones | Red Social",
@@ -29,17 +30,7 @@ export default async function FriendsPage({
   });
 
   return (
-    <main className="authenticated-shell">
-      <header className="app-header">
-        <Link className="brand" href="/">nexo<span>.</span></Link>
-        <nav className="profile-navigation" aria-label="Navegación de cuenta">
-          <Link className="text-link" href="/home">Inicio</Link>
-          <Link className="text-link" href="/people">Descubrir</Link>
-          <Link className="text-link" href={`/profile/${encodeURIComponent(user.username)}`}>Mi perfil</Link>
-          <Link className="text-link" href="/account/profile">Ajustes</Link>
-        </nav>
-      </header>
-
+    <ClientShell current="friends">
       <section className="profile-panel friends-panel" aria-labelledby="friends-title">
         <p className="eyebrow">Cuenta · Red</p>
         <h1 id="friends-title">Tus conexiones</h1>
@@ -63,7 +54,7 @@ export default async function FriendsPage({
           ))}
         </FriendSection>
       </section>
-    </main>
+    </ClientShell>
   );
 }
 

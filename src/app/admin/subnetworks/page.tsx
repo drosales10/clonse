@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { adminLogoutAction } from "@/app/actions/admin";
 import { getAdminAccessState } from "@/server/admin/access";
 import { getAdminSubnetworks } from "@/server/admin/catalogs";
+import { AdminShell } from "@/components/admin/AdminShell";
 
 export default async function AdminSubnetworksPage() {
   const access = await getAdminAccessState();
@@ -12,10 +11,8 @@ export default async function AdminSubnetworksPage() {
   const subnetworks = await getAdminSubnetworks();
 
   return (
-    <main className="authenticated-shell admin-shell">
-      <AdminHeader />
+    <AdminShell current="subnetworks" title="Subredes">
       <section className="profile-panel admin-users-panel" aria-labelledby="admin-subnetworks-title">
-        <Link className="text-link" href="/admin/dashboard">← Volver al panel</Link>
         <p className="eyebrow">Administración · Subredes</p>
         <h1 id="admin-subnetworks-title">Subredes</h1>
         <p className="lead">{subnetworks.length} subredes en el catálogo destino. Este módulo es de solo lectura.</p>
@@ -31,24 +28,7 @@ export default async function AdminSubnetworksPage() {
         )}
         <p className="empty-state">Los nombres localizados y la evaluación de reglas no se resuelven en esta fase.</p>
       </section>
-    </main>
-  );
-}
-
-function AdminHeader() {
-  return (
-    <header className="app-header">
-      <Link className="brand" href="/admin/dashboard">nexo<span>.</span></Link>
-      <nav className="profile-navigation" aria-label="Navegación administrativa">
-        <Link className="text-link" href="/admin/dashboard">Panel</Link>
-        <Link className="text-link" href="/admin/users">Usuarios</Link>
-        <Link className="text-link" href="/admin/levels">Niveles</Link>
-        <span className="text-link" aria-current="page">Subredes</span>
-        <Link className="text-link" href="/admin/settings">Configuración</Link>
-        <Link className="text-link" href="/admin/language-variables">Idioma</Link>
-        <form action={adminLogoutAction}><button className="button button-quiet" type="submit">Cerrar sesión</button></form>
-      </nav>
-    </header>
+    </AdminShell>
   );
 }
 
@@ -56,3 +36,4 @@ function formatRule(qualifier: string, value: string): string {
   if (!qualifier && !value) return "—";
   return `${qualifier || "?"}: ${value || "—"}`;
 }
+

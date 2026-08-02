@@ -4,6 +4,7 @@ import Link from "next/link";
 import { normalizeGroupQuery } from "@domain/groups";
 import { getCurrentUser } from "@/server/auth/session";
 import { getGroupCatalog } from "@/server/groups/service";
+import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = {
   title: "Grupos | Red Social",
@@ -24,16 +25,7 @@ export default async function GroupsPage({
   const catalog = await getGroupCatalog(viewer?.id ?? null, query);
 
   return (
-    <main className="authenticated-shell">
-      <header className="app-header">
-        <Link className="brand" href="/">nexo<span>.</span></Link>
-        <nav className="profile-navigation" aria-label="Navegación principal">
-          {viewer ? <Link className="text-link" href="/home">Inicio</Link> : <Link className="text-link" href="/login">Iniciar sesión</Link>}
-          {viewer ? <Link className="text-link" href={`/profile/${encodeURIComponent(viewer.username)}`}>Mi perfil</Link> : null}
-          <Link className="text-link" href="/events">Eventos</Link>
-        </nav>
-      </header>
-
+    <ClientShell current="explore">
       <section className="profile-panel group-panel" aria-labelledby="groups-title">
         <p className="eyebrow">Comunidad · Grupos</p>
         <h1 id="groups-title">Encuentra tu comunidad</h1>
@@ -68,7 +60,7 @@ export default async function GroupsPage({
 
         <GroupPagination page={catalog.pagination.page} pageCount={catalog.pagination.pageCount} categoryId={query.categoryId} />
       </section>
-    </main>
+    </ClientShell>
   );
 }
 

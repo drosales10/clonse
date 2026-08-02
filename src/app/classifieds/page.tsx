@@ -4,6 +4,7 @@ import Link from "next/link";
 import { normalizeClassifiedQuery, type ClassifiedSort } from "@domain/classifieds";
 import { getCurrentUser } from "@/server/auth/session";
 import { getClassifiedCatalog } from "@/server/classifieds/service";
+import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = {
   title: "Clasificados | Red Social",
@@ -26,16 +27,7 @@ export default async function ClassifiedsPage({
   const catalog = await getClassifiedCatalog(viewer?.id ?? null, query);
 
   return (
-    <main className="authenticated-shell">
-      <header className="app-header">
-        <Link className="brand" href="/">nexo<span>.</span></Link>
-        <nav className="profile-navigation" aria-label="Navegación principal">
-          {viewer ? <Link className="text-link" href="/home">Inicio</Link> : <Link className="text-link" href="/login">Iniciar sesión</Link>}
-          {viewer ? <Link className="text-link" href={`/profile/${encodeURIComponent(viewer.username)}`}>Mi perfil</Link> : null}
-          <Link className="text-link" href="/businesses">Negocios</Link>
-        </nav>
-      </header>
-
+    <ClientShell current="explore">
       <section className="profile-panel classified-panel" aria-labelledby="classifieds-title">
         <p className="eyebrow">Comunidad · Clasificados</p>
         <h1 id="classifieds-title">Encuentra lo que buscas</h1>
@@ -88,7 +80,7 @@ export default async function ClassifiedsPage({
 
         <ClassifiedPagination page={catalog.pagination.page} pageCount={catalog.pagination.pageCount} search={query.search} sort={query.sort} categoryId={query.categoryId} />
       </section>
-    </main>
+    </ClientShell>
   );
 }
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { normalizeBlogQuery, type BlogSort } from "@domain/blogs";
 import { getCurrentUser } from "@/server/auth/session";
 import { getBlogCatalog } from "@/server/blogs/service";
+import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = {
   title: "Blogs | Red Social",
@@ -26,16 +27,7 @@ export default async function BlogsPage({
   const catalog = await getBlogCatalog(viewer?.id ?? null, query);
 
   return (
-    <main className="authenticated-shell">
-      <header className="app-header">
-        <Link className="brand" href="/">nexo<span>.</span></Link>
-        <nav className="profile-navigation" aria-label="Navegación principal">
-          {viewer ? <Link className="text-link" href="/home">Inicio</Link> : <Link className="text-link" href="/login">Iniciar sesión</Link>}
-          {viewer ? <Link className="text-link" href={`/profile/${encodeURIComponent(viewer.username)}`}>Mi perfil</Link> : null}
-          <Link className="text-link" href="/events">Eventos</Link>
-        </nav>
-      </header>
-
+    <ClientShell current="explore">
       <section className="profile-panel blog-panel" aria-labelledby="blogs-title">
         <p className="eyebrow">Publicación · Blogs</p>
         <h1 id="blogs-title">Ideas de la comunidad</h1>
@@ -87,7 +79,7 @@ export default async function BlogsPage({
 
         <BlogPagination page={catalog.pagination.page} pageCount={catalog.pagination.pageCount} search={query.search} sort={query.sort} categoryId={query.categoryId} />
       </section>
-    </main>
+    </ClientShell>
   );
 }
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { normalizeEventQuery, type EventSort, type EventView } from "@domain/events";
 import { getCurrentUser } from "@/server/auth/session";
 import { getEventCatalog } from "@/server/events/service";
+import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = {
   title: "Eventos | Red Social",
@@ -26,16 +27,7 @@ export default async function EventsPage({
   const catalog = await getEventCatalog(viewer?.id ?? null, query);
 
   return (
-    <main className="authenticated-shell">
-      <header className="app-header">
-        <Link className="brand" href="/">nexo<span>.</span></Link>
-        <nav className="profile-navigation" aria-label="Navegación principal">
-          {viewer ? <Link className="text-link" href="/home">Inicio</Link> : <Link className="text-link" href="/login">Iniciar sesión</Link>}
-          {viewer ? <Link className="text-link" href={`/profile/${encodeURIComponent(viewer.username)}`}>Mi perfil</Link> : null}
-          <Link className="text-link" href="/businesses">Negocios</Link>
-        </nav>
-      </header>
-
+    <ClientShell current="explore">
       <section className="profile-panel event-panel" aria-labelledby="events-title">
         <p className="eyebrow">Comunidad · Eventos</p>
         <h1 id="events-title">Vive algo nuevo</h1>
@@ -98,7 +90,7 @@ export default async function EventsPage({
 
         <EventPagination page={catalog.pagination.page} pageCount={catalog.pagination.pageCount} view={query.view} sort={query.sort} categoryId={query.categoryId} />
       </section>
-    </main>
+    </ClientShell>
   );
 }
 

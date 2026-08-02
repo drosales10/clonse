@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 
 import { getCurrentUser } from "@/server/auth/session";
 import { getOwnProfileFields, getOwnProfileSettings } from "@/server/profile/service";
+import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = {
   title: "Ajustes de perfil | Red Social",
@@ -40,17 +41,7 @@ export default async function ProfileSettingsPage({
       : undefined;
 
   return (
-    <main className="authenticated-shell">
-      <header className="app-header">
-        <Link className="brand" href="/">nexo<span>.</span></Link>
-        <nav className="profile-navigation" aria-label="Navegación de cuenta">
-          <Link className="text-link" href="/home">Inicio</Link>
-          <Link className="text-link" href={`/profile/${encodeURIComponent(settings.username)}`}>Mi perfil</Link>
-          <Link className="text-link" href="/account/friends">Conexiones</Link>
-          <Link className="text-link" href="/people">Descubrir</Link>
-          <Link className="text-link" href="/account/blocks">Bloqueos</Link>
-        </nav>
-      </header>
+    <ClientShell current="profile">
       <section className="profile-panel settings-panel" aria-labelledby="settings-title">
         <p className="eyebrow">Cuenta · Perfil</p>
         <h1 id="settings-title">Tus ajustes</h1>
@@ -75,6 +66,6 @@ export default async function ProfileSettingsPage({
         <p className="lead">Esta acción es irreversible y elimina los datos de cuenta modelados en esta aplicación.</p>
         <DeleteAccountForm error={deleteError} />
       </section>
-    </main>
+    </ClientShell>
   );
 }

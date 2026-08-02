@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { getCurrentUser } from "@/server/auth/session";
 import { getGroupDetail } from "@/server/groups/service";
+import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = {
   title: "Grupo | Red Social",
@@ -21,15 +22,7 @@ export default async function GroupDetailPage({
   if (!group) notFound();
 
   return (
-    <main className="authenticated-shell">
-      <header className="app-header">
-        <Link className="brand" href="/">nexo<span>.</span></Link>
-        <nav className="profile-navigation" aria-label="Navegación principal">
-          <Link className="text-link" href="/groups">Grupos</Link>
-          {viewer ? <Link className="text-link" href={`/profile/${encodeURIComponent(viewer.username)}`}>Mi perfil</Link> : <Link className="text-link" href="/login">Iniciar sesión</Link>}
-        </nav>
-      </header>
-
+    <ClientShell current="explore">
       <article className="profile-panel group-detail-panel" aria-labelledby="group-title">
         <Link className="text-link group-back-link" href="/groups">← Volver a grupos</Link>
         <p className="eyebrow">{group.category?.title ?? "Grupo"}</p>
@@ -43,7 +36,7 @@ export default async function GroupDetailPage({
         </dl>
         <p className="group-detail-note">La descripción se muestra como texto seguro. Miembros, discusiones, fotos, comentarios, campos dinámicos, suscripciones e invitaciones requieren contratos separados.</p>
       </article>
-    </main>
+    </ClientShell>
   );
 }
 

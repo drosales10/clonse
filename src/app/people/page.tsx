@@ -6,6 +6,7 @@ import type { FriendRelationship, PeopleDirectoryPagination } from "@domain/frie
 import { FriendRelationshipActions } from "@/app/components/friend-relationship-actions";
 import { getCurrentUser } from "@/server/auth/session";
 import { getPeopleDirectory } from "@/server/profile/service";
+import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = {
   title: "Descubrir personas | Red Social",
@@ -27,17 +28,7 @@ export default async function PeoplePage({
   });
 
   return (
-    <main className="authenticated-shell">
-      <header className="app-header">
-        <Link className="brand" href="/">nexo<span>.</span></Link>
-        <nav className="profile-navigation" aria-label="Navegación de cuenta">
-          <Link className="text-link" href="/home">Inicio</Link>
-          <Link className="text-link" href={`/profile/${encodeURIComponent(user.username)}`}>Mi perfil</Link>
-          <Link className="text-link" href="/account/friends">Conexiones</Link>
-          <Link className="text-link" href="/account/profile">Ajustes</Link>
-        </nav>
-      </header>
-
+    <ClientShell current="people">
       <section className="profile-panel people-panel" aria-labelledby="people-title">
         <p className="eyebrow">Red · Descubrir</p>
         <h1 id="people-title">Encuentra personas</h1>
@@ -60,7 +51,7 @@ export default async function PeoplePage({
         )}
         <PeoplePagination pagination={directory.pagination} />
       </section>
-    </main>
+    </ClientShell>
   );
 }
 
