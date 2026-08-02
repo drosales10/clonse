@@ -45,7 +45,7 @@ export interface ForumTopicResult {
   pagination: ReturnType<typeof makePagination>;
 }
 
-export async function getForumCatalog(input: Partial<ForumQuery> = {}): Promise<ForumCatalogResult> {
+export async function getForumCatalog(input: Partial<ForumQuery> = {}, viewerId: string | null = null): Promise<ForumCatalogResult> {
   const query = normalizeForumQuery(input);
   const instances = await db.forumInstance.findMany({ where: { mode: "forum" }, orderBy: [{ position: "asc" }, { id: "asc" }], select: instanceSelect });
   if (!query.instanceId) {
@@ -75,12 +75,12 @@ export async function getForumCatalog(input: Partial<ForumQuery> = {}): Promise<
     instances,
     instance,
     categories,
-    topics: rows.slice(startIndex, startIndex + FORUM_PAGE_SIZE).map(toTopic),
+    topics: rows.slice(startIndex, startIndex + FORUM_PAGE_SIZE).map((row) => toTopic(row, viewerId)),
     pagination,
   };
 }
 
-export async function getForumTopic(input: ForumQuery): Promise<ForumTopicResult | null> {
+export async function getForumTopic(input: ForumQuery, viewerId: string | null = null): Promise<ForumTopicResult | null> {
   const query = normalizeForumQuery(input);
   if (!query.instanceId || !query.categoryId || !query.topicId) return null;
   const instanceIdentifier = query.instanceId;
@@ -119,7 +119,7 @@ export async function getForumTopic(input: ForumQuery): Promise<ForumTopicResult
   const pagination = makePagination(rows.length + 1, query.page);
   const startIndex = (pagination.page - 1) * FORUM_PAGE_SIZE;
   const pageRows = [topic, ...rows].slice(startIndex, startIndex + FORUM_PAGE_SIZE);
-  return { instance, category, topic: toTopic(topic), posts: pageRows.map((row) => toPost(row, topic.id)), pagination };
+  return { instance, category, topic: toTopic(topic, viewerId), posts: pageRows.map((row) => toPost(row, topic.id)), pagination };
 }
 
 export type CreateForumTopicResult =
@@ -257,11 +257,12 @@ function isPublicCategory(category: { id: string; parentId: string | null; publi
   return parent ? isPublicCategory(parent, categories) : false;
 }
 
-function toTopic(row: TopicRow): PublicForumTopic {
+function toTopic(row: TopicRow, viewerId: string | null): PublicForumTopic {
   return {
     id: row.id, legacyId: row.legacyId, categoryId: row.categoryId, title: row.title ?? "Sin título", bodyExcerpt: toTextExcerpt(row.body),
     author: row.author, createdAt: row.createdAt, lastPostAt: row.replies[0]?.createdAt ?? row.createdAt, replyCount: row.replyCount,
     views: row.views, rating: row.rating, isLocked: row.isLocked, isAnnouncement: row.isAnnouncement, isSticky: row.isSticky, hasAttachments: row.hasAttachments,
+    isOwn: viewerId === row.authorId,
   };
 }
 

@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { PollCreateForm } from "@/app/components/poll-create-form";
+import { CreatePollForm } from "@/app/components/polls/create-poll-form";
+import { PollBreadcrumb } from "@/app/components/polls/poll-ui";
 import { ClientShell } from "@/components/client/ClientShell";
 import { getCurrentUser } from "@/server/auth/session";
 
 export const metadata: Metadata = {
   title: "Nueva encuesta | nexo.",
-  description: "Crea una encuesta para la comunidad.",
 };
 
 export default async function NewPollPage() {
@@ -17,18 +16,16 @@ export default async function NewPollPage() {
 
   return (
     <ClientShell current="explore">
-      <section className="profile-panel poll-panel" aria-labelledby="new-poll-title">
-        <Link className="text-link poll-back-link" href="/polls">
-          ← Volver a encuestas
-        </Link>
-        <p className="eyebrow">Comunidad · Encuestas</p>
-        <h1 id="new-poll-title">Nueva encuesta</h1>
-        <p className="lead">
-          Publica una pregunta con opciones. Quedará visible en el catálogo y aceptará un voto por
-          persona.
-        </p>
-        <PollCreateForm />
-      </section>
+      <div className="polls-module">
+        <section className="polls-page polls-page-narrow" aria-labelledby="new-poll-title">
+          <PollBreadcrumb items={[{ label: "Inicio", href: "/home" }, { label: "Encuestas", href: "/polls" }, { label: "Crear encuesta" }]} />
+          <header className="polls-page-header">
+            <h1 id="new-poll-title">Crear encuesta</h1>
+            <p className="polls-page-lead">Publica una pregunta con opciones. Podrás cerrarla o editarla después.</p>
+          </header>
+          <CreatePollForm />
+        </section>
+      </div>
     </ClientShell>
   );
 }

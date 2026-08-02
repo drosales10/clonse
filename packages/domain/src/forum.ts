@@ -47,6 +47,7 @@ export interface PublicForumTopic {
   isAnnouncement: boolean;
   isSticky: boolean;
   hasAttachments: boolean;
+  isOwn: boolean;
 }
 
 export interface PublicForumPost {

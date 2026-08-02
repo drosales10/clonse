@@ -82,7 +82,7 @@ export async function getEventCatalog(
   const pageCount = Math.max(1, Math.ceil(visible.length / EVENT_PAGE_SIZE));
   const page = Math.min(query.page, pageCount);
   const startIndex = (page - 1) * EVENT_PAGE_SIZE;
-  const items = visible.slice(startIndex, startIndex + EVENT_PAGE_SIZE).map(toPublicEvent);
+  const items = visible.slice(startIndex, startIndex + EVENT_PAGE_SIZE).map((row) => toPublicEvent(row, viewerId));
 
   return {
     items,
@@ -167,7 +167,7 @@ export async function getEventDetail(
     (!row.inviteOnly || membership === "member" || isOwner);
 
   return {
-    ...toPublicEvent(row),
+    ...toPublicEvent(row, viewerId),
     description: toSafeText(row.description),
     categoryId: row.categoryId,
     isOwner,
@@ -569,7 +569,7 @@ function eventOrder(
   return [primary, { id: "asc" }];
 }
 
-function toPublicEvent(row: EventRow): PublicEvent {
+function toPublicEvent(row: EventRow, viewerId: string | null): PublicEvent {
   return {
     id: row.id,
     legacyId: row.legacyId,
@@ -584,6 +584,7 @@ function toPublicEvent(row: EventRow): PublicEvent {
     inviteOnly: row.inviteOnly,
     catalogVisible: row.catalogVisible,
     views: row.views,
+    isOwn: viewerId === row.ownerId,
     owner: { username: row.owner.username, displayName: row.owner.displayName },
     category: row.category,
   };

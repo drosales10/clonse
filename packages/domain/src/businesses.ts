@@ -50,6 +50,7 @@ export interface PublicBusiness {
   createdAt: Date;
   updatedAt: Date;
   expiresAt: Date | null;
+  isOwn: boolean;
   owner: PublicBusinessOwner;
   category: { id: string; legacyId: number | null; title: string } | null;
 }

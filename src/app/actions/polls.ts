@@ -21,6 +21,7 @@ import {
   castPollVote,
   closeOwnPoll,
   createPoll,
+  deleteOwnPoll,
   getPollDetail,
   setOwnPollCatalogVisible,
   updateOwnPoll,
@@ -144,6 +145,34 @@ export async function setPollVisibleAction(
     };
   } catch {
     return { errors: { form: ["No se pudo actualizar la visibilidad."] } };
+  }
+}
+
+export async function deletePollAction(
+  _previous: PollManageFormState,
+  formData: FormData,
+): Promise<PollManageFormState> {
+  const user = await getCurrentUser();
+  if (!user) return { errors: { form: ["Tu sesión ha caducado."] } };
+
+  const pollId = typeof formData.get("pollId") === "string" ? String(formData.get("pollId")).trim() : "";
+  if (!pollId) return { errors: { form: ["Encuesta no válida."] } };
+
+  try {
+    const result = await deleteOwnPoll(user.id, pollId);
+    if (!result.ok) {
+      return {
+        errors: {
+          form: [result.reason === "forbidden" ? "No puedes eliminar esta encuesta." : "No se encontró la encuesta."],
+        },
+      };
+    }
+    revalidatePath("/polls");
+    revalidatePath("/admin/polls");
+    redirect("/polls");
+  } catch (error) {
+    if (isNextRedirect(error)) throw error;
+    return { errors: { form: ["No se pudo eliminar la encuesta."] } };
   }
 }
 

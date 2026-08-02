@@ -2,13 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { normalizeAlbumQuery, type AlbumSort } from "@domain/albums";
+import { AlbumGrid, AlbumPagination, AlbumToolbar } from "@/app/components/albums/album-catalog";
+import { EmptyState } from "@/app/components/albums/ui/empty-state";
+import { PermissionNotice } from "@/app/components/albums/ui/permission-notice";
 import { ClientShell } from "@/components/client/ClientShell";
 import { getCurrentUser } from "@/server/auth/session";
 import { getAlbumCatalog } from "@/server/albums/service";
 
 export const metadata: Metadata = {
-  title: "Álbumes | nexo.",
-  description: "Explora álbumes visibles de la comunidad.",
+  title: "Albums | nexo.",
+  description: "Explora las colecciones de fotos compartidas por la comunidad.",
 };
 
 export default async function AlbumsPage({
@@ -19,142 +22,89 @@ export default async function AlbumsPage({
   const params = await searchParams;
   const sortRaw = readString(params.sort);
   const sort: AlbumSort = sortRaw === "updated" ? "updated" : "created";
+  const viewRaw = readString(params.view);
+  const view = viewRaw === "list" ? "list" : "grid";
   const query = normalizeAlbumQuery({
     page: readNumber(params.page),
     sort,
   });
   const viewer = await getCurrentUser();
+  const canCreate = Boolean(viewer);
   const catalog = await getAlbumCatalog(viewer?.id ?? null, query);
 
   return (
     <ClientShell current="explore">
-      <section className="profile-panel album-panel" aria-labelledby="albums-title">
-        <p className="eyebrow">Multimedia · Álbumes</p>
-        <h1 id="albums-title">Álbumes</h1>
-        <p className="lead">
-          Explora álbumes publicados. Puedes crear el tuyo y subir imágenes (JPG, PNG, GIF, WebP).
-        </p>
+      <div className="albums-module">
+        <section className="albums-page" aria-labelledby="albums-title" id="albums-catalog">
+          <header className="albums-page-header">
+            <nav aria-label="Ruta de navegación" className="albums-breadcrumb">
+              <ol>
+                <li>
+                  <Link href="/home">Inicio</Link>
+                </li>
+                <li>
+                  <span aria-current="page">Albums</span>
+                </li>
+              </ol>
+            </nav>
+            <div className="albums-page-heading">
+              <div>
+                <h1 id="albums-title">Albums</h1>
+                <p className="albums-page-lead">
+                  Explora las colecciones de fotos compartidas por la comunidad.
+                </p>
+              </div>
+              {canCreate ? (
+                <Link className="albums-btn albums-btn-primary" href="/albums/new">
+                  Crear álbum
+                </Link>
+              ) : null}
+            </div>
+          </header>
 
-        <div className="poll-toolbar">
-          {viewer ? (
-            <Link className="button button-primary button-small" href="/albums/new">
-              Crear álbum
-            </Link>
+          {!viewer ? <PermissionNotice loginHref="/login?returnUrl=/albums/new" /> : null}
+
+          <AlbumToolbar canCreate={canCreate} sort={query.sort} total={catalog.pagination.total} view={view} />
+
+          {catalog.items.length > 0 ? (
+            <AlbumGrid albums={catalog.items} sort={query.sort} view={view} />
           ) : (
-            <Link className="text-link" href="/login?returnUrl=/albums/new">
-              Inicia sesión para crear un álbum
-            </Link>
+            <EmptyState
+              action={
+                canCreate ? (
+                  <Link className="albums-btn albums-btn-primary" href="/albums/new">
+                    Crear tu primer álbum
+                  </Link>
+                ) : undefined
+              }
+              description="Cuando la comunidad publique colecciones, aparecerán aquí."
+              icon={
+                <svg fill="none" height="48" viewBox="0 0 48 48" width="48">
+                  <rect height="32" rx="6" stroke="currentColor" strokeWidth="2" width="40" x="4" y="10" />
+                  <circle cx="17" cy="22" fill="currentColor" r="4" />
+                  <path d="M8 36l10-10 8 8 6-6 8 8" stroke="currentColor" strokeLinecap="round" strokeWidth="2" />
+                </svg>
+              }
+              title="Todavía no hay álbumes para mostrar"
+            />
           )}
-        </div>
 
-        <div className="album-sort-bar" aria-label="Ordenar álbumes">
-          <Link
-            className={query.sort === "created" ? "category-chip category-chip-active" : "category-chip"}
-            href="/albums#albums-title"
-          >
-            Más recientes
-          </Link>
-          <Link
-            className={query.sort === "updated" ? "category-chip category-chip-active" : "category-chip"}
-            href="/albums?sort=updated#albums-title"
-          >
-            Actualizados
-          </Link>
-        </div>
-
-        {catalog.items.length > 0 ? (
-          <div className="album-list">
-            {catalog.items.map((album) => (
-              <article className="album-card" key={album.id}>
-                <div className="album-card-cover" aria-hidden="true">
-                  <span>{album.totalFiles}</span>
-                  <small>archivos</small>
-                </div>
-                <div className="album-card-body">
-                  <p className="eyebrow">Álbum</p>
-                  <h2>
-                    <Link className="album-card-link" href={`/albums/${encodeURIComponent(album.id)}`}>
-                      {album.title}
-                    </Link>
-                  </h2>
-                  {album.description ? <p className="album-summary">{album.description}</p> : null}
-                  <dl className="album-facts">
-                    <div>
-                      <dt>Propietario</dt>
-                      <dd>
-                        <Link href={`/profile/${encodeURIComponent(album.owner.username)}`}>
-                          {album.owner.displayName}
-                        </Link>
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Visitas</dt>
-                      <dd>{album.views}</dd>
-                    </div>
-                    <div>
-                      <dt>Archivos</dt>
-                      <dd>{album.totalFiles}</dd>
-                    </div>
-                  </dl>
-                </div>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="empty-state">
-            Todavía no hay álbumes autorizados en el catálogo público.
-          </p>
-        )}
-
-        <AlbumPagination page={catalog.pagination.page} pageCount={catalog.pagination.pageCount} sort={query.sort} />
-      </section>
+          <AlbumPagination
+            page={catalog.pagination.page}
+            pageCount={catalog.pagination.pageCount}
+            sort={query.sort}
+            view={view}
+          />
+        </section>
+      </div>
     </ClientShell>
-  );
-}
-
-function AlbumPagination({
-  page,
-  pageCount,
-  sort,
-}: {
-  page: number;
-  pageCount: number;
-  sort: AlbumSort;
-}) {
-  if (pageCount <= 1) return null;
-  const href = (nextPage: number): string => {
-    const params = new URLSearchParams();
-    if (sort === "updated") params.set("sort", "updated");
-    if (nextPage > 1) params.set("page", String(nextPage));
-    const query = params.toString();
-    return `/albums${query ? `?${query}` : ""}#albums-title`;
-  };
-  return (
-    <nav aria-label="Paginación de álbumes" className="album-pagination">
-      {page > 1 ? (
-        <Link className="text-link" href={href(page - 1)}>
-          Anteriores
-        </Link>
-      ) : (
-        <span aria-disabled="true">Anteriores</span>
-      )}
-      <span aria-current="page">
-        Página {page} de {pageCount}
-      </span>
-      {page < pageCount ? (
-        <Link className="text-link" href={href(page + 1)}>
-          Siguientes
-        </Link>
-      ) : (
-        <span aria-disabled="true">Siguientes</span>
-      )}
-    </nav>
   );
 }
 
 function readString(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
+
 function readNumber(value: string | string[] | undefined): number | undefined {
   const raw = readString(value);
   const number = Number(raw);

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { GroupCreateForm } from "@/app/components/group-create-form";
+import { CreateGroupForm } from "@/app/components/groups/create-group-form";
+import { GroupBreadcrumb } from "@/app/components/groups/group-ui";
 import { ClientShell } from "@/components/client/ClientShell";
 import { getCurrentUser } from "@/server/auth/session";
 import { listActiveGroupCategories } from "@/server/groups/service";
@@ -20,17 +20,24 @@ export default async function NewGroupPage() {
 
   return (
     <ClientShell current="explore">
-      <section className="profile-panel group-panel" aria-labelledby="new-group-title">
-        <Link className="text-link group-back-link" href="/groups">
-          ← Volver a grupos
-        </Link>
-        <p className="eyebrow">Comunidad · Grupos</p>
-        <h1 id="new-group-title">Nuevo grupo</h1>
-        <p className="lead">
-          Publica un grupo visible en el catálogo. Podrás editarlo y ocultarlo desde el detalle.
-        </p>
-        <GroupCreateForm categories={categories} />
-      </section>
+      <div className="groups-module">
+        <section className="groups-page groups-page-narrow">
+          <GroupBreadcrumb
+            items={[
+              { label: "Inicio", href: "/home" },
+              { label: "Grupos", href: "/groups" },
+              { label: "Nuevo grupo" },
+            ]}
+          />
+          <header className="groups-page-header">
+            <h1>Nuevo grupo</h1>
+            <p className="groups-page-lead">
+              Publica un grupo visible en el catálogo. Podrás editarlo y gestionar miembros desde el detalle.
+            </p>
+          </header>
+          <CreateGroupForm categories={categories} />
+        </section>
+      </div>
     </ClientShell>
   );
 }

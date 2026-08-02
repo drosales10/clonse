@@ -76,6 +76,7 @@ export interface PublicEvent {
   inviteOnly: boolean;
   catalogVisible: boolean;
   views: number;
+  isOwn: boolean;
   owner: PublicEventOwner;
   category: { id: string; legacyId: number | null; title: string } | null;
 }

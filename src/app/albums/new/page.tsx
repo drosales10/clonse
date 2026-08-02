@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-
-import { AlbumCreateForm } from "@/app/components/album-create-form";
+import { CreateAlbumForm } from "@/app/components/albums/create-album-form";
+import { AlbumBreadcrumb } from "@/app/components/albums/ui/breadcrumb";
 import { ClientShell } from "@/components/client/ClientShell";
 import { getCurrentUser } from "@/server/auth/session";
 
 export const metadata: Metadata = {
-  title: "Nuevo álbum | nexo.",
-  description: "Crea un álbum para compartir imágenes.",
+  title: "Crear álbum | nexo.",
+  description: "Crea un álbum para compartir fotografías con la comunidad.",
 };
 
 export default async function NewAlbumPage() {
@@ -17,17 +16,24 @@ export default async function NewAlbumPage() {
 
   return (
     <ClientShell current="explore">
-      <section className="profile-panel album-panel" aria-labelledby="new-album-title">
-        <Link className="text-link album-back-link" href="/albums">
-          ← Volver a álbumes
-        </Link>
-        <p className="eyebrow">Multimedia · Álbumes</p>
-        <h1 id="new-album-title">Nuevo álbum</h1>
-        <p className="lead">
-          Crea un álbum visible en el catálogo. Después podrás subir imágenes desde el detalle.
-        </p>
-        <AlbumCreateForm />
-      </section>
+      <div className="albums-module">
+        <section className="albums-page albums-page-narrow" aria-labelledby="new-album-title">
+          <AlbumBreadcrumb
+            items={[
+              { label: "Inicio", href: "/home" },
+              { label: "Albums", href: "/albums" },
+              { label: "Crear álbum" },
+            ]}
+          />
+          <header className="albums-page-header">
+            <h1 id="new-album-title">Crear álbum</h1>
+            <p className="albums-page-lead">
+              Define un título y la visibilidad inicial. Después podrás subir fotografías desde el detalle.
+            </p>
+          </header>
+          <CreateAlbumForm cancelHref="/albums" />
+        </section>
+      </div>
     </ClientShell>
   );
 }

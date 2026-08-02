@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { BusinessCreateForm } from "@/app/components/business-create-form";
+import { CreateBusinessForm } from "@/app/components/businesses/create-business-form";
+import { BusinessBreadcrumb } from "@/app/components/businesses/business-ui";
 import { ClientShell } from "@/components/client/ClientShell";
 import { getCurrentUser } from "@/server/auth/session";
 import { listActiveBusinessCategories } from "@/server/businesses/service";
@@ -20,17 +20,24 @@ export default async function NewBusinessPage() {
 
   return (
     <ClientShell current="explore">
-      <section className="profile-panel business-panel" aria-labelledby="new-business-title">
-        <Link className="text-link business-back-link" href="/businesses">
-          ← Volver a negocios
-        </Link>
-        <p className="eyebrow">Comunidad · Negocios</p>
-        <h1 id="new-business-title">Nuevo negocio</h1>
-        <p className="lead">
-          Publica un negocio visible en el catálogo. Podrás editarlo y ocultarlo desde el detalle.
-        </p>
-        <BusinessCreateForm categories={categories} />
-      </section>
+      <div className="businesses-module">
+        <section className="businesses-page businesses-page-narrow" aria-labelledby="new-business-title">
+          <BusinessBreadcrumb
+            items={[
+              { label: "Inicio", href: "/home" },
+              { label: "Negocios", href: "/businesses" },
+              { label: "Nuevo negocio" },
+            ]}
+          />
+          <header className="businesses-page-header">
+            <h1 id="new-business-title">Nuevo negocio</h1>
+            <p className="businesses-page-lead">
+              Publica un negocio visible en el catálogo. Podrás editarlo y ocultarlo después.
+            </p>
+          </header>
+          <CreateBusinessForm categories={categories} />
+        </section>
+      </div>
     </ClientShell>
   );
 }

@@ -72,7 +72,7 @@ export async function getBlogCatalog(
   const pageCount = Math.max(1, Math.ceil(visible.length / BLOG_PAGE_SIZE));
   const page = Math.min(query.page, pageCount);
   const startIndex = (page - 1) * BLOG_PAGE_SIZE;
-  const items = visible.slice(startIndex, startIndex + BLOG_PAGE_SIZE).map(toPublicBlogEntry);
+  const items = visible.slice(startIndex, startIndex + BLOG_PAGE_SIZE).map((row) => toPublicBlogEntry(row, viewerId));
 
   return {
     items,
@@ -102,7 +102,7 @@ export async function getBlogEntryDetail(
   });
   if (!row || !canReadBlogEntry(row.authorId, row.privacy, row.catalogVisible, viewerId)) return null;
   return {
-    ...toPublicBlogEntry(row),
+    ...toPublicBlogEntry(row, viewerId),
     body: toSafeText(row.body),
     categoryId: row.categoryId,
     catalogVisible: row.catalogVisible,
@@ -240,7 +240,7 @@ function resolveCategoryIds(categories: CategoryRow[], selectedId: string | null
   return [...descendants];
 }
 
-function toPublicBlogEntry(row: BlogEntryRow): PublicBlogEntry {
+function toPublicBlogEntry(row: BlogEntryRow, viewerId: string | null): PublicBlogEntry {
   return {
     id: row.id,
     legacyId: row.legacyId,
@@ -249,6 +249,7 @@ function toPublicBlogEntry(row: BlogEntryRow): PublicBlogEntry {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     views: row.views,
+    isOwn: viewerId === row.authorId,
     author: { username: row.author.username, displayName: row.author.displayName },
     category: row.category,
   };

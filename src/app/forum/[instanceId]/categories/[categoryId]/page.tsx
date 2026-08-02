@@ -2,11 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { normalizeForumQuery } from "@domain/forum";
-import { getForumCatalog } from "@/server/forum/service";
-import { getCurrentUser } from "@/server/auth/session";
+import { ForumCategoryHeader } from "@/app/components/forum/forum-header";
+import { ForumTopicList, ForumTopicPagination } from "@/app/components/forum/forum-topic-list";
+import { ForumEmptyState, ForumUnavailable } from "@/app/components/forum/forum-ui";
+import { buildForumCategoryHref, matchesPublicIdentifier } from "@/app/components/forum/utils";
 import { ClientShell } from "@/components/client/ClientShell";
+import { getCurrentUser } from "@/server/auth/session";
+import { getForumCatalog } from "@/server/forum/service";
 
-export const metadata: Metadata = { title: "Categoría del foro | Red Social" };
+export const metadata: Metadata = { title: "Categoría del foro | nexo." };
 
 export default async function ForumCategoryPage({
   params,
@@ -19,84 +23,76 @@ export default async function ForumCategoryPage({
   const query = await searchParams;
   const page = Number(readString(query.page));
   const viewer = await getCurrentUser();
-  const catalog = await getForumCatalog(normalizeForumQuery({
-    instanceId,
-    categoryId,
-    page: Number.isInteger(page) ? page : 1,
-  }));
+  const catalog = await getForumCatalog(
+    normalizeForumQuery({
+      instanceId,
+      categoryId,
+      page: Number.isInteger(page) ? page : 1,
+    }),
+    viewer?.id ?? null,
+  );
   const category = catalog.categories.find((item) => matchesPublicIdentifier(item.id, item.legacyId, categoryId));
   const parent = category?.parentId ? catalog.categories.find((item) => item.id === category.parentId) : null;
 
   if (!catalog.instance || !category || !parent || category.parentId === null) {
     return (
-      <main className="public-shell">
-        <section className="auth-card">
-          <p className="eyebrow">Foros</p>
-          <h1>Categoría no disponible</h1>
-          <p className="lead">No encontramos esta categoría o no está publicada para visitantes.</p>
-          <Link className="button button-primary" href={`/forum/${instanceId}`}>Volver al foro</Link>
-        </section>
-      </main>
+      <ClientShell current="explore">
+        <div className="forum-module">
+          <section className="forum-page">
+            <ForumUnavailable
+              actionHref={`/forum/${encodeURIComponent(instanceId)}`}
+              actionLabel="Volver al foro"
+              description="No encontramos esta categoría o no está publicada para visitantes."
+              title="Categoría no disponible"
+            />
+          </section>
+        </div>
+      </ClientShell>
     );
   }
 
+  const canCreate = Boolean(viewer && !category.isLocked);
+
   return (
     <ClientShell current="explore">
-      <section className="profile-panel forum-panel" aria-labelledby="category-title">
-        <Link className="text-link forum-back-link" href={`/forum/${instanceId}`}>← Volver a categorías</Link>
-        <p className="eyebrow">{parent.title} · Categoría</p>
-        <h1 id="category-title">{category.title}</h1>
-        {category.description ? <p className="lead">{toExcerpt(category.description)}</p> : null}
-        {viewer && !category.isLocked ? (
-          <p className="forum-actions">
-            <Link
-              className="button button-primary"
-              href={`/forum/${instanceId}/categories/${category.id}/new`}
-            >
-              Nuevo tema
-            </Link>
-          </p>
-        ) : null}
-        {catalog.topics.length > 0 ? (
-          <div className="forum-topic-list">
-            {catalog.topics.map((topic) => (
-              <article className="forum-topic-card" key={topic.id}>
-                <div className="forum-topic-heading">
-                  <div>
-                    <p className="eyebrow">{topic.isAnnouncement ? "Anuncio" : topic.isSticky ? "Fijado" : "Tema"}</p>
-                    <h2><Link href={`/forum/${instanceId}/topics/${topic.id}?categoryId=${category.id}`}>{topic.title}</Link></h2>
-                  </div>
-                  {topic.isLocked ? <span className="forum-badge">Bloqueado</span> : null}
-                </div>
-                {topic.bodyExcerpt ? <p>{topic.bodyExcerpt}</p> : null}
-                <dl className="forum-facts">
-                  <div><dt>Autor</dt><dd>{topic.author.displayName}</dd></div>
-                  <div><dt>Actividad</dt><dd><time dateTime={topic.lastPostAt.toISOString()}>{formatDate(topic.lastPostAt)}</time></dd></div>
-                  <div><dt>Respuestas</dt><dd>{topic.replyCount}</dd></div>
-                  <div><dt>Visitas</dt><dd>{topic.views}</dd></div>
-                </dl>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="empty-state">No hay temas públicos en esta categoría.</p>
-        )}
-        <ForumPagination page={catalog.pagination.page} pageCount={catalog.pagination.pageCount} instanceId={instanceId} categoryId={category.id} />
-      </section>
+      <div className="forum-module">
+        <section className="forum-page" aria-labelledby="category-title" id="forum-catalog">
+          <ForumCategoryHeader
+            canCreate={canCreate}
+            category={category}
+            instanceId={instanceId}
+            instanceName={catalog.instance.name}
+            parentTitle={parent.title}
+          />
+          {catalog.topics.length > 0 ? (
+            <ForumTopicList categoryIdForLink={category.id} instanceId={instanceId} topics={catalog.topics} />
+          ) : (
+            <ForumEmptyState
+              action={
+                canCreate ? (
+                  <Link
+                    className="forum-btn forum-btn-primary"
+                    href={`/forum/${encodeURIComponent(instanceId)}/categories/${encodeURIComponent(category.id)}/new`}
+                  >
+                    Crear el primer tema
+                  </Link>
+                ) : undefined
+              }
+              description="Sé el primero en iniciar una conversación en esta categoría."
+              title="No hay temas en esta categoría"
+            />
+          )}
+          <ForumTopicPagination
+            hrefForPage={(next) => buildForumCategoryHref(instanceId, category.id, next)}
+            page={catalog.pagination.page}
+            pageCount={catalog.pagination.pageCount}
+          />
+        </section>
+      </div>
     </ClientShell>
   );
 }
 
-function ForumPagination({ page, pageCount, instanceId, categoryId }: { page: number; pageCount: number; instanceId: string; categoryId: string }) {
-  if (pageCount <= 1) return null;
-  const href = (next: number) => `/forum/${instanceId}/categories/${categoryId}?${new URLSearchParams(next > 1 ? { page: String(next) } : {}).toString()}#category-title`;
-  return <nav className="forum-pagination" aria-label="Paginación de temas"><>{page > 1 ? <Link className="text-link" href={href(page - 1)}>Anteriores</Link> : <span>Anterior</span>}</><span>Página {page} de {pageCount}</span>{page < pageCount ? <Link className="text-link" href={href(page + 1)}>Siguientes</Link> : <span>Siguiente</span>}</nav>;
-}
-
-function readString(value: string | string[] | undefined): string | undefined { return Array.isArray(value) ? value[0] : value; }
-function toExcerpt(value: string): string { const text = value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim(); return text.length > 180 ? `${text.slice(0, 177)}...` : text; }
-function formatDate(value: Date): string { return new Intl.DateTimeFormat("es", { dateStyle: "medium" }).format(value); }
-
-function matchesPublicIdentifier(id: string, legacyId: number | null, identifier: string): boolean {
-  return id === identifier || (legacyId !== null && legacyId > 0 && String(legacyId) === identifier);
+function readString(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
 }

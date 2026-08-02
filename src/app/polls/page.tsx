@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { PollGrid, PollPagination, PollToolbar } from "@/app/components/polls/poll-catalog";
+import { PollEmptyState } from "@/app/components/polls/poll-ui";
 import { normalizePollQuery, type PollSort } from "@domain/polls";
 import { ClientShell } from "@/components/client/ClientShell";
 import { getCurrentUser } from "@/server/auth/session";
@@ -8,7 +10,7 @@ import { getPollCatalog } from "@/server/polls/service";
 
 export const metadata: Metadata = {
   title: "Encuestas | nexo.",
-  description: "Explora encuestas visibles de la comunidad.",
+  description: "Explora encuestas de la comunidad y participa con tu voto.",
 };
 
 export default async function PollsPage({
@@ -18,139 +20,56 @@ export default async function PollsPage({
 }) {
   const params = await searchParams;
   const sortRaw = readString(params.sort);
-  const sort: PollSort =
-    sortRaw === "votes" || sortRaw === "views" ? sortRaw : "created";
-  const query = normalizePollQuery({
-    page: readNumber(params.page),
-    sort,
-  });
+  const sort: PollSort = sortRaw === "votes" || sortRaw === "views" ? sortRaw : "created";
+  const view = readString(params.view) === "list" ? "list" : "grid";
+  const query = normalizePollQuery({ page: readNumber(params.page), sort });
   const viewer = await getCurrentUser();
+  const canCreate = Boolean(viewer);
   const catalog = await getPollCatalog(viewer?.id ?? null, query);
 
   return (
     <ClientShell current="explore">
-      <section className="profile-panel poll-panel" aria-labelledby="polls-title">
-        <p className="eyebrow">Comunidad · Encuestas</p>
-        <h1 id="polls-title">Encuestas</h1>
-        <p className="lead">
-          Participa en encuestas publicadas. El voto requiere sesión y solo se acepta una opción por
-          persona.
-        </p>
-
-        <div className="poll-toolbar">
-          {viewer ? (
-            <Link className="button button-primary button-small" href="/polls/new">
-              Crear encuesta
-            </Link>
+      <div className="polls-module">
+        <section className="polls-page" aria-labelledby="polls-title" id="polls-catalog">
+          <header className="polls-page-header">
+            <nav aria-label="Ruta de navegación" className="polls-breadcrumb">
+              <ol>
+                <li><Link href="/home">Inicio</Link></li>
+                <li><span aria-current="page">Encuestas</span></li>
+              </ol>
+            </nav>
+            <div className="polls-page-heading">
+              <div>
+                <h1 id="polls-title">Encuestas</h1>
+                <p className="polls-page-lead">
+                  Explora preguntas de la comunidad. Un voto por persona; requiere sesión.
+                </p>
+              </div>
+              {canCreate ? (
+                <Link className="polls-btn polls-btn-primary" href="/polls/new">Crear encuesta</Link>
+              ) : null}
+            </div>
+          </header>
+          {!viewer ? (
+            <aside className="polls-permission-notice" role="note">
+              <p>Inicia sesión para crear encuestas y votar.</p>
+              <Link className="polls-text-link" href="/login?returnUrl=/polls/new">Iniciar sesión</Link>
+            </aside>
+          ) : null}
+          <PollToolbar canCreate={canCreate} sort={query.sort} total={catalog.pagination.total} view={view} />
+          {catalog.items.length > 0 ? (
+            <PollGrid polls={catalog.items} sort={query.sort} view={view} />
           ) : (
-            <Link className="text-link" href="/login?returnUrl=/polls/new">
-              Inicia sesión para crear una encuesta
-            </Link>
+            <PollEmptyState
+              action={canCreate ? <Link className="polls-btn polls-btn-primary" href="/polls/new">Crear tu primera encuesta</Link> : undefined}
+              description="Cuando haya encuestas publicadas, las verás aquí."
+              title="Todavía no hay encuestas para mostrar"
+            />
           )}
-        </div>
-
-        <div className="poll-sort-bar" aria-label="Ordenar encuestas">
-          {(
-            [
-              { key: "created", label: "Más recientes" },
-              { key: "votes", label: "Más votadas" },
-              { key: "views", label: "Más vistas" },
-            ] as const
-          ).map((item) => (
-            <Link
-              className={query.sort === item.key ? "category-chip category-chip-active" : "category-chip"}
-              href={item.key === "created" ? "/polls#polls-title" : `/polls?sort=${item.key}#polls-title`}
-              key={item.key}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </div>
-
-        {catalog.items.length > 0 ? (
-          <div className="poll-list">
-            {catalog.items.map((poll) => (
-              <article className="poll-card" key={poll.id}>
-                <div className="poll-card-heading">
-                  <div>
-                    <p className="eyebrow">{poll.closed ? "Cerrada" : "Abierta"}</p>
-                    <h2>
-                      <Link className="poll-card-link" href={`/polls/${encodeURIComponent(poll.id)}`}>
-                        {poll.title}
-                      </Link>
-                    </h2>
-                  </div>
-                  {poll.closed ? <span className="poll-badge">Cerrada</span> : null}
-                </div>
-                {poll.description ? <p className="poll-summary">{poll.description}</p> : null}
-                <dl className="poll-facts">
-                  <div>
-                    <dt>Autor</dt>
-                    <dd>
-                      <Link href={`/profile/${encodeURIComponent(poll.owner.username)}`}>
-                        {poll.owner.displayName}
-                      </Link>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Votos</dt>
-                    <dd>{poll.totalVotes}</dd>
-                  </div>
-                  <div>
-                    <dt>Opciones</dt>
-                    <dd>{poll.optionCount}</dd>
-                  </div>
-                </dl>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="empty-state">Todavía no hay encuestas autorizadas en el catálogo público.</p>
-        )}
-
-        <PollPagination page={catalog.pagination.page} pageCount={catalog.pagination.pageCount} sort={query.sort} />
-      </section>
+          <PollPagination page={catalog.pagination.page} pageCount={catalog.pagination.pageCount} sort={query.sort} view={view} />
+        </section>
+      </div>
     </ClientShell>
-  );
-}
-
-function PollPagination({
-  page,
-  pageCount,
-  sort,
-}: {
-  page: number;
-  pageCount: number;
-  sort: PollSort;
-}) {
-  if (pageCount <= 1) return null;
-  const href = (nextPage: number): string => {
-    const params = new URLSearchParams();
-    if (sort !== "created") params.set("sort", sort);
-    if (nextPage > 1) params.set("page", String(nextPage));
-    const query = params.toString();
-    return `/polls${query ? `?${query}` : ""}#polls-title`;
-  };
-  return (
-    <nav aria-label="Paginación de encuestas" className="poll-pagination">
-      {page > 1 ? (
-        <Link className="text-link" href={href(page - 1)}>
-          Anteriores
-        </Link>
-      ) : (
-        <span aria-disabled="true">Anteriores</span>
-      )}
-      <span aria-current="page">
-        Página {page} de {pageCount}
-      </span>
-      {page < pageCount ? (
-        <Link className="text-link" href={href(page + 1)}>
-          Siguientes
-        </Link>
-      ) : (
-        <span aria-disabled="true">Siguientes</span>
-      )}
-    </nav>
   );
 }
 

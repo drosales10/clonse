@@ -2,16 +2,26 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { AlbumOwnerControls } from "@/app/components/album-owner-controls";
-import { AlbumUploadForm } from "@/app/components/album-upload-form";
+import { AlbumHeader, AlbumMediaPagination } from "@/app/components/albums/album-header";
+import { MediaGallery } from "@/app/components/albums/media-gallery";
+import { EmptyState } from "@/app/components/albums/ui/empty-state";
 import { ClientShell } from "@/components/client/ClientShell";
 import { getCurrentUser } from "@/server/auth/session";
 import { getAlbumDetail } from "@/server/albums/service";
 
-export const metadata: Metadata = {
-  title: "Álbum | nexo.",
-  description: "Consulta un álbum visible de la comunidad.",
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ albumId: string }>;
+}): Promise<Metadata> {
+  const { albumId } = await params;
+  const viewer = await getCurrentUser();
+  const album = await getAlbumDetail(viewer?.id ?? null, albumId, 1);
+  return {
+    title: album ? `${album.title} | Albums` : "Álbum | nexo.",
+    description: album?.description ?? "Consulta un álbum de la comunidad.",
+  };
+}
 
 export default async function AlbumDetailPage({
   params,
@@ -33,146 +43,40 @@ export default async function AlbumDetailPage({
 
   return (
     <ClientShell current="explore">
-      <article className="profile-panel album-detail-panel" aria-labelledby="album-title">
-        <Link className="text-link album-back-link" href="/albums">
-          ← Volver a álbumes
-        </Link>
-        <p className="eyebrow">Álbum</p>
-        <h1 id="album-title">{album.title}</h1>
-        {!album.catalogVisible && album.isOwner ? (
-          <p className="field-help" role="status">
-            Este álbum está oculto del catálogo público.
-          </p>
-        ) : null}
-        {album.description ? (
-          <div className="album-detail-description">{album.description}</div>
-        ) : (
-          <p className="empty-state">Este álbum no tiene descripción.</p>
-        )}
-        <dl className="album-detail-facts">
-          <div>
-            <dt>Propietario</dt>
-            <dd>
-              <Link href={`/profile/${encodeURIComponent(album.owner.username)}`}>
-                {album.owner.displayName}
-              </Link>
-            </dd>
-          </div>
-          <div>
-            <dt>Creado</dt>
-            <dd>
-              <time dateTime={album.createdAt.toISOString()}>{formatDate(album.createdAt)}</time>
-            </dd>
-          </div>
-          <div>
-            <dt>Actualizado</dt>
-            <dd>
-              <time dateTime={album.updatedAt.toISOString()}>{formatDate(album.updatedAt)}</time>
-            </dd>
-          </div>
-          <div>
-            <dt>Visitas</dt>
-            <dd>{album.views}</dd>
-          </div>
-          <div>
-            <dt>Archivos</dt>
-            <dd>{album.totalFiles}</dd>
-          </div>
-        </dl>
+      <div className="albums-module">
+        <article className="albums-page albums-detail-page" aria-labelledby="album-title">
+          <AlbumHeader album={album} />
 
-        {album.isOwner ? (
-          <AlbumOwnerControls
-            albumId={album.id}
-            catalogVisible={album.catalogVisible}
-            description={album.description}
-            title={album.title}
-          />
-        ) : null}
-
-        {album.isOwner ? <AlbumUploadForm albumId={album.id} /> : null}
-
-        <section className="album-media-section" aria-labelledby="album-media-title">
-          <h2 id="album-media-title">Contenido</h2>
-          {album.media.length > 0 ? (
-            <ul className="album-media-grid">
-              {album.media.map((item) => {
-                const src = item.hasFile
-                  ? `/api/albums/${encodeURIComponent(album.id)}/media/${encodeURIComponent(item.id)}`
-                  : null;
-                return (
-                  <li className="album-media-card" key={item.id}>
-                    {src ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <a className="album-media-preview" href={src} rel="noopener noreferrer">
-                        <img alt={item.title} loading="lazy" src={src} />
-                      </a>
-                    ) : (
-                      <div className="album-media-thumb" aria-hidden="true">
-                        <span>{(item.extension || "file").toUpperCase()}</span>
-                      </div>
-                    )}
-                    <div>
-                      <strong>{item.title}</strong>
-                      {item.description ? <p>{item.description}</p> : null}
-                      <small>
-                        {item.extension || "sin extensión"}
-                        {item.filesize > 0 ? ` · ${formatBytes(item.filesize)}` : ""}
-                        {!item.hasFile ? " · sin archivo" : ""}
-                      </small>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="empty-state">Este álbum no tiene archivos todavía.</p>
-          )}
-          <MediaPagination albumId={album.id} pagination={album.mediaPagination} />
-        </section>
-      </article>
+          <section aria-labelledby="album-media-title" className="albums-media-section" id="album-media">
+            <h2 id="album-media-title">Galería</h2>
+            {album.media.length > 0 ? (
+              <>
+                <MediaGallery albumId={album.id} media={album.media} />
+                <AlbumMediaPagination albumId={album.id} pagination={album.mediaPagination} />
+              </>
+            ) : (
+              <EmptyState
+                action={
+                  album.isOwner ? (
+                    <Link
+                      className="albums-btn albums-btn-primary"
+                      href={`/albums/${encodeURIComponent(album.id)}/upload`}
+                    >
+                      Subir la primera fotografía
+                    </Link>
+                  ) : undefined
+                }
+                description={
+                  album.isOwner
+                    ? "Añade imágenes para que los visitantes puedan explorar tu colección."
+                    : "Vuelve más tarde para ver si el propietario añade contenido."
+                }
+                title="Este álbum todavía no contiene fotografías"
+              />
+            )}
+          </section>
+        </article>
+      </div>
     </ClientShell>
   );
-}
-
-function MediaPagination({
-  albumId,
-  pagination,
-}: {
-  albumId: string;
-  pagination: { page: number; pageCount: number };
-}) {
-  if (pagination.pageCount <= 1) return null;
-  const href = (page: number) =>
-    `/albums/${encodeURIComponent(albumId)}${page > 1 ? `?mediaPage=${page}` : ""}#album-media-title`;
-  return (
-    <nav aria-label="Paginación de archivos" className="album-pagination">
-      {pagination.page > 1 ? (
-        <Link className="text-link" href={href(pagination.page - 1)}>
-          Anteriores
-        </Link>
-      ) : (
-        <span aria-disabled="true">Anteriores</span>
-      )}
-      <span>
-        Página {pagination.page} de {pagination.pageCount}
-      </span>
-      {pagination.page < pagination.pageCount ? (
-        <Link className="text-link" href={href(pagination.page + 1)}>
-          Siguientes
-        </Link>
-      ) : (
-        <span aria-disabled="true">Siguientes</span>
-      )}
-    </nav>
-  );
-}
-
-function formatDate(value: Date): string {
-  return new Intl.DateTimeFormat("es", { dateStyle: "medium", timeStyle: "short" }).format(value);
-}
-
-function formatBytes(value: number): string {
-  if (value < 1024) return `${value} B`;
-  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
-  return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }

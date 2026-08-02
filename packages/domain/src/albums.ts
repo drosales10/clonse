@@ -54,6 +54,8 @@ export interface PublicAlbum {
   updatedAt: Date;
   views: number;
   totalFiles: number;
+  coverMediaId: string | null;
+  isOwn: boolean;
   owner: PublicAlbumOwner;
 }
 
@@ -97,18 +99,21 @@ export function canReadAlbum(ownerId: string, catalogVisible: boolean, viewerId:
 export function albumCreateInputFromFormData(formData: FormData): {
   title: string;
   description: string;
+  catalogVisible: boolean;
 } {
   const title = typeof formData.get("title") === "string" ? String(formData.get("title")).trim() : "";
   const description =
     typeof formData.get("description") === "string" ? String(formData.get("description")).trim() : "";
-  return { title, description };
+  const visibility = typeof formData.get("catalogVisible") === "string" ? formData.get("catalogVisible") : "1";
+  return { title, description, catalogVisible: visibility !== "0" };
 }
 
 export function validateAlbumCreateInput(input: {
   title: string;
   description: string;
+  catalogVisible?: boolean;
 }):
-  | { success: true; data: { title: string; description: string | null } }
+  | { success: true; data: { title: string; description: string | null; catalogVisible: boolean } }
   | { success: false; errors: NonNullable<AlbumCreateFormState["errors"]> } {
   const errors: NonNullable<AlbumCreateFormState["errors"]> = {};
   if (!input.title || input.title.length > 120) {
@@ -123,6 +128,7 @@ export function validateAlbumCreateInput(input: {
     data: {
       title: input.title,
       description: input.description || null,
+      catalogVisible: input.catalogVisible !== false,
     },
   };
 }

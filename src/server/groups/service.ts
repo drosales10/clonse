@@ -68,7 +68,7 @@ export async function getGroupCatalog(
   const pageCount = Math.max(1, Math.ceil(visible.length / GROUP_PAGE_SIZE));
   const page = Math.min(query.page, pageCount);
   const startIndex = (page - 1) * GROUP_PAGE_SIZE;
-  const items = visible.slice(startIndex, startIndex + GROUP_PAGE_SIZE).map(toPublicGroup);
+  const items = visible.slice(startIndex, startIndex + GROUP_PAGE_SIZE).map((row) => toPublicGroup(row, viewerId));
 
   return {
     items,
@@ -131,7 +131,7 @@ export async function getGroupDetail(
   const canJoin = Boolean(viewerId) && !isOwner && membership === "none";
 
   return {
-    ...toPublicGroup(row),
+    ...toPublicGroup(row, viewerId),
     description: toSafeText(row.description),
     categoryId: row.categoryId,
     catalogVisible: row.catalogVisible,
@@ -617,7 +617,7 @@ function resolveCategoryIds(categories: CategoryRow[], selectedId: string | null
   return [...descendants];
 }
 
-function toPublicGroup(row: GroupRow): PublicGroup {
+function toPublicGroup(row: GroupRow, viewerId: string | null): PublicGroup {
   return {
     id: row.id,
     legacyId: row.legacyId,
@@ -626,6 +626,7 @@ function toPublicGroup(row: GroupRow): PublicGroup {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     views: row.views,
+    isOwn: viewerId === row.ownerId,
     owner: { username: row.owner.username, displayName: row.owner.displayName },
     category: row.category,
   };

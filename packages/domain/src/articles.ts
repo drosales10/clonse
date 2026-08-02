@@ -40,6 +40,7 @@ export interface PublicArticle {
   updatedAt: Date;
   views: number;
   featured: boolean;
+  isOwn: boolean;
   author: PublicArticleAuthor;
   category: { id: string; legacyId: number | null; title: string } | null;
 }

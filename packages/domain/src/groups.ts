@@ -73,6 +73,7 @@ export interface PublicGroup {
   createdAt: Date;
   updatedAt: Date;
   views: number;
+  isOwn: boolean;
   owner: PublicGroupOwner;
   category: { id: string; legacyId: number | null; title: string } | null;
 }

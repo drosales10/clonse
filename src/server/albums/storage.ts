@@ -1,4 +1,4 @@
-import { mkdir, writeFile, readFile, access } from "node:fs/promises";
+import { mkdir, writeFile, readFile, access, unlink } from "node:fs/promises";
 import path from "node:path";
 
 function storageRoot(): string {
@@ -38,4 +38,13 @@ export async function readAlbumMediaFile(storageKey: string): Promise<Buffer | n
 export function buildAlbumStorageKey(albumId: string, mediaId: string, extension: string): string {
   const safeExt = extension.replace(/[^a-z0-9]/gi, "").toLowerCase() || "bin";
   return `${albumId}/${mediaId}.${safeExt}`;
+}
+
+export async function deleteAlbumMediaFile(storageKey: string): Promise<void> {
+  try {
+    const absolute = albumMediaAbsolutePath(storageKey);
+    await unlink(absolute);
+  } catch {
+    // ignore missing files
+  }
 }

@@ -40,6 +40,7 @@ export interface PublicPoll {
   totalVotes: number;
   views: number;
   optionCount: number;
+  isOwn: boolean;
   owner: PublicPollOwner;
 }
 
@@ -121,6 +122,7 @@ export function pollCreateInputFromFormData(formData: FormData): {
   title: string;
   description: string;
   options: string[];
+  catalogVisible: boolean;
 } {
   const title = typeof formData.get("title") === "string" ? String(formData.get("title")).trim() : "";
   const description =
@@ -131,15 +133,17 @@ export function pollCreateInputFromFormData(formData: FormData): {
     .map((line) => line.trim())
     .filter(Boolean)
     .slice(0, 12);
-  return { title, description, options };
+  const visibility = typeof formData.get("catalogVisible") === "string" ? formData.get("catalogVisible") : "1";
+  return { title, description, options, catalogVisible: visibility !== "0" };
 }
 
 export function validatePollCreateInput(input: {
   title: string;
   description: string;
   options: string[];
+  catalogVisible?: boolean;
 }):
-  | { success: true; data: { title: string; description: string | null; options: string[] } }
+  | { success: true; data: { title: string; description: string | null; options: string[]; catalogVisible: boolean } }
   | { success: false; errors: NonNullable<PollCreateFormState["errors"]> } {
   const errors: NonNullable<PollCreateFormState["errors"]> = {};
   if (!input.title || input.title.length > 120) {
@@ -161,6 +165,7 @@ export function validatePollCreateInput(input: {
       title: input.title,
       description: input.description || null,
       options: input.options,
+      catalogVisible: input.catalogVisible !== false,
     },
   };
 }

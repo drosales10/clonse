@@ -75,7 +75,7 @@ export async function getClassifiedCatalog(
   const pageCount = Math.max(1, Math.ceil(visible.length / CLASSIFIED_PAGE_SIZE));
   const page = Math.min(query.page, pageCount);
   const startIndex = (page - 1) * CLASSIFIED_PAGE_SIZE;
-  const items = visible.slice(startIndex, startIndex + CLASSIFIED_PAGE_SIZE).map(toPublicClassified);
+  const items = visible.slice(startIndex, startIndex + CLASSIFIED_PAGE_SIZE).map((row) => toPublicClassified(row, viewerId));
 
   return {
     items,
@@ -118,7 +118,7 @@ export async function getClassifiedDetail(
   if (!row || !canReadClassified(row.ownerId, row.privacy, row.catalogVisible, viewerId)) return null;
 
   return {
-    ...toPublicClassified(row),
+    ...toPublicClassified(row, viewerId),
     body: toSafeText(row.body),
     categoryId: row.categoryId,
     catalogVisible: row.catalogVisible,
@@ -269,7 +269,7 @@ function classifiedOrder(sort: ClassifiedCatalogQuery["sort"]): Prisma.Classifie
   return [primary, { id: "asc" }];
 }
 
-function toPublicClassified(row: ClassifiedRow): PublicClassified {
+function toPublicClassified(row: ClassifiedRow, viewerId: string | null): PublicClassified {
   return {
     id: row.id,
     legacyId: row.legacyId,
@@ -280,6 +280,7 @@ function toPublicClassified(row: ClassifiedRow): PublicClassified {
     totalComments: row.totalComments,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    isOwn: viewerId === row.ownerId,
     owner: { username: row.owner.username, displayName: row.owner.displayName },
     category: row.category,
   };

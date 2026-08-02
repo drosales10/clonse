@@ -94,7 +94,7 @@ export async function getBusinessCatalog(
   const pageCount = Math.max(1, Math.ceil(visible.length / BUSINESS_PAGE_SIZE));
   const page = Math.min(query.page, pageCount);
   const startIndex = (page - 1) * BUSINESS_PAGE_SIZE;
-  const items = visible.slice(startIndex, startIndex + BUSINESS_PAGE_SIZE).map(toPublicBusiness);
+  const items = visible.slice(startIndex, startIndex + BUSINESS_PAGE_SIZE).map((row) => toPublicBusiness(row, viewerId));
 
   return {
     items,
@@ -138,7 +138,7 @@ export async function getBusinessDetail(
   if (!isOwner && !isBusinessAvailable(row.searchable, row.approvedAt, row.expiresAt, now)) return null;
 
   return {
-    ...toPublicBusiness(row),
+    ...toPublicBusiness(row, viewerId),
     description: toSafeText(row.description ?? row.summary),
     phone: null,
     url: row.slug ? `/${row.slug}` : null,
@@ -321,7 +321,7 @@ function businessOrder(sort: BusinessCatalogQuery["sort"]): Prisma.BusinessOrder
   return [{ sponsored: "desc" }, { featured: "desc" }, primary, { id: "asc" }];
 }
 
-function toPublicBusiness(row: BusinessRow): PublicBusiness {
+function toPublicBusiness(row: BusinessRow, viewerId: string | null): PublicBusiness {
   return {
     id: row.id,
     legacyId: row.legacyId,
@@ -339,6 +339,7 @@ function toPublicBusiness(row: BusinessRow): PublicBusiness {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     expiresAt: row.expiresAt,
+    isOwn: viewerId === row.ownerId,
     owner: { username: row.owner.username, displayName: row.owner.displayName },
     category: row.category,
   };

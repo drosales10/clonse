@@ -1,13 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import {
+  BusinessCategoryBar,
+  BusinessGrid,
+  BusinessPagination,
+  BusinessToolbar,
+} from "@/app/components/businesses/business-catalog";
+import { BusinessEmptyState } from "@/app/components/businesses/business-ui";
 import { normalizeBusinessQuery, type BusinessSort } from "@domain/businesses";
+import { ClientShell } from "@/components/client/ClientShell";
 import { getCurrentUser } from "@/server/auth/session";
 import { getBusinessCatalog } from "@/server/businesses/service";
-import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = {
-  title: "Negocios | Red Social",
+  title: "Negocios | nexo.",
   description: "Descubre negocios visibles de la comunidad.",
 };
 
@@ -17,6 +24,7 @@ export default async function BusinessesPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
+  const layout = readString(params.layout) === "list" ? "list" : "grid";
   const query = normalizeBusinessQuery({
     page: readNumber(params.page),
     search: readString(params.search),
@@ -24,129 +32,88 @@ export default async function BusinessesPage({
     sort: readSort(params.sort),
   });
   const viewer = await getCurrentUser();
+  const canCreate = Boolean(viewer);
   const catalog = await getBusinessCatalog(viewer?.id ?? null, query);
 
   return (
     <ClientShell current="explore">
-      <section className="profile-panel business-panel" aria-labelledby="businesses-title">
-        <p className="eyebrow">Comunidad · Negocios</p>
-        <h1 id="businesses-title">Encuentra un negocio</h1>
-        <p className="lead">Explora negocios aprobados, buscables y visibles para ti.</p>
-
-        <div className="poll-toolbar">
-          {viewer ? (
-            <Link className="button button-primary button-small" href="/businesses/new">
-              Crear negocio
-            </Link>
+      <div className="businesses-module">
+        <section className="businesses-page" aria-labelledby="businesses-title" id="businesses-catalog">
+          <header className="businesses-page-header">
+            <nav aria-label="Ruta de navegación" className="businesses-breadcrumb">
+              <ol>
+                <li>
+                  <Link href="/home">Inicio</Link>
+                </li>
+                <li>
+                  <span aria-current="page">Negocios</span>
+                </li>
+              </ol>
+            </nav>
+            <div className="businesses-page-heading">
+              <div>
+                <h1 id="businesses-title">Negocios</h1>
+                <p className="businesses-page-lead">
+                  Explora negocios aprobados y visibles. Publica el tuyo para que la comunidad te encuentre.
+                </p>
+              </div>
+              {canCreate ? (
+                <Link className="businesses-btn businesses-btn-primary" href="/businesses/new">
+                  Crear negocio
+                </Link>
+              ) : null}
+            </div>
+          </header>
+          {!viewer ? (
+            <aside className="businesses-permission-notice" role="note">
+              <p>Inicia sesión para crear negocios.</p>
+              <Link className="businesses-text-link" href="/login?returnUrl=/businesses/new">
+                Iniciar sesión
+              </Link>
+            </aside>
+          ) : null}
+          <BusinessCategoryBar
+            activeCategoryId={query.categoryId}
+            categories={catalog.categories}
+            layout={layout}
+            search={query.search}
+            sort={query.sort}
+          />
+          <BusinessToolbar
+            canCreate={canCreate}
+            categoryId={query.categoryId}
+            layout={layout}
+            search={query.search}
+            sort={query.sort}
+            total={catalog.pagination.total}
+          />
+          {catalog.items.length > 0 ? (
+            <BusinessGrid businesses={catalog.items} layout={layout} sort={query.sort} />
           ) : (
-            <Link className="text-link" href="/login?returnUrl=/businesses/new">
-              Inicia sesión para crear un negocio
-            </Link>
+            <BusinessEmptyState
+              action={
+                canCreate ? (
+                  <Link className="businesses-btn businesses-btn-primary" href="/businesses/new">
+                    Crear tu primer negocio
+                  </Link>
+                ) : undefined
+              }
+              description="Cuando haya negocios publicados, los verás aquí."
+              title="No encontramos negocios con estos filtros"
+            />
           )}
-        </div>
-
-        <form className="business-filters" method="get">
-          <div className="business-filter-search">
-            <label htmlFor="business-search">Buscar</label>
-            <input id="business-search" name="search" defaultValue={query.search} maxLength={100} placeholder="Nombre, resumen o ubicación" />
-          </div>
-          <div>
-            <label htmlFor="business-sort">Ordenar</label>
-            <select id="business-sort" name="sort" defaultValue={query.sort}>
-              <option value="created">Más recientes</option>
-              <option value="updated">Actualizados</option>
-              <option value="rating">Mejor valorados</option>
-              <option value="views">Más vistos</option>
-              <option value="comments">Más comentados</option>
-            </select>
-          </div>
-          {query.categoryId ? <input type="hidden" name="categoryId" value={query.categoryId} /> : null}
-          <button className="button button-primary button-small" type="submit">Filtrar</button>
-        </form>
-
-        <div className="business-category-bar" aria-label="Filtrar por categoría">
-          <Link className={!query.categoryId ? "category-chip category-chip-active" : "category-chip"} href={categoryHref(query.search, query.sort, null)}>
-            Todos
-          </Link>
-          {catalog.categories.filter((category) => category.parentId === null).map((category) => (
-            <Link
-              className={query.categoryId === category.id ? "category-chip category-chip-active" : "category-chip"}
-              href={categoryHref(query.search, query.sort, category.id)}
-              key={category.id}
-            >
-              {category.title}
-            </Link>
-          ))}
-        </div>
-
-        {catalog.items.length > 0 ? (
-          <div className="business-list">
-            {catalog.items.map((business) => (
-              <article className="business-card" key={business.id}>
-                <div className="business-card-heading">
-                  <div>
-                    <p className="eyebrow">{business.category?.title ?? "Negocio"}</p>
-                    <h2><Link href={`/businesses/${encodeURIComponent(business.id)}`}>{business.title}</Link></h2>
-                  </div>
-                  {business.featured || business.sponsored ? <span className="business-badge">{business.sponsored ? "Patrocinado" : "Destacado"}</span> : null}
-                </div>
-                {business.summary ? <p className="business-summary">{business.summary}</p> : null}
-                <dl className="business-facts">
-                  <div><dt>Propietario</dt><dd><Link href={`/profile/${encodeURIComponent(business.owner.username)}`}>{business.owner.displayName}</Link></dd></div>
-                  {business.city || business.province ? <div><dt>Ubicación</dt><dd>{[business.city, business.province].filter(Boolean).join(", ")}</dd></div> : null}
-                  <div><dt>Actividad</dt><dd>{business.views} visitas · {business.totalComments} comentarios</dd></div>
-                </dl>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="empty-state">No encontramos negocios visibles con estos filtros.</p>
-        )}
-
-        <BusinessPagination page={catalog.pagination.page} pageCount={catalog.pagination.pageCount} search={query.search} sort={query.sort} categoryId={query.categoryId} />
-      </section>
+          <BusinessPagination
+            categoryId={query.categoryId}
+            layout={layout}
+            page={catalog.pagination.page}
+            pageCount={catalog.pagination.pageCount}
+            search={query.search}
+            sort={query.sort}
+          />
+        </section>
+      </div>
     </ClientShell>
   );
-}
-
-function BusinessPagination({
-  page,
-  pageCount,
-  search,
-  sort,
-  categoryId,
-}: {
-  page: number;
-  pageCount: number;
-  search: string;
-  sort: BusinessSort;
-  categoryId: string | null;
-}) {
-  if (pageCount <= 1) return null;
-  const href = (nextPage: number): string => {
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (sort !== "created") params.set("sort", sort);
-    if (categoryId) params.set("categoryId", categoryId);
-    if (nextPage > 1) params.set("page", String(nextPage));
-    return `/businesses?${params.toString()}#businesses-title`;
-  };
-  return (
-    <nav className="business-pagination" aria-label="Paginación de negocios">
-      {page > 1 ? <Link className="text-link" href={href(page - 1)}>Anteriores</Link> : <span aria-disabled="true">Anteriores</span>}
-      <span aria-current="page">Página {page} de {pageCount}</span>
-      {page < pageCount ? <Link className="text-link" href={href(page + 1)}>Siguientes</Link> : <span aria-disabled="true">Siguientes</span>}
-    </nav>
-  );
-}
-
-function categoryHref(search: string, sort: BusinessSort, categoryId: string | null): string {
-  const params = new URLSearchParams();
-  if (search) params.set("search", search);
-  if (sort !== "created") params.set("sort", sort);
-  if (categoryId) params.set("categoryId", categoryId);
-  const query = params.toString();
-  return `/businesses${query ? `?${query}` : ""}#businesses-title`;
 }
 
 function readString(value: string | string[] | undefined): string | undefined {
@@ -161,5 +128,11 @@ function readNumber(value: string | string[] | undefined): number | undefined {
 
 function readSort(value: string | string[] | undefined): BusinessSort | undefined {
   const raw = readString(value);
-  return raw === "updated" || raw === "rating" || raw === "views" || raw === "comments" || raw === "created" ? raw : undefined;
+  return raw === "updated" ||
+    raw === "rating" ||
+    raw === "views" ||
+    raw === "comments" ||
+    raw === "created"
+    ? raw
+    : undefined;
 }

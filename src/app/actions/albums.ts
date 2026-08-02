@@ -14,6 +14,7 @@ import {
 } from "@domain/albums";
 import {
   createAlbum,
+  deleteOwnAlbum,
   setOwnAlbumCatalogVisible,
   updateOwnAlbum,
   uploadAlbumMedia,
@@ -154,6 +155,34 @@ export async function setAlbumVisibleAction(
     };
   } catch {
     return { errors: { form: ["No se pudo actualizar la visibilidad."] } };
+  }
+}
+
+export async function deleteAlbumAction(
+  _previous: AlbumManageFormState,
+  formData: FormData,
+): Promise<AlbumManageFormState> {
+  const user = await getCurrentUser();
+  if (!user) return { errors: { form: ["Tu sesión ha caducado."] } };
+
+  const albumId = typeof formData.get("albumId") === "string" ? String(formData.get("albumId")).trim() : "";
+  if (!albumId) return { errors: { form: ["Álbum no válido."] } };
+
+  try {
+    const result = await deleteOwnAlbum(user.id, albumId);
+    if (!result.ok) {
+      return {
+        errors: {
+          form: [result.reason === "forbidden" ? "No puedes eliminar este álbum." : "No se encontró el álbum."],
+        },
+      };
+    }
+    revalidatePath("/albums");
+    revalidatePath("/admin/albums");
+    redirect("/albums");
+  } catch (error) {
+    if (isNextRedirect(error)) throw error;
+    return { errors: { form: ["No se pudo eliminar el álbum."] } };
   }
 }
 

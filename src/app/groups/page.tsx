@@ -1,13 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import {
+  GroupCategoryBar,
+  GroupGrid,
+  GroupPagination,
+  GroupToolbar,
+} from "@/app/components/groups/group-catalog";
+import { GroupEmptyState } from "@/app/components/groups/group-ui";
 import { normalizeGroupQuery } from "@domain/groups";
+import { ClientShell } from "@/components/client/ClientShell";
 import { getCurrentUser } from "@/server/auth/session";
 import { getGroupCatalog } from "@/server/groups/service";
-import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = {
-  title: "Grupos | Red Social",
+  title: "Grupos | nexo.",
   description: "Descubre grupos visibles de la comunidad.",
 };
 
@@ -17,82 +24,95 @@ export default async function GroupsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
+  const view = readString(params.view) === "list" ? "list" : "grid";
   const query = normalizeGroupQuery({
     page: readNumber(params.page),
     categoryId: readString(params.categoryId),
   });
   const viewer = await getCurrentUser();
+  const canCreate = Boolean(viewer);
   const catalog = await getGroupCatalog(viewer?.id ?? null, query);
 
   return (
     <ClientShell current="explore">
-      <section className="profile-panel group-panel" aria-labelledby="groups-title">
-        <p className="eyebrow">Comunidad · Grupos</p>
-        <h1 id="groups-title">Encuentra tu comunidad</h1>
-        <p className="lead">Explora grupos autorizados en el catálogo público. Crea el tuyo y gestiona su visibilidad.</p>
-
-        <div className="poll-toolbar">
-          {viewer ? (
-            <Link className="button button-primary button-small" href="/groups/new">
-              Crear grupo
-            </Link>
+      <div className="groups-module">
+        <section className="groups-page" aria-labelledby="groups-title" id="groups-catalog">
+          <header className="groups-page-header">
+            <nav aria-label="Ruta de navegación" className="groups-breadcrumb">
+              <ol>
+                <li>
+                  <Link href="/home">Inicio</Link>
+                </li>
+                <li>
+                  <span aria-current="page">Grupos</span>
+                </li>
+              </ol>
+            </nav>
+            <div className="groups-page-heading">
+              <div>
+                <h1 id="groups-title">Grupos</h1>
+                <p className="groups-page-lead">
+                  Encuentra comunidades, únete a grupos y crea el tuyo para conectar con otros miembros.
+                </p>
+              </div>
+              {canCreate ? (
+                <Link className="groups-btn groups-btn-primary" href="/groups/new">
+                  Crear grupo
+                </Link>
+              ) : null}
+            </div>
+          </header>
+          {!viewer ? (
+            <aside className="groups-permission-notice" role="note">
+              <p>Inicia sesión para crear grupos y unirte a la comunidad.</p>
+              <Link className="groups-text-link" href="/login?returnUrl=/groups/new">
+                Iniciar sesión
+              </Link>
+            </aside>
+          ) : null}
+          <GroupCategoryBar
+            activeCategoryId={query.categoryId}
+            categories={catalog.categories}
+            view={view}
+          />
+          <GroupToolbar
+            canCreate={canCreate}
+            categoryId={query.categoryId}
+            total={catalog.pagination.total}
+            view={view}
+          />
+          {catalog.items.length > 0 ? (
+            <GroupGrid groups={catalog.items} view={view} />
           ) : (
-            <Link className="text-link" href="/login?returnUrl=/groups/new">
-              Inicia sesión para crear un grupo
-            </Link>
+            <GroupEmptyState
+              action={
+                canCreate ? (
+                  <Link className="groups-btn groups-btn-primary" href="/groups/new">
+                    Crear tu primer grupo
+                  </Link>
+                ) : undefined
+              }
+              description="Cuando haya grupos publicados, los verás aquí."
+              title="No encontramos grupos con estos filtros"
+            />
           )}
-        </div>
-
-        <div className="group-category-bar" aria-label="Filtrar por categoría">
-          <Link className={!query.categoryId ? "category-chip category-chip-active" : "category-chip"} href={categoryHref(null)}>Todos</Link>
-          {catalog.categories.filter((category) => category.parentId === null).map((category) => (
-            <Link className={query.categoryId === category.id ? "category-chip category-chip-active" : "category-chip"} href={categoryHref(category.id)} key={category.id}>
-              {category.title}
-            </Link>
-          ))}
-        </div>
-
-        {catalog.items.length > 0 ? (
-          <div className="group-list">
-            {catalog.items.map((group) => (
-              <article className="group-card" key={group.id}>
-                <p className="eyebrow">{group.category?.title ?? "Grupo"}</p>
-                <h2><Link className="group-card-link" href={`/groups/${encodeURIComponent(group.id)}`}>{group.title}</Link></h2>
-                {group.description ? <p className="group-summary">{group.description}</p> : null}
-                <dl className="group-facts">
-                  <div><dt>Propietario</dt><dd><Link href={`/profile/${encodeURIComponent(group.owner.username)}`}>{group.owner.displayName}</Link></dd></div>
-                  <div><dt>Actividad</dt><dd>{group.views} visitas</dd></div>
-                </dl>
-              </article>
-            ))}
-          </div>
-        ) : (
-          <p className="empty-state">No encontramos grupos públicos autorizados con estos filtros.</p>
-        )}
-
-        <GroupPagination page={catalog.pagination.page} pageCount={catalog.pagination.pageCount} categoryId={query.categoryId} />
-      </section>
+          <GroupPagination
+            categoryId={query.categoryId}
+            page={catalog.pagination.page}
+            pageCount={catalog.pagination.pageCount}
+            view={view}
+          />
+        </section>
+      </div>
     </ClientShell>
   );
 }
 
-function GroupPagination({ page, pageCount, categoryId }: { page: number; pageCount: number; categoryId: string | null }) {
-  if (pageCount <= 1) return null;
-  const href = (nextPage: number): string => {
-    const params = new URLSearchParams();
-    if (categoryId) params.set("categoryId", categoryId);
-    if (nextPage > 1) params.set("page", String(nextPage));
-    return `/groups?${params.toString()}#groups-title`;
-  };
-  return <nav className="group-pagination" aria-label="Paginación de grupos">
-    {page > 1 ? <Link className="text-link" href={href(page - 1)}>Anteriores</Link> : <span aria-disabled="true">Anteriores</span>}
-    <span aria-current="page">Página {page} de {pageCount}</span>
-    {page < pageCount ? <Link className="text-link" href={href(page + 1)}>Siguientes</Link> : <span aria-disabled="true">Siguientes</span>}
-  </nav>;
+function readString(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
 }
-
-function categoryHref(categoryId: string | null): string {
-  return categoryId ? `/groups?categoryId=${encodeURIComponent(categoryId)}#groups-title` : "/groups#groups-title";
+function readNumber(value: string | string[] | undefined): number | undefined {
+  const raw = readString(value);
+  const number = Number(raw);
+  return Number.isInteger(number) ? number : undefined;
 }
-function readString(value: string | string[] | undefined): string | undefined { return Array.isArray(value) ? value[0] : value; }
-function readNumber(value: string | string[] | undefined): number | undefined { const raw = readString(value); const number = Number(raw); return Number.isInteger(number) ? number : undefined; }

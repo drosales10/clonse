@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { BlogCreateForm } from "@/app/components/blog-create-form";
+import { CreateBlogForm } from "@/app/components/blogs/create-blog-form";
+import { BlogBreadcrumb } from "@/app/components/blogs/blog-ui";
 import { ClientShell } from "@/components/client/ClientShell";
 import { getCurrentUser } from "@/server/auth/session";
 import { listActiveBlogCategories } from "@/server/blogs/service";
@@ -20,17 +20,25 @@ export default async function NewBlogPage() {
 
   return (
     <ClientShell current="explore">
-      <section className="profile-panel blog-panel" aria-labelledby="new-blog-title">
-        <Link className="text-link blog-back-link" href="/blogs">
-          ← Volver a blogs
-        </Link>
-        <p className="eyebrow">Publicación · Blogs</p>
-        <h1 id="new-blog-title">Nueva entrada</h1>
-        <p className="lead">
-          Publica una entrada visible en el catálogo. Podrás editarla y ocultarla desde el detalle.
-        </p>
-        <BlogCreateForm categories={categories} />
-      </section>
+      <div className="blogs-module">
+        <section className="blogs-page blogs-page-narrow" aria-labelledby="new-blog-title">
+          <BlogBreadcrumb
+            items={[
+              { label: "Inicio", href: "/home" },
+              { label: "Blogs", href: "/blogs" },
+              { label: "Nueva entrada" },
+            ]}
+          />
+          <header className="blogs-page-header">
+            <p className="blogs-page-eyebrow">Publicación · Blogs</p>
+            <h1 id="new-blog-title">Nueva entrada</h1>
+            <p className="blogs-page-lead">
+              Publica una entrada visible en el catálogo. Podrás editarla y ocultarla desde el detalle.
+            </p>
+          </header>
+          <CreateBlogForm categories={categories} />
+        </section>
+      </div>
     </ClientShell>
   );
 }

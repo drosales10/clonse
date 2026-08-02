@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { ArticleCreateForm } from "@/app/components/article-create-form";
+import { CreateArticleForm } from "@/app/components/articles/create-article-form";
+import { ArticleBreadcrumb } from "@/app/components/articles/article-ui";
 import { ClientShell } from "@/components/client/ClientShell";
 import { getCurrentUser } from "@/server/auth/session";
 import { listActiveArticleCategories } from "@/server/articles/service";
@@ -20,17 +20,24 @@ export default async function NewArticlePage() {
 
   return (
     <ClientShell current="explore">
-      <section className="profile-panel article-panel" aria-labelledby="new-article-title">
-        <Link className="text-link article-back-link" href="/articles">
-          ← Volver a artículos
-        </Link>
-        <p className="eyebrow">Publicación · Artículos</p>
-        <h1 id="new-article-title">Nuevo artículo</h1>
-        <p className="lead">
-          Publica un artículo visible en el catálogo. Podrás editarlo y ocultarlo desde el detalle.
-        </p>
-        <ArticleCreateForm categories={categories} />
-      </section>
+      <div className="articles-module">
+        <section className="articles-page articles-page-narrow">
+          <ArticleBreadcrumb
+            items={[
+              { label: "Inicio", href: "/home" },
+              { label: "Artículos", href: "/articles" },
+              { label: "Nuevo artículo" },
+            ]}
+          />
+          <header className="articles-page-header">
+            <h1>Nuevo artículo</h1>
+            <p className="articles-page-lead">
+              Publica un artículo visible en el catálogo. Podrás editarlo y ocultarlo desde el detalle.
+            </p>
+          </header>
+          <CreateArticleForm categories={categories} />
+        </section>
+      </div>
     </ClientShell>
   );
 }

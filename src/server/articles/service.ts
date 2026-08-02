@@ -83,7 +83,7 @@ export async function getArticleCatalog(
   const pageCount = Math.max(1, Math.ceil(visible.length / ARTICLE_PAGE_SIZE));
   const page = Math.min(query.page, pageCount);
   const startIndex = (page - 1) * ARTICLE_PAGE_SIZE;
-  const items = visible.slice(startIndex, startIndex + ARTICLE_PAGE_SIZE).map(toPublicArticle);
+  const items = visible.slice(startIndex, startIndex + ARTICLE_PAGE_SIZE).map((row) => toPublicArticle(row, viewerId));
 
   return {
     items,
@@ -118,7 +118,7 @@ export async function getArticleDetail(
   if (!isOwner && (row.draft || !row.approved)) return null;
 
   return {
-    ...toPublicArticle(row),
+    ...toPublicArticle(row, viewerId),
     body: toSafeText(row.body),
     categoryId: row.categoryId,
     catalogVisible: row.catalogVisible,
@@ -258,7 +258,7 @@ function resolveCategoryIds(categories: CategoryRow[], selectedId: string | null
   return [...descendants];
 }
 
-function toPublicArticle(row: ArticleRow): PublicArticle {
+function toPublicArticle(row: ArticleRow, viewerId: string | null): PublicArticle {
   return {
     id: row.id,
     legacyId: row.legacyId,
@@ -268,6 +268,7 @@ function toPublicArticle(row: ArticleRow): PublicArticle {
     updatedAt: row.updatedAt,
     views: row.views,
     featured: row.featured,
+    isOwn: viewerId === row.authorId,
     author: { username: row.author.username, displayName: row.author.displayName },
     category: row.category,
   };

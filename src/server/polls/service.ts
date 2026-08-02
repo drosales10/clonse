@@ -58,7 +58,7 @@ export async function getPollCatalog(
   const pageCount = Math.max(1, Math.ceil(visible.length / POLL_PAGE_SIZE));
   const page = Math.min(query.page, pageCount);
   const startIndex = (page - 1) * POLL_PAGE_SIZE;
-  const items = visible.slice(startIndex, startIndex + POLL_PAGE_SIZE).map(toPublicPoll);
+  const items = visible.slice(startIndex, startIndex + POLL_PAGE_SIZE).map((row) => toPublicPoll(row, viewerId));
 
   return {
     items,
@@ -79,6 +79,8 @@ export async function getPollDetail(
 ): Promise<PublicPollDetail | null> {
   const row = await findPollRow(identifier);
   if (!row || !canReadPoll(row.ownerId, row.catalogVisible, viewerId)) return null;
+
+  await db.poll.update({ where: { id: row.id }, data: { views: { increment: 1 } } }).catch(() => undefined);
 
   const options = parsePollOptions(row.options);
   const voteGroups = await db.pollVote.groupBy({
@@ -104,7 +106,8 @@ export async function getPollDetail(
   const canVote = Boolean(viewerId) && !row.closed && !viewerHasVoted && options.length > 0;
 
   return {
-    ...toPublicPoll(row),
+    ...toPublicPoll(row, viewerId),
+    views: row.views + 1,
     description: toSafeText(row.description),
     catalogVisible: row.catalogVisible,
     totalVotes,
@@ -122,7 +125,7 @@ export type CreatePollResult =
 
 export async function createPoll(
   ownerId: string,
-  input: { title: string; description: string | null; options: string[] },
+  input: { title: string; description: string | null; options: string[]; catalogVisible?: boolean },
 ): Promise<CreatePollResult> {
   const owner = await db.user.findUnique({
     where: { id: ownerId },
@@ -131,6 +134,7 @@ export async function createPoll(
   if (!owner?.enabled || !owner.verifiedAt) return { ok: false, reason: "unauthorized" };
 
   const now = new Date();
+  const visible = input.catalogVisible !== false;
   const poll = await db.poll.create({
     data: {
       ownerId: owner.id,
@@ -138,8 +142,8 @@ export async function createPoll(
       description: input.description,
       options: input.options,
       createdAt: now,
-      searchable: true,
-      catalogVisible: true,
+      searchable: visible,
+      catalogVisible: visible,
       closed: false,
       totalVotes: 0,
       views: 0,
@@ -233,6 +237,18 @@ export async function setOwnPollCatalogVisible(
   return { ok: true };
 }
 
+export type DeletePollResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "forbidden" };
+
+export async function deleteOwnPoll(ownerId: string, pollId: string): Promise<DeletePollResult> {
+  const poll = await db.poll.findUnique({ where: { id: pollId }, select: { id: true, ownerId: true } });
+  if (!poll) return { ok: false, reason: "not_found" };
+  if (poll.ownerId !== ownerId) return { ok: false, reason: "forbidden" };
+  await db.poll.delete({ where: { id: poll.id } });
+  return { ok: true };
+}
+
 export type PollVoteResult =
   | { ok: true }
   | { ok: false; reason: "not_found" | "closed" | "already_voted" | "invalid_option" | "unauthorized" };
@@ -309,7 +325,7 @@ async function findPollRow(identifier: string): Promise<PollRow | null> {
   });
 }
 
-function toPublicPoll(row: PollRow): PublicPoll {
+function toPublicPoll(row: PollRow, viewerId: string | null): PublicPoll {
   const options = parsePollOptions(row.options);
   return {
     id: row.id,
@@ -322,6 +338,7 @@ function toPublicPoll(row: PollRow): PublicPoll {
     totalVotes: row.totalVotes,
     views: row.views,
     optionCount: options.length,
+    isOwn: viewerId === row.ownerId,
     owner: { username: row.owner.username, displayName: row.owner.displayName },
   };
 }

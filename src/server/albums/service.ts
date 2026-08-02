@@ -31,6 +31,7 @@ const albumSelect = {
   catalogVisible: true,
   views: true,
   totalFiles: true,
+  coverMediaId: true,
   ownerId: true,
   owner: { select: { username: true, displayName: true, enabled: true } },
 } satisfies Prisma.AlbumSelect;
@@ -59,7 +60,7 @@ export async function getAlbumCatalog(
   const pageCount = Math.max(1, Math.ceil(visible.length / ALBUM_PAGE_SIZE));
   const page = Math.min(query.page, pageCount);
   const startIndex = (page - 1) * ALBUM_PAGE_SIZE;
-  const items = visible.slice(startIndex, startIndex + ALBUM_PAGE_SIZE).map(toPublicAlbum);
+  const items = visible.slice(startIndex, startIndex + ALBUM_PAGE_SIZE).map((row) => toPublicAlbum(row, viewerId));
 
   return {
     items,
@@ -121,7 +122,7 @@ export async function getAlbumDetail(
   const mediaPageItems = mediaRows.slice(startIndex, startIndex + ALBUM_MEDIA_PAGE_SIZE);
 
   return {
-    ...toPublicAlbum(row),
+    ...toPublicAlbum(row, viewerId),
     description: toSafeText(row.description),
     catalogVisible: row.catalogVisible,
     isOwner: viewerId === row.ownerId,
@@ -152,7 +153,7 @@ export type CreateAlbumResult =
 
 export async function createAlbum(
   ownerId: string,
-  input: { title: string; description: string | null },
+  input: { title: string; description: string | null; catalogVisible?: boolean },
 ): Promise<CreateAlbumResult> {
   const owner = await db.user.findUnique({
     where: { id: ownerId },
@@ -161,6 +162,7 @@ export async function createAlbum(
   if (!owner?.enabled || !owner.verifiedAt) return { ok: false, reason: "unauthorized" };
 
   const now = new Date();
+  const visible = input.catalogVisible !== false;
   const album = await db.album.create({
     data: {
       ownerId: owner.id,
@@ -168,8 +170,8 @@ export async function createAlbum(
       description: input.description,
       createdAt: now,
       updatedAt: now,
-      searchable: true,
-      catalogVisible: true,
+      searchable: visible,
+      catalogVisible: visible,
       views: 0,
       totalFiles: 0,
       sortOrder: 0,
@@ -215,6 +217,33 @@ export async function setOwnAlbumCatalogVisible(
     where: { id: album.id },
     data: { catalogVisible, searchable: catalogVisible ? true : undefined, updatedAt: new Date() },
   });
+  return { ok: true };
+}
+
+export type DeleteAlbumResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "forbidden" };
+
+export async function deleteOwnAlbum(ownerId: string, albumId: string): Promise<DeleteAlbumResult> {
+  const album = await db.album.findUnique({
+    where: { id: albumId },
+    select: {
+      id: true,
+      ownerId: true,
+      media: { select: { storageKey: true } },
+    },
+  });
+  if (!album) return { ok: false, reason: "not_found" };
+  if (album.ownerId !== ownerId) return { ok: false, reason: "forbidden" };
+
+  const { deleteAlbumMediaFile } = await import("@/server/albums/storage");
+  await Promise.all(
+    album.media
+      .map((item) => item.storageKey)
+      .filter((key): key is string => Boolean(key))
+      .map((key) => deleteAlbumMediaFile(key)),
+  );
+  await db.album.delete({ where: { id: album.id } });
   return { ok: true };
 }
 
@@ -347,7 +376,7 @@ function sanitizeFilename(value: string): string {
   return cleaned || "archivo";
 }
 
-function toPublicAlbum(row: AlbumRow): PublicAlbum {
+function toPublicAlbum(row: AlbumRow, viewerId: string | null): PublicAlbum {
   return {
     id: row.id,
     legacyId: row.legacyId,
@@ -357,6 +386,8 @@ function toPublicAlbum(row: AlbumRow): PublicAlbum {
     updatedAt: row.updatedAt,
     views: row.views,
     totalFiles: row.totalFiles,
+    coverMediaId: row.coverMediaId,
+    isOwn: viewerId === row.ownerId,
     owner: { username: row.owner.username, displayName: row.owner.displayName },
   };
 }

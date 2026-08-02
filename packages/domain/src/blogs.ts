@@ -38,6 +38,7 @@ export interface PublicBlogEntry {
   createdAt: Date;
   updatedAt: Date;
   views: number;
+  isOwn: boolean;
   author: PublicBlogAuthor;
   category: { id: string; legacyId: number | null; title: string } | null;
 }

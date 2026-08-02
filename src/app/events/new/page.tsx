@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { EventCreateForm } from "@/app/components/event-create-form";
+import { CreateEventForm } from "@/app/components/events/create-event-form";
+import { EventBreadcrumb } from "@/app/components/events/event-ui";
 import { ClientShell } from "@/components/client/ClientShell";
 import { getCurrentUser } from "@/server/auth/session";
 import { listActiveEventCategories } from "@/server/events/service";
@@ -20,17 +20,24 @@ export default async function NewEventPage() {
 
   return (
     <ClientShell current="explore">
-      <section className="profile-panel event-panel" aria-labelledby="new-event-title">
-        <Link className="text-link event-back-link" href="/events">
-          ← Volver a eventos
-        </Link>
-        <p className="eyebrow">Comunidad · Eventos</p>
-        <h1 id="new-event-title">Nuevo evento</h1>
-        <p className="lead">
-          Publica un evento visible. Podrás editar fechas, ubicación y visibilidad desde el detalle.
-        </p>
-        <EventCreateForm categories={categories} />
-      </section>
+      <div className="events-module">
+        <section className="events-page events-page-narrow">
+          <EventBreadcrumb
+            items={[
+              { label: "Inicio", href: "/home" },
+              { label: "Eventos", href: "/events" },
+              { label: "Nuevo evento" },
+            ]}
+          />
+          <header className="events-page-header">
+            <h1>Nuevo evento</h1>
+            <p className="events-page-lead">
+              Publica un evento con fechas, lugar y categoría. Podrás editarlo y gestionar asistentes desde el detalle.
+            </p>
+          </header>
+          <CreateEventForm categories={categories} />
+        </section>
+      </div>
     </ClientShell>
   );
 }

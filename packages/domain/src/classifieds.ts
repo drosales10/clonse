@@ -43,6 +43,7 @@ export interface PublicClassified {
   totalComments: number;
   createdAt: Date;
   updatedAt: Date;
+  isOwn: boolean;
   owner: PublicClassifiedOwner;
   category: { id: string; legacyId: number | null; title: string } | null;
 }
