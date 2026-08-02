@@ -32,6 +32,14 @@ export interface AdminSettingRow {
   subnetField2Id: number;
 }
 
+export interface AdminLanguageVariableRow {
+  id: string;
+  legacyId: number;
+  languageId: number;
+  value: string | null;
+  defaultValue: string | null;
+}
+
 export async function getAdminLevels(): Promise<AdminLevelRow[]> {
   return db.userLevel.findMany({
     orderBy: [{ isDefault: "desc" }, { name: "asc" }, { id: "asc" }],
@@ -75,6 +83,19 @@ export async function getAdminSettings(): Promise<AdminSettingRow[]> {
       usernameEnabled: true,
       subnetField1Id: true,
       subnetField2Id: true,
+    },
+  });
+}
+
+export async function getAdminLanguageVariables(): Promise<AdminLanguageVariableRow[]> {
+  return db.languageVariable.findMany({
+    orderBy: [{ languageId: "asc" }, { legacyId: "asc" }, { id: "asc" }],
+    select: {
+      id: true,
+      legacyId: true,
+      languageId: true,
+      value: true,
+      defaultValue: true,
     },
   });
 }

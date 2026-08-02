@@ -66,3 +66,9 @@ La superficie admin ya expone lecturas protegidas para `/admin/levels`, `/admin/
 - configuración: key/version, flags operativos no sensibles e IDs de campos de subred.
 
 El estado actual de las cuatro tablas es vacío, por lo que las rutas muestran estados vacíos y no simulan paridad. No existen todavía acciones de creación/edición/eliminación, filtros por nivel/subred, relaciones con `User`, evaluación de operadores, resolución de nombres localizados ni exposición de secretos/licencias.
+
+## Métricas de catálogo en dashboard
+
+`src/server/admin/dashboard.ts` consulta de forma explícita seis conteos respaldados por destino: usuarios totales, usuarios habilitados, usuarios verificados, niveles, subredes y registros `Setting`. `/admin/dashboard` muestra estos valores y enlaza las tres lecturas de catálogo.
+
+Los conteos de `UserLevel`, `Subnetwork` y `Setting` son actualmente `0` porque la migración structure-only no importó filas. Ese valor es una observación del estado destino, no una afirmación sobre el número legacy ni una autorización para hacer backfill. No se añadieron métricas de módulos, capacidades, relaciones por nivel/subred o estadísticas sin contrato verificable.

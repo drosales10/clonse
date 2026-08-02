@@ -44,7 +44,7 @@ function AdminHeader() {
         <Link className="text-link" href="/admin/users">Usuarios</Link>
         <Link className="text-link" href="/admin/levels">Niveles</Link>
         <Link className="text-link" href="/admin/subnetworks">Subredes</Link>
-        <span className="text-link" aria-current="page">Configuración</span>
+        <Link className="text-link" href="/admin/language-variables">Idioma</Link>
         <form action={adminLogoutAction}><button className="button button-quiet" type="submit">Cerrar sesión</button></form>
       </nav>
     </header>

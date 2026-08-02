@@ -119,3 +119,18 @@ No se ejecutaron pruebas contra una base real, migraciones, imports ni operacion
 3. No existe dashboard con métricas, listado/edición de usuarios, niveles, subredes ni configuración.
 4. El estado `configuration-required` es el único estado posible hasta que exista una autoridad destino verificable; no representa una autorización real.
 5. La siguiente decisión técnica debe cubrir el modelo Prisma, la estrategia de IDs/credenciales legacy, cookies/sesiones, expiración, logout, recuperación y permisos de superadministrador antes de implementar acciones.
+
+## Métricas verificadas del dashboard
+
+El dashboard moderno expone únicamente conteos consultados desde modelos destino existentes y protegidos por sesión administrativa:
+
+- usuarios totales (`User`);
+- usuarios habilitados (`User.enabled`);
+- usuarios verificados (`User.verifiedAt` no nulo);
+- niveles en catálogo (`UserLevel`);
+- subredes en catálogo (`Subnetwork`);
+- registros de configuración no sensible (`Setting`).
+
+Los tres últimos conteos pueden ser cero porque las tablas structure-only se aplicaron sin importar filas legacy. Cero no se interpreta como ausencia del esquema ni habilita una importación automática. No se exponen todavía métricas de mensajes, reportes, amistades, anuncios, logins, estadísticas, capacidades por nivel ni usuarios agrupados por nivel/subred.
+
+La consulta vive en `src/server/admin/dashboard.ts` y se ejecuta después del guard de `src/server/admin/access.ts`; la UI no es el control de autorización. La presentación enlaza a las lecturas `/admin/levels`, `/admin/subnetworks` y `/admin/settings`, que permanecen en modo solo lectura.

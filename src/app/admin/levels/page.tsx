@@ -42,6 +42,9 @@ function AdminHeader({ current }: { current: string }) {
         <Link className="text-link" href="/admin/dashboard">Panel</Link>
         <Link className="text-link" href="/admin/users">Usuarios</Link>
         <span className="text-link" aria-current="page">{current}</span>
+        <Link className="text-link" href="/admin/subnetworks">Subredes</Link>
+        <Link className="text-link" href="/admin/settings">Configuración</Link>
+        <Link className="text-link" href="/admin/language-variables">Idioma</Link>
         <form action={adminLogoutAction}><button className="button button-quiet" type="submit">Cerrar sesión</button></form>
       </nav>
     </header>

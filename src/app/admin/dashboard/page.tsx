@@ -19,6 +19,7 @@ export default async function AdminDashboardPage() {
           <Link className="text-link" href="/admin/levels">Niveles</Link>
           <Link className="text-link" href="/admin/subnetworks">Subredes</Link>
           <Link className="text-link" href="/admin/settings">Configuración</Link>
+          <Link className="text-link" href="/admin/language-variables">Idioma</Link>
           <form action={adminLogoutAction}><button className="button button-quiet" type="submit">Cerrar sesión</button></form>
         </nav>
       </header>
@@ -30,6 +31,10 @@ export default async function AdminDashboardPage() {
           <article><span>01</span><h2>{stats.totalUsers}</h2><p>Usuarios registrados en el destino.</p></article>
           <article><span>02</span><h2>{stats.enabledUsers}</h2><p>Usuarios habilitados actualmente.</p></article>
           <article><span>03</span><h2>{stats.verifiedUsers}</h2><p>Usuarios con email verificado.</p></article>
+          <article><span>04</span><h2>{stats.totalLevels}</h2><p><Link className="text-link" href="/admin/levels">Niveles en catálogo.</Link></p></article>
+          <article><span>05</span><h2>{stats.totalSubnetworks}</h2><p><Link className="text-link" href="/admin/subnetworks">Subredes en catálogo.</Link></p></article>
+          <article><span>06</span><h2>{stats.totalSettings}</h2><p><Link className="text-link" href="/admin/settings">Configuraciones no sensibles.</Link></p></article>
+          <article><span>07</span><h2>{stats.totalLanguageVariables}</h2><p><Link className="text-link" href="/admin/language-variables">Variables de idioma.</Link></p></article>
         </div>
         <p className="empty-state">Estas son las únicas métricas administrativas disponibles con modelos destino verificados. Mensajes, reportes, amistades, anuncios, logins y estadísticas legacy quedan pendientes de sus contratos.</p>
       </section>
