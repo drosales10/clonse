@@ -96,3 +96,51 @@ export function makePagination(total: number, requestedPage: number): ForumPagin
     end: Math.min(startIndex + FORUM_PAGE_SIZE, total),
   };
 }
+
+export type ForumTopicCreateFormState = {
+  errors?: { form?: string[]; title?: string[]; body?: string[] };
+  message?: string;
+  success?: boolean;
+};
+
+export type ForumReplyFormState = {
+  errors?: { form?: string[]; body?: string[] };
+  message?: string;
+  success?: boolean;
+};
+
+export function forumTopicInputFromFormData(formData: FormData): { title: string; body: string } {
+  const title = typeof formData.get("title") === "string" ? String(formData.get("title")).trim() : "";
+  const body = typeof formData.get("body") === "string" ? String(formData.get("body")).trim() : "";
+  return { title, body };
+}
+
+export function validateForumTopicInput(input: { title: string; body: string }):
+  | { success: true; data: { title: string; body: string } }
+  | { success: false; errors: NonNullable<ForumTopicCreateFormState["errors"]> } {
+  const errors: NonNullable<ForumTopicCreateFormState["errors"]> = {};
+  if (!input.title || input.title.length > 160) {
+    errors.title = ["El título es obligatorio (máx. 160 caracteres)."];
+  }
+  if (!input.body || input.body.length > 8000) {
+    errors.body = ["El mensaje es obligatorio (máx. 8000 caracteres)."];
+  }
+  if (Object.keys(errors).length > 0) return { success: false, errors };
+  return { success: true, data: input };
+}
+
+export function forumReplyInputFromFormData(formData: FormData): { body: string } {
+  const body = typeof formData.get("body") === "string" ? String(formData.get("body")).trim() : "";
+  return { body };
+}
+
+export function validateForumReplyInput(input: { body: string }):
+  | { success: true; data: { body: string } }
+  | { success: false; errors: NonNullable<ForumReplyFormState["errors"]> } {
+  const errors: NonNullable<ForumReplyFormState["errors"]> = {};
+  if (!input.body || input.body.length > 8000) {
+    errors.body = ["La respuesta es obligatoria (máx. 8000 caracteres)."];
+  }
+  if (Object.keys(errors).length > 0) return { success: false, errors };
+  return { success: true, data: input };
+}

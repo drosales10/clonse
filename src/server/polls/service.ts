@@ -106,6 +106,7 @@ export async function getPollDetail(
   return {
     ...toPublicPoll(row),
     description: toSafeText(row.description),
+    catalogVisible: row.catalogVisible,
     totalVotes,
     options: buildPollOptionResults(options, voteCounts, totalVotes),
     viewerHasVoted,
@@ -163,6 +164,72 @@ export async function closeOwnPoll(ownerId: string, pollId: string): Promise<Clo
   if (poll.closed) return { ok: false, reason: "already_closed" };
 
   await db.poll.update({ where: { id: poll.id }, data: { closed: true } });
+  return { ok: true };
+}
+
+export type UpdatePollResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "forbidden" };
+
+export type UpdatePollOptionsResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "forbidden" | "has_votes" | "closed" };
+
+export async function updateOwnPoll(
+  ownerId: string,
+  pollId: string,
+  input: { title: string; description: string | null },
+): Promise<UpdatePollResult> {
+  const poll = await db.poll.findUnique({ where: { id: pollId }, select: { id: true, ownerId: true } });
+  if (!poll) return { ok: false, reason: "not_found" };
+  if (poll.ownerId !== ownerId) return { ok: false, reason: "forbidden" };
+  await db.poll.update({
+    where: { id: poll.id },
+    data: { title: input.title, description: input.description, updatedAt: new Date() },
+  });
+  return { ok: true };
+}
+
+export async function updateOwnPollOptions(
+  ownerId: string,
+  pollId: string,
+  options: string[],
+): Promise<UpdatePollOptionsResult> {
+  const poll = await db.poll.findUnique({
+    where: { id: pollId },
+    select: { id: true, ownerId: true, closed: true, totalVotes: true },
+  });
+  if (!poll) return { ok: false, reason: "not_found" };
+  if (poll.ownerId !== ownerId) return { ok: false, reason: "forbidden" };
+  if (poll.closed) return { ok: false, reason: "closed" };
+  if (poll.totalVotes > 0) return { ok: false, reason: "has_votes" };
+
+  const voteCount = await db.pollVote.count({ where: { pollId: poll.id } });
+  if (voteCount > 0) return { ok: false, reason: "has_votes" };
+
+  await db.poll.update({
+    where: { id: poll.id },
+    data: { options, updatedAt: new Date() },
+  });
+  return { ok: true };
+}
+
+export type SetPollVisibleResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "forbidden" };
+
+export async function setOwnPollCatalogVisible(
+  ownerId: string,
+  pollId: string,
+  catalogVisible: boolean,
+): Promise<SetPollVisibleResult> {
+  const poll = await db.poll.findUnique({ where: { id: pollId }, select: { id: true, ownerId: true } });
+  if (!poll) return { ok: false, reason: "not_found" };
+  if (poll.ownerId !== ownerId) return { ok: false, reason: "forbidden" };
+  await db.poll.update({
+    where: { id: poll.id },
+    data: { catalogVisible, searchable: catalogVisible ? true : undefined, updatedAt: new Date() },
+  });
   return { ok: true };
 }
 

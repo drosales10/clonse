@@ -123,6 +123,7 @@ export async function getAlbumDetail(
   return {
     ...toPublicAlbum(row),
     description: toSafeText(row.description),
+    catalogVisible: row.catalogVisible,
     isOwner: viewerId === row.ownerId,
     media: mediaPageItems.map((item) => ({
       id: item.id,
@@ -177,6 +178,44 @@ export async function createAlbum(
   });
 
   return { ok: true, id: album.id };
+}
+
+export type UpdateAlbumResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "forbidden" };
+
+export async function updateOwnAlbum(
+  ownerId: string,
+  albumId: string,
+  input: { title: string; description: string | null },
+): Promise<UpdateAlbumResult> {
+  const album = await db.album.findUnique({ where: { id: albumId }, select: { id: true, ownerId: true } });
+  if (!album) return { ok: false, reason: "not_found" };
+  if (album.ownerId !== ownerId) return { ok: false, reason: "forbidden" };
+  await db.album.update({
+    where: { id: album.id },
+    data: { title: input.title, description: input.description, updatedAt: new Date() },
+  });
+  return { ok: true };
+}
+
+export type SetAlbumVisibleResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "forbidden" };
+
+export async function setOwnAlbumCatalogVisible(
+  ownerId: string,
+  albumId: string,
+  catalogVisible: boolean,
+): Promise<SetAlbumVisibleResult> {
+  const album = await db.album.findUnique({ where: { id: albumId }, select: { id: true, ownerId: true } });
+  if (!album) return { ok: false, reason: "not_found" };
+  if (album.ownerId !== ownerId) return { ok: false, reason: "forbidden" };
+  await db.album.update({
+    where: { id: album.id },
+    data: { catalogVisible, searchable: catalogVisible ? true : undefined, updatedAt: new Date() },
+  });
+  return { ok: true };
 }
 
 export type UploadAlbumMediaResult =

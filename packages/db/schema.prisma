@@ -51,6 +51,8 @@ model User {
   classifiedsOwned            Classified[]        @relation("ClassifiedOwner")
   eventsOwned                 Event[]             @relation("EventOwner")
   groupsOwned                 Group[]             @relation("GroupOwner")
+  groupMemberships            GroupMember[]       @relation("GroupMemberUser")
+  eventMemberships            EventMember[]       @relation("EventMemberUser")
   blogEntriesAuthored         BlogEntry[]         @relation("BlogEntryAuthor")
   articlesAuthored            Article[]           @relation("ArticleAuthor")
   forumPostsAuthored          ForumPost[]         @relation("ForumPostAuthor")
@@ -292,6 +294,7 @@ model Business {
   expiresAt      DateTime? @map("expires_at")
   searchable     Boolean   @default(true)
   privacy        Int       @default(63)
+  catalogVisible Boolean   @default(false) @map("catalog_visible")
   featured       Boolean   @default(false)
   sponsored      Boolean   @default(false)
   rating         Float     @default(0)
@@ -303,8 +306,8 @@ model Business {
   category BusinessCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@index([ownerId])
-  @@index([categoryId, searchable, approvedAt, expiresAt])
-  @@index([searchable, approvedAt, expiresAt, createdAt])
+  @@index([categoryId, searchable, catalogVisible, approvedAt, expiresAt])
+  @@index([searchable, catalogVisible, approvedAt, expiresAt, createdAt])
   @@map("businesses")
 }
 
@@ -329,26 +332,27 @@ model ClassifiedCategory {
 }
 
 model Classified {
-  id            String   @id @default(cuid())
-  legacyId      Int?     @unique @map("legacy_id")
-  ownerId       String   @map("owner_id")
-  categoryId    String?  @map("category_id")
-  title         String
-  body          String?
-  slug          String?  @unique
-  createdAt     DateTime @map("created_at")
-  updatedAt     DateTime @map("updated_at")
-  searchable    Boolean  @default(true)
-  privacy       Int      @default(63)
-  views         Int      @default(0)
-  totalComments Int      @default(0) @map("total_comments")
+  id             String   @id @default(cuid())
+  legacyId       Int?     @unique @map("legacy_id")
+  ownerId        String   @map("owner_id")
+  categoryId     String?  @map("category_id")
+  title          String
+  body           String?
+  slug           String?  @unique
+  createdAt      DateTime @map("created_at")
+  updatedAt      DateTime @map("updated_at")
+  searchable     Boolean  @default(true)
+  privacy        Int      @default(63)
+  catalogVisible Boolean  @default(false) @map("catalog_visible")
+  views          Int      @default(0)
+  totalComments  Int      @default(0) @map("total_comments")
 
   owner    User                @relation("ClassifiedOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   category ClassifiedCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@index([ownerId, categoryId])
-  @@index([categoryId, searchable, createdAt])
-  @@index([searchable, createdAt])
+  @@index([categoryId, searchable, catalogVisible, createdAt])
+  @@index([searchable, catalogVisible, createdAt])
   @@map("classifieds")
 }
 
@@ -393,6 +397,7 @@ model Event {
 
   owner    User           @relation("EventOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   category EventCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  members  EventMember[]
 
   @@index([ownerId])
   @@index([categoryId, searchable, startsAt])
@@ -434,17 +439,56 @@ model Group {
   catalogVisible    Boolean  @default(false) @map("catalog_visible")
   commentsPrivacy   Int?     @map("comments_privacy")
   discussionPrivacy Int?     @map("discussion_privacy")
-  inviteEnabled     Boolean  @default(false) @map("invite_enabled")
-  uploadEnabled     Boolean  @default(false) @map("upload_enabled")
+  inviteEnabled                 Boolean  @default(false) @map("invite_enabled")
+  membershipApprovalRequired    Boolean  @default(false) @map("membership_approval_required")
+  uploadEnabled                 Boolean  @default(false) @map("upload_enabled")
   views             Int      @default(0)
 
   owner    User           @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   category GroupCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  members  GroupMember[]
 
   @@index([ownerId])
   @@index([categoryId, searchable, catalogVisible])
   @@index([searchable, catalogVisible, createdAt])
   @@map("groups")
+}
+
+model GroupMember {
+  id        String   @id @default(cuid())
+  groupId   String   @map("group_id")
+  userId    String   @map("user_id")
+  status    Int      @default(1)
+  approved  Boolean  @default(true)
+  rank      Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation("GroupMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+  @@index([userId, status, approved])
+  @@map("group_members")
+}
+
+model EventMember {
+  id        String   @id @default(cuid())
+  eventId   String   @map("event_id")
+  userId    String   @map("user_id")
+  status    Int      @default(1)
+  approved  Boolean  @default(true)
+  rsvp      Int      @default(2)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation("EventMemberUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([userId, status, approved])
+  @@index([eventId, rsvp])
+  @@map("event_members")
 }
 
 model ArticleCategory {
@@ -480,6 +524,7 @@ model Article {
   draft           Boolean  @default(false)
   approved        Boolean  @default(false)
   searchable      Boolean  @default(false)
+  catalogVisible  Boolean  @default(false) @map("catalog_visible")
   privacy         Int      @default(0)
   commentsPrivacy Int?     @map("comments_privacy")
   featured        Boolean  @default(false)
@@ -618,6 +663,7 @@ model BlogEntry {
   updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
   searchable      Boolean  @default(true)
   privacy         Int      @default(63)
+  catalogVisible  Boolean  @default(false) @map("catalog_visible")
   commentsPrivacy Int?     @map("comments_privacy")
   views           Int      @default(0)
 
@@ -625,8 +671,8 @@ model BlogEntry {
   category BlogCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@index([authorId, categoryId])
-  @@index([categoryId, searchable, createdAt])
-  @@index([searchable, createdAt])
+  @@index([categoryId, searchable, catalogVisible, createdAt])
+  @@index([searchable, catalogVisible, createdAt])
   @@map("blog_entries")
 }
 

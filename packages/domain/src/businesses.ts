@@ -74,9 +74,11 @@ export function normalizeBusinessQuery(input: Partial<BusinessCatalogQuery>): Bu
 export function canReadBusiness(
   ownerId: string,
   privacy: number,
+  catalogVisible: boolean,
   viewerId: string | null,
 ): boolean {
   if (viewerId === ownerId) return true;
+  if (!catalogVisible) return false;
   const viewerAccess = viewerId === null ? BUSINESS_ACCESS.ANONYMOUS : BUSINESS_ACCESS.REGISTERED;
   return Number.isInteger(privacy) && (privacy & viewerAccess) !== 0;
 }
@@ -94,4 +96,97 @@ export interface PublicBusinessDetail extends PublicBusiness {
   description: string | null;
   phone: string | null;
   url: string | null;
+  categoryId: string | null;
+  catalogVisible: boolean;
+  isOwner: boolean;
+}
+
+export type BusinessCreateFormState = {
+  errors?: {
+    form?: string[];
+    title?: string[];
+    summary?: string[];
+    description?: string[];
+    city?: string[];
+    province?: string[];
+    country?: string[];
+    categoryId?: string[];
+  };
+  message?: string;
+  success?: boolean;
+};
+
+export type BusinessManageFormState = BusinessCreateFormState;
+
+export function businessWriteInputFromFormData(formData: FormData): {
+  title: string;
+  summary: string;
+  description: string;
+  city: string;
+  province: string;
+  country: string;
+  categoryId: string | null;
+} {
+  const read = (name: string) =>
+    typeof formData.get(name) === "string" ? String(formData.get(name)).trim() : "";
+  const rawCategory = read("categoryId");
+  return {
+    title: read("title"),
+    summary: read("summary"),
+    description: read("description"),
+    city: read("city"),
+    province: read("province"),
+    country: read("country"),
+    categoryId: rawCategory || null,
+  };
+}
+
+export function validateBusinessWriteInput(input: {
+  title: string;
+  summary: string;
+  description: string;
+  city: string;
+  province: string;
+  country: string;
+  categoryId: string | null;
+}):
+  | {
+      success: true;
+      data: {
+        title: string;
+        summary: string | null;
+        description: string | null;
+        city: string | null;
+        province: string | null;
+        country: string | null;
+        categoryId: string | null;
+      };
+    }
+  | { success: false; errors: NonNullable<BusinessCreateFormState["errors"]> } {
+  const errors: NonNullable<BusinessCreateFormState["errors"]> = {};
+  if (!input.title || input.title.length > 120) {
+    errors.title = ["El título es obligatorio (máx. 120 caracteres)."];
+  }
+  if (input.summary.length > 500) {
+    errors.summary = ["El resumen no puede superar 500 caracteres."];
+  }
+  if (input.description.length > 5000) {
+    errors.description = ["La descripción no puede superar 5000 caracteres."];
+  }
+  if (input.city.length > 100) errors.city = ["La ciudad no puede superar 100 caracteres."];
+  if (input.province.length > 100) errors.province = ["La provincia no puede superar 100 caracteres."];
+  if (input.country.length > 100) errors.country = ["El país no puede superar 100 caracteres."];
+  if (Object.keys(errors).length > 0) return { success: false, errors };
+  return {
+    success: true,
+    data: {
+      title: input.title,
+      summary: input.summary || null,
+      description: input.description || null,
+      city: input.city || null,
+      province: input.province || null,
+      country: input.country || null,
+      categoryId: input.categoryId,
+    },
+  };
 }

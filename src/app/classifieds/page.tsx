@@ -33,6 +33,18 @@ export default async function ClassifiedsPage({
         <h1 id="classifieds-title">Encuentra lo que buscas</h1>
         <p className="lead">Explora publicaciones buscables y visibles según la privacidad de cada propietario.</p>
 
+        <div className="poll-toolbar">
+          {viewer ? (
+            <Link className="button button-primary button-small" href="/classifieds/new">
+              Crear clasificado
+            </Link>
+          ) : (
+            <Link className="text-link" href="/login?returnUrl=/classifieds/new">
+              Inicia sesión para crear un clasificado
+            </Link>
+          )}
+        </div>
+
         <form className="classified-filters" method="get">
           <div className="classified-filter-search">
             <label htmlFor="classified-search">Buscar</label>

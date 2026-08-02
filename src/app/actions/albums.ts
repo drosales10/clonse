@@ -5,11 +5,19 @@ import { redirect } from "next/navigation";
 
 import {
   albumCreateInputFromFormData,
+  albumWriteInputFromFormData,
   validateAlbumCreateInput,
+  validateAlbumWriteInput,
   type AlbumCreateFormState,
+  type AlbumManageFormState,
   type AlbumUploadFormState,
 } from "@domain/albums";
-import { createAlbum, uploadAlbumMedia } from "@/server/albums/service";
+import {
+  createAlbum,
+  setOwnAlbumCatalogVisible,
+  updateOwnAlbum,
+  uploadAlbumMedia,
+} from "@/server/albums/service";
 import { getCurrentUser } from "@/server/auth/session";
 
 export async function createAlbumAction(
@@ -83,6 +91,69 @@ export async function uploadAlbumMediaAction(
     return { success: true, message: "Imagen añadida al álbum." };
   } catch {
     return { errors: { form: ["No se pudo subir el archivo. Inténtalo de nuevo."] } };
+  }
+}
+
+export async function updateAlbumAction(
+  _previous: AlbumManageFormState,
+  formData: FormData,
+): Promise<AlbumManageFormState> {
+  const user = await getCurrentUser();
+  if (!user) return { errors: { form: ["Tu sesión ha caducado."] } };
+
+  const albumId = typeof formData.get("albumId") === "string" ? String(formData.get("albumId")).trim() : "";
+  if (!albumId) return { errors: { form: ["Álbum no válido."] } };
+
+  const validation = validateAlbumWriteInput(albumWriteInputFromFormData(formData));
+  if (!validation.success) return { errors: validation.errors };
+
+  try {
+    const result = await updateOwnAlbum(user.id, albumId, validation.data);
+    if (!result.ok) {
+      return {
+        errors: {
+          form: [result.reason === "forbidden" ? "No puedes editar este álbum." : "No se encontró el álbum."],
+        },
+      };
+    }
+    revalidatePath(`/albums/${encodeURIComponent(albumId)}`);
+    revalidatePath("/albums");
+    revalidatePath("/admin/albums");
+    return { success: true, message: "Álbum actualizado." };
+  } catch {
+    return { errors: { form: ["No se pudo actualizar el álbum."] } };
+  }
+}
+
+export async function setAlbumVisibleAction(
+  _previous: AlbumManageFormState,
+  formData: FormData,
+): Promise<AlbumManageFormState> {
+  const user = await getCurrentUser();
+  if (!user) return { errors: { form: ["Tu sesión ha caducado."] } };
+
+  const albumId = typeof formData.get("albumId") === "string" ? String(formData.get("albumId")).trim() : "";
+  const visible = formData.get("visible") === "1";
+  if (!albumId) return { errors: { form: ["Álbum no válido."] } };
+
+  try {
+    const result = await setOwnAlbumCatalogVisible(user.id, albumId, visible);
+    if (!result.ok) {
+      return {
+        errors: {
+          form: [result.reason === "forbidden" ? "No puedes gestionar este álbum." : "No se encontró el álbum."],
+        },
+      };
+    }
+    revalidatePath(`/albums/${encodeURIComponent(albumId)}`);
+    revalidatePath("/albums");
+    revalidatePath("/admin/albums");
+    return {
+      success: true,
+      message: visible ? "Álbum visible en el catálogo." : "Álbum oculto del catálogo.",
+    };
+  } catch {
+    return { errors: { form: ["No se pudo actualizar la visibilidad."] } };
   }
 }
 

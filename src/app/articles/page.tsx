@@ -34,6 +34,18 @@ export default async function ArticlesPage({
         <h1 id="articles-title">Conocimiento compartido</h1>
         <p className="lead">Explora artículos aprobados, buscables y visibles según la privacidad de cada autor.</p>
 
+        <div className="poll-toolbar">
+          {viewer ? (
+            <Link className="button button-primary button-small" href="/articles/new">
+              Crear artículo
+            </Link>
+          ) : (
+            <Link className="text-link" href="/login?returnUrl=/articles/new">
+              Inicia sesión para crear un artículo
+            </Link>
+          )}
+        </div>
+
         <form className="article-filters" method="get">
           <div className="article-filter-search">
             <label htmlFor="article-search">Buscar</label>

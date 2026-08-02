@@ -10,7 +10,17 @@ import {
 } from "@domain/admin-access";
 import { requireAdminAccess } from "@/server/admin/access";
 import { setAdminAlbumCatalogVisible } from "@/server/admin/album-mutations";
+import { setAdminArticleCatalogVisible } from "@/server/admin/article-mutations";
+import { setAdminBlogCatalogVisible } from "@/server/admin/blog-mutations";
+import { setAdminBusinessCatalogVisible } from "@/server/admin/business-mutations";
+import { setAdminClassifiedCatalogVisible } from "@/server/admin/classified-mutations";
 import { setAdminEventCatalogVisible } from "@/server/admin/event-mutations";
+import {
+  setAdminForumCategoryLocked,
+  setAdminForumTopicAnnouncement,
+  setAdminForumTopicLocked,
+  setAdminForumTopicSticky,
+} from "@/server/admin/forum-mutations";
 import { setAdminGroupCatalogVisible } from "@/server/admin/group-mutations";
 import { setAdminPollClosed, setAdminPollCatalogVisible } from "@/server/admin/poll-mutations";
 import { destroyAdminSession, establishAdminSession, authenticateAdmin } from "@/server/admin/session";
@@ -211,5 +221,184 @@ export async function adminSetEventVisibleAction(
     };
   } catch {
     return { errors: { form: ["No se pudo actualizar la visibilidad."] } };
+  }
+}
+
+export async function adminSetClassifiedVisibleAction(
+  _previous: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireAdminAccess();
+  const classifiedId = String(formData.get("classifiedId") ?? "").trim();
+  const visible = formData.get("visible") === "1";
+  if (!classifiedId) return { errors: { form: ["Clasificado no válido."] } };
+
+  try {
+    const result = await setAdminClassifiedCatalogVisible(classifiedId, visible);
+    if (!result.ok) return { errors: { form: ["No se encontró el clasificado."] } };
+    revalidatePath("/admin/classifieds");
+    revalidatePath("/classifieds");
+    revalidatePath(`/classifieds/${classifiedId}`);
+    return {
+      success: true,
+      message: visible ? "Clasificado visible en catálogo." : "Clasificado oculto del catálogo.",
+    };
+  } catch {
+    return { errors: { form: ["No se pudo actualizar la visibilidad."] } };
+  }
+}
+
+export async function adminSetBlogVisibleAction(
+  _previous: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireAdminAccess();
+  const entryId = String(formData.get("entryId") ?? "").trim();
+  const visible = formData.get("visible") === "1";
+  if (!entryId) return { errors: { form: ["Entrada no válida."] } };
+
+  try {
+    const result = await setAdminBlogCatalogVisible(entryId, visible);
+    if (!result.ok) return { errors: { form: ["No se encontró la entrada."] } };
+    revalidatePath("/admin/blogs");
+    revalidatePath("/blogs");
+    revalidatePath(`/blogs/${entryId}`);
+    return {
+      success: true,
+      message: visible ? "Entrada visible en catálogo." : "Entrada oculta del catálogo.",
+    };
+  } catch {
+    return { errors: { form: ["No se pudo actualizar la visibilidad."] } };
+  }
+}
+
+export async function adminSetBusinessVisibleAction(
+  _previous: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireAdminAccess();
+  const businessId = String(formData.get("businessId") ?? "").trim();
+  const visible = formData.get("visible") === "1";
+  if (!businessId) return { errors: { form: ["Negocio no válido."] } };
+
+  try {
+    const result = await setAdminBusinessCatalogVisible(businessId, visible);
+    if (!result.ok) return { errors: { form: ["No se encontró el negocio."] } };
+    revalidatePath("/admin/businesses");
+    revalidatePath("/businesses");
+    revalidatePath(`/businesses/${businessId}`);
+    return {
+      success: true,
+      message: visible ? "Negocio visible en catálogo." : "Negocio oculto del catálogo.",
+    };
+  } catch {
+    return { errors: { form: ["No se pudo actualizar la visibilidad."] } };
+  }
+}
+
+export async function adminSetArticleVisibleAction(
+  _previous: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireAdminAccess();
+  const articleId = String(formData.get("articleId") ?? "").trim();
+  const visible = formData.get("visible") === "1";
+  if (!articleId) return { errors: { form: ["Artículo no válido."] } };
+
+  try {
+    const result = await setAdminArticleCatalogVisible(articleId, visible);
+    if (!result.ok) return { errors: { form: ["No se encontró el artículo."] } };
+    revalidatePath("/admin/articles");
+    revalidatePath("/articles");
+    revalidatePath(`/articles/${articleId}`);
+    return {
+      success: true,
+      message: visible ? "Artículo visible en catálogo." : "Artículo oculto del catálogo.",
+    };
+  } catch {
+    return { errors: { form: ["No se pudo actualizar la visibilidad."] } };
+  }
+}
+
+export async function adminSetForumTopicLockedAction(
+  _previous: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireAdminAccess();
+  const topicId = String(formData.get("topicId") ?? "").trim();
+  const locked = formData.get("locked") === "1";
+  if (!topicId) return { errors: { form: ["Tema no válido."] } };
+
+  try {
+    const result = await setAdminForumTopicLocked(topicId, locked);
+    if (!result.ok) return { errors: { form: ["No se encontró el tema."] } };
+    revalidatePath("/admin/forum");
+    revalidatePath("/forum");
+    return { success: true, message: locked ? "Tema bloqueado." : "Tema desbloqueado." };
+  } catch {
+    return { errors: { form: ["No se pudo actualizar el tema."] } };
+  }
+}
+
+export async function adminSetForumCategoryLockedAction(
+  _previous: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireAdminAccess();
+  const categoryId = String(formData.get("categoryId") ?? "").trim();
+  const locked = formData.get("locked") === "1";
+  if (!categoryId) return { errors: { form: ["Categoría no válida."] } };
+
+  try {
+    const result = await setAdminForumCategoryLocked(categoryId, locked);
+    if (!result.ok) return { errors: { form: ["No se encontró la categoría."] } };
+    revalidatePath("/admin/forum");
+    revalidatePath("/forum");
+    return { success: true, message: locked ? "Categoría bloqueada." : "Categoría desbloqueada." };
+  } catch {
+    return { errors: { form: ["No se pudo actualizar la categoría."] } };
+  }
+}
+
+export async function adminSetForumTopicStickyAction(
+  _previous: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireAdminAccess();
+  const topicId = String(formData.get("topicId") ?? "").trim();
+  const sticky = formData.get("sticky") === "1";
+  if (!topicId) return { errors: { form: ["Tema no válido."] } };
+
+  try {
+    const result = await setAdminForumTopicSticky(topicId, sticky);
+    if (!result.ok) return { errors: { form: ["No se encontró el tema."] } };
+    revalidatePath("/admin/forum");
+    revalidatePath("/forum");
+    return { success: true, message: sticky ? "Tema fijado." : "Tema desfijado." };
+  } catch {
+    return { errors: { form: ["No se pudo actualizar el tema."] } };
+  }
+}
+
+export async function adminSetForumTopicAnnouncementAction(
+  _previous: AdminActionState,
+  formData: FormData,
+): Promise<AdminActionState> {
+  await requireAdminAccess();
+  const topicId = String(formData.get("topicId") ?? "").trim();
+  const announcement = formData.get("announcement") === "1";
+  if (!topicId) return { errors: { form: ["Tema no válido."] } };
+
+  try {
+    const result = await setAdminForumTopicAnnouncement(topicId, announcement);
+    if (!result.ok) return { errors: { form: ["No se encontró el tema."] } };
+    revalidatePath("/admin/forum");
+    revalidatePath("/forum");
+    return {
+      success: true,
+      message: announcement ? "Marcado como anuncio." : "Anuncio retirado.",
+    };
+  } catch {
+    return { errors: { form: ["No se pudo actualizar el tema."] } };
   }
 }

@@ -1,6 +1,48 @@
 export const GROUP_PAGE_SIZE = 10;
 export const GROUP_MAX_PAGE = 10_000;
 
+export const GROUP_MEMBER_RANK = {
+  MEMBER: 0,
+  OFFICIAL: 1,
+  OWNER: 2,
+} as const;
+
+export const GROUP_MEMBER_STATUS = {
+  INVITED: 0,
+  ACTIVE: 1,
+} as const;
+
+export type GroupMembershipState = "none" | "member" | "owner" | "pending" | "invited";
+
+export const MEMBER_LIST_PAGE_SIZE = 10;
+export const MEMBER_LIST_MAX_PAGE = 10_000;
+
+export interface PublicMemberUser {
+  username: string;
+  displayName: string;
+}
+
+export interface PublicGroupMemberRow {
+  user: PublicMemberUser;
+  rank: number;
+  joinedAt: Date;
+}
+
+export interface PublicGroupPendingMember {
+  userId: string;
+  user: PublicMemberUser;
+  requestedAt: Date;
+}
+
+export interface GroupMemberListResult {
+  items: PublicGroupMemberRow[];
+  pagination: GroupCatalogPagination;
+}
+
+export interface GroupPendingListResult {
+  items: PublicGroupPendingMember[];
+}
+
 export type GroupSort = "created";
 
 export interface GroupCatalogQuery {
@@ -39,7 +81,12 @@ export interface PublicGroupDetail extends PublicGroup {
   description: string | null;
   categoryId: string | null;
   catalogVisible: boolean;
+  membershipApprovalRequired: boolean;
   isOwner: boolean;
+  memberCount: number;
+  pendingCount: number;
+  membership: GroupMembershipState;
+  canJoin: boolean;
 }
 
 export interface GroupCatalogResult {
@@ -59,6 +106,41 @@ export type GroupManageFormState = {
   message?: string;
   success?: boolean;
 };
+
+export type GroupMembershipFormState = {
+  errors?: { form?: string[]; username?: string[] };
+  message?: string;
+  success?: boolean;
+};
+
+export function normalizeMemberListPage(page: unknown): number {
+  const requested = Number.isInteger(page) ? Number(page) : 1;
+  return Math.min(Math.max(requested, 1), MEMBER_LIST_MAX_PAGE);
+}
+
+export function inviteUsernameFromFormData(formData: FormData): { username: string } {
+  const username = typeof formData.get("username") === "string" ? String(formData.get("username")).trim() : "";
+  return { username };
+}
+
+export function validateInviteUsername(input: { username: string }): GroupMembershipFormState["errors"] | null {
+  if (!input.username || input.username.length > 64) {
+    return { username: ["Indica un nombre de usuario válido."] };
+  }
+  return null;
+}
+
+export function resolveGroupMembership(
+  isOwner: boolean,
+  row: { approved: boolean; status: number } | null,
+): GroupMembershipState {
+  if (isOwner) return "owner";
+  if (!row) return "none";
+  if (row.status === GROUP_MEMBER_STATUS.INVITED && row.approved) return "invited";
+  if (row.status === GROUP_MEMBER_STATUS.ACTIVE && !row.approved) return "pending";
+  if (row.status === GROUP_MEMBER_STATUS.ACTIVE && row.approved) return "member";
+  return "none";
+}
 
 export function normalizeGroupQuery(input: Partial<GroupCatalogQuery>): GroupCatalogQuery {
   const requestedPage = Number.isInteger(input.page) ? Number(input.page) : 1;

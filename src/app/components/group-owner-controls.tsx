@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 
 import type { GroupManageFormState } from "@domain/groups";
-import { setGroupVisibleAction, updateGroupAction } from "@/app/actions/groups";
+import { setGroupApprovalRequiredAction, setGroupVisibleAction, updateGroupAction } from "@/app/actions/groups";
 
 type CategoryOption = { id: string; title: string; parentId: string | null };
 
@@ -41,6 +41,7 @@ export function GroupOwnerControls({
   description,
   categoryId,
   catalogVisible,
+  membershipApprovalRequired,
   categories,
 }: {
   groupId: string;
@@ -48,11 +49,16 @@ export function GroupOwnerControls({
   description: string | null;
   categoryId: string | null;
   catalogVisible: boolean;
+  membershipApprovalRequired: boolean;
   categories: CategoryOption[];
 }) {
   const [editState, editAction] = useActionState<GroupManageFormState, FormData>(updateGroupAction, {});
   const [visibleState, visibleAction] = useActionState<GroupManageFormState, FormData>(
     setGroupVisibleAction,
+    {},
+  );
+  const [approvalState, approvalAction] = useActionState<GroupManageFormState, FormData>(
+    setGroupApprovalRequiredAction,
     {},
   );
 
@@ -130,6 +136,24 @@ export function GroupOwnerControls({
         {visibleState.errors?.form?.[0] ? (
           <p className="form-error" role="alert">
             {visibleState.errors.form[0]}
+          </p>
+        ) : null}
+      </form>
+
+      <form action={approvalAction} className="owner-visibility-form">
+        <input name="groupId" type="hidden" value={groupId} />
+        <input name="required" type="hidden" value={membershipApprovalRequired ? "0" : "1"} />
+        <VisibilityButton
+          label={
+            membershipApprovalRequired
+              ? "Desactivar aprobación de solicitudes"
+              : "Requerir aprobación de solicitudes"
+          }
+          pendingLabel="Actualizando…"
+        />
+        {approvalState.message ? (
+          <p className="form-success" role="status">
+            {approvalState.message}
           </p>
         ) : null}
       </form>

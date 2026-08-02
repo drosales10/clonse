@@ -6,8 +6,12 @@ import { redirect } from "next/navigation";
 import {
   pollCreateInputFromFormData,
   pollVoteFromFormData,
+  pollWriteInputFromFormData,
+  pollOptionsWriteInputFromFormData,
   validatePollCreateInput,
   validatePollVoteInput,
+  validatePollWriteInput,
+  validatePollOptionsWriteInput,
   type PollCreateFormState,
   type PollManageFormState,
   type PollVoteFormState,
@@ -18,6 +22,9 @@ import {
   closeOwnPoll,
   createPoll,
   getPollDetail,
+  setOwnPollCatalogVisible,
+  updateOwnPoll,
+  updateOwnPollOptions,
 } from "@/server/polls/service";
 
 export async function createPollAction(
@@ -74,6 +81,108 @@ export async function closeOwnPollAction(
     return { success: true, message: "Encuesta cerrada." };
   } catch {
     return { errors: { form: ["No se pudo cerrar la encuesta."] } };
+  }
+}
+
+export async function updatePollAction(
+  _previous: PollManageFormState,
+  formData: FormData,
+): Promise<PollManageFormState> {
+  const user = await getCurrentUser();
+  if (!user) return { errors: { form: ["Tu sesión ha caducado."] } };
+
+  const pollId = typeof formData.get("pollId") === "string" ? String(formData.get("pollId")).trim() : "";
+  if (!pollId) return { errors: { form: ["Encuesta no válida."] } };
+
+  const validation = validatePollWriteInput(pollWriteInputFromFormData(formData));
+  if (!validation.success) return { errors: validation.errors };
+
+  try {
+    const result = await updateOwnPoll(user.id, pollId, validation.data);
+    if (!result.ok) {
+      return {
+        errors: {
+          form: [result.reason === "forbidden" ? "No puedes editar esta encuesta." : "No se encontró la encuesta."],
+        },
+      };
+    }
+    revalidatePath(`/polls/${encodeURIComponent(pollId)}`);
+    revalidatePath("/polls");
+    revalidatePath("/admin/polls");
+    return { success: true, message: "Encuesta actualizada." };
+  } catch {
+    return { errors: { form: ["No se pudo actualizar la encuesta."] } };
+  }
+}
+
+export async function setPollVisibleAction(
+  _previous: PollManageFormState,
+  formData: FormData,
+): Promise<PollManageFormState> {
+  const user = await getCurrentUser();
+  if (!user) return { errors: { form: ["Tu sesión ha caducado."] } };
+
+  const pollId = typeof formData.get("pollId") === "string" ? String(formData.get("pollId")).trim() : "";
+  const visible = formData.get("visible") === "1";
+  if (!pollId) return { errors: { form: ["Encuesta no válida."] } };
+
+  try {
+    const result = await setOwnPollCatalogVisible(user.id, pollId, visible);
+    if (!result.ok) {
+      return {
+        errors: {
+          form: [result.reason === "forbidden" ? "No puedes gestionar esta encuesta." : "No se encontró la encuesta."],
+        },
+      };
+    }
+    revalidatePath(`/polls/${encodeURIComponent(pollId)}`);
+    revalidatePath("/polls");
+    revalidatePath("/admin/polls");
+    return {
+      success: true,
+      message: visible ? "Encuesta visible en el catálogo." : "Encuesta oculta del catálogo.",
+    };
+  } catch {
+    return { errors: { form: ["No se pudo actualizar la visibilidad."] } };
+  }
+}
+
+export async function updatePollOptionsAction(
+  _previous: PollManageFormState,
+  formData: FormData,
+): Promise<PollManageFormState> {
+  const user = await getCurrentUser();
+  if (!user) return { errors: { form: ["Tu sesión ha caducado."] } };
+
+  const pollId = typeof formData.get("pollId") === "string" ? String(formData.get("pollId")).trim() : "";
+  if (!pollId) return { errors: { form: ["Encuesta no válida."] } };
+
+  const validation = validatePollOptionsWriteInput(pollOptionsWriteInputFromFormData(formData));
+  if (!validation.success) return { errors: validation.errors };
+
+  try {
+    const result = await updateOwnPollOptions(user.id, pollId, validation.data.options);
+    if (!result.ok) {
+      return {
+        errors: {
+          form: [
+            result.reason === "has_votes"
+              ? "No puedes editar las opciones después de recibir votos."
+              : result.reason === "closed"
+                ? "La encuesta está cerrada."
+                : result.reason === "forbidden"
+                  ? "No puedes editar esta encuesta."
+                  : "No se encontró la encuesta.",
+          ],
+        },
+      };
+    }
+    revalidatePath(`/polls/${encodeURIComponent(pollId)}`);
+    revalidatePath("/polls");
+    revalidatePath("/admin/polls");
+    return { success: true, message: "Opciones actualizadas." };
+  } catch {
+    return { errors: { form: ["No se pudieron actualizar las opciones."] } };
   }
 }
 

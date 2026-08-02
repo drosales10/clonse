@@ -60,6 +60,7 @@ export interface PublicAlbum {
 export interface PublicAlbumDetail extends PublicAlbum {
   media: PublicAlbumMedia[];
   mediaPagination: AlbumCatalogPagination;
+  catalogVisible: boolean;
   isOwner: boolean;
 }
 
@@ -79,6 +80,8 @@ export type AlbumUploadFormState = {
   message?: string;
   success?: boolean;
 };
+
+export type AlbumManageFormState = AlbumCreateFormState;
 
 export function normalizeAlbumQuery(input: Partial<AlbumCatalogQuery>): AlbumCatalogQuery {
   const requestedPage = Number.isInteger(input.page) ? Number(input.page) : 1;
@@ -123,6 +126,9 @@ export function validateAlbumCreateInput(input: {
     },
   };
 }
+
+export const albumWriteInputFromFormData = albumCreateInputFromFormData;
+export const validateAlbumWriteInput = validateAlbumCreateInput;
 
 export function normalizeAlbumExtension(filename: string): AlbumAllowedExtension | null {
   const match = /\.([a-z0-9]+)$/i.exec(filename.trim());

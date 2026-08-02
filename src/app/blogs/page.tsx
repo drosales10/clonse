@@ -33,6 +33,18 @@ export default async function BlogsPage({
         <h1 id="blogs-title">Ideas de la comunidad</h1>
         <p className="lead">Explora entradas buscables y visibles según la privacidad de cada autor.</p>
 
+        <div className="poll-toolbar">
+          {viewer ? (
+            <Link className="button button-primary button-small" href="/blogs/new">
+              Crear entrada
+            </Link>
+          ) : (
+            <Link className="text-link" href="/login?returnUrl=/blogs/new">
+              Inicia sesión para crear una entrada
+            </Link>
+          )}
+        </div>
+
         <form className="blog-filters" method="get">
           <div className="blog-filter-search">
             <label htmlFor="blog-search">Buscar</label>

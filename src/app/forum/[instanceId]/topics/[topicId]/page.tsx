@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { normalizeForumQuery } from "@domain/forum";
+import { ForumReplyForm } from "@/app/components/forum-reply-form";
 import { getForumTopic } from "@/server/forum/service";
+import { getCurrentUser } from "@/server/auth/session";
 import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = { title: "Tema del foro | Red Social" };
@@ -12,6 +14,7 @@ export default async function ForumTopicPage({ params, searchParams }: { params:
   const query = await searchParams;
   const categoryId = readString(query.categoryId);
   const page = Number(readString(query.page));
+  const viewer = await getCurrentUser();
   const result = categoryId ? await getForumTopic(normalizeForumQuery({ instanceId, categoryId, topicId, page: Number.isInteger(page) ? page : 1 })) : null;
   if (!result) {
     return (
@@ -30,6 +33,13 @@ export default async function ForumTopicPage({ params, searchParams }: { params:
       <section className="profile-panel forum-panel" aria-labelledby="topic-title">
         <p className="eyebrow">{result.category.title}</p>
         <h1 id="topic-title">{result.topic.title}</h1>
+        {result.topic.isLocked || result.category.isLocked ? (
+          <p className="field-help" role="status">
+            {result.topic.isLocked
+              ? "Este tema está bloqueado. No se aceptan nuevas respuestas."
+              : "Esta categoría está bloqueada. No se aceptan nuevas respuestas."}
+          </p>
+        ) : null}
         <div className="forum-post-list">
           {result.posts.map((post) => (
             <article className="forum-post-card" key={post.id}>
@@ -41,6 +51,9 @@ export default async function ForumTopicPage({ params, searchParams }: { params:
             </article>
           ))}
         </div>
+        {viewer && !result.category.isLocked && !result.topic.isLocked ? (
+          <ForumReplyForm categoryId={result.category.id} instanceId={result.instance.id} topicId={result.topic.id} />
+        ) : null}
         <ForumPagination
           page={result.pagination.page}
           pageCount={result.pagination.pageCount}

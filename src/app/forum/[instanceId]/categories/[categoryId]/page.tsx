@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { normalizeForumQuery } from "@domain/forum";
 import { getForumCatalog } from "@/server/forum/service";
+import { getCurrentUser } from "@/server/auth/session";
 import { ClientShell } from "@/components/client/ClientShell";
 
 export const metadata: Metadata = { title: "Categoría del foro | Red Social" };
@@ -17,6 +18,7 @@ export default async function ForumCategoryPage({
   const { instanceId, categoryId } = await params;
   const query = await searchParams;
   const page = Number(readString(query.page));
+  const viewer = await getCurrentUser();
   const catalog = await getForumCatalog(normalizeForumQuery({
     instanceId,
     categoryId,
@@ -45,6 +47,16 @@ export default async function ForumCategoryPage({
         <p className="eyebrow">{parent.title} · Categoría</p>
         <h1 id="category-title">{category.title}</h1>
         {category.description ? <p className="lead">{toExcerpt(category.description)}</p> : null}
+        {viewer && !category.isLocked ? (
+          <p className="forum-actions">
+            <Link
+              className="button button-primary"
+              href={`/forum/${instanceId}/categories/${category.id}/new`}
+            >
+              Nuevo tema
+            </Link>
+          </p>
+        ) : null}
         {catalog.topics.length > 0 ? (
           <div className="forum-topic-list">
             {catalog.topics.map((topic) => (

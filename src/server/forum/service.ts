@@ -122,6 +122,134 @@ export async function getForumTopic(input: ForumQuery): Promise<ForumTopicResult
   return { instance, category, topic: toTopic(topic), posts: pageRows.map((row) => toPost(row, topic.id)), pagination };
 }
 
+export type CreateForumTopicResult =
+  | { ok: true; id: string }
+  | { ok: false; reason: "not_found" | "locked" | "invalid_category" | "forbidden" };
+
+export type CreateForumReplyResult =
+  | { ok: true; id: string }
+  | { ok: false; reason: "not_found" | "locked" | "topic_locked" | "forbidden" };
+
+export async function createForumTopic(
+  authorId: string,
+  instanceIdentifier: string,
+  categoryIdentifier: string,
+  input: { title: string; body: string },
+): Promise<CreateForumTopicResult> {
+  const instance = await db.forumInstance.findFirst({
+    where: {
+      mode: "forum",
+      OR: [
+        { id: instanceIdentifier },
+        ...(toPositiveLegacyId(instanceIdentifier) !== null ? [{ legacyId: toPositiveLegacyId(instanceIdentifier) }] : []),
+      ],
+    },
+    select: { id: true },
+  });
+  if (!instance) return { ok: false, reason: "not_found" };
+
+  const allCategories = await db.forumCategory.findMany({
+    where: { instanceId: instance.id },
+    select: categorySelect,
+  });
+  const category = allCategories.find((item) => matchesIdentifier(item.id, item.legacyId, categoryIdentifier));
+  if (!category || !isWritableForumCategory(category, allCategories)) {
+    return { ok: false, reason: "invalid_category" };
+  }
+  if (category.isLocked) return { ok: false, reason: "locked" };
+
+  const now = new Date();
+  const row = await db.forumPost.create({
+    data: {
+      authorId,
+      instanceId: instance.id,
+      categoryId: category.id,
+      parentId: null,
+      title: input.title,
+      body: input.body,
+      createdAt: now,
+    },
+    select: { id: true },
+  });
+  return { ok: true, id: row.id };
+}
+
+export async function createForumReply(
+  authorId: string,
+  instanceIdentifier: string,
+  categoryIdentifier: string,
+  topicIdentifier: string,
+  input: { body: string },
+): Promise<CreateForumReplyResult> {
+  const instance = await db.forumInstance.findFirst({
+    where: {
+      mode: "forum",
+      OR: [
+        { id: instanceIdentifier },
+        ...(toPositiveLegacyId(instanceIdentifier) !== null ? [{ legacyId: toPositiveLegacyId(instanceIdentifier) }] : []),
+      ],
+    },
+    select: { id: true },
+  });
+  if (!instance) return { ok: false, reason: "not_found" };
+
+  const allCategories = await db.forumCategory.findMany({
+    where: { instanceId: instance.id },
+    select: categorySelect,
+  });
+  const category = allCategories.find((item) => matchesIdentifier(item.id, item.legacyId, categoryIdentifier));
+  if (!category || !isWritableForumCategory(category, allCategories)) {
+    return { ok: false, reason: "not_found" };
+  }
+  if (category.isLocked) return { ok: false, reason: "locked" };
+
+  const topic = await db.forumPost.findFirst({
+    where: {
+      AND: [
+        {
+          OR: [
+            { id: topicIdentifier },
+            ...(toPositiveLegacyId(topicIdentifier) !== null ? [{ legacyId: toPositiveLegacyId(topicIdentifier) }] : []),
+          ],
+        },
+        { instanceId: instance.id, categoryId: category.id, parentId: null },
+      ],
+    },
+    select: { id: true, isLocked: true },
+  });
+  if (!topic) return { ok: false, reason: "not_found" };
+  if (topic.isLocked) return { ok: false, reason: "topic_locked" };
+
+  const now = new Date();
+  const reply = await db.$transaction(async (tx) => {
+    const created = await tx.forumPost.create({
+      data: {
+        authorId,
+        instanceId: instance.id,
+        categoryId: category.id,
+        parentId: topic.id,
+        body: input.body,
+        createdAt: now,
+      },
+      select: { id: true },
+    });
+    await tx.forumPost.update({
+      where: { id: topic.id },
+      data: { replyCount: { increment: 1 } },
+    });
+    return created;
+  });
+  return { ok: true, id: reply.id };
+}
+
+function isWritableForumCategory(
+  category: { id: string; parentId: string | null; publicCanRead: boolean; isLocked: boolean },
+  categories: Array<{ id: string; parentId: string | null; publicCanRead: boolean; isLocked: boolean }>,
+): boolean {
+  if (!category.parentId) return false;
+  return isPublicCategory(category, categories);
+}
+
 function isPublicCategory(category: { id: string; parentId: string | null; publicCanRead: boolean }, categories: Array<{ id: string; parentId: string | null; publicCanRead: boolean }>): boolean {
   if (!category.publicCanRead) return false;
   if (!category.parentId) return true;

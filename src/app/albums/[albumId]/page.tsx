@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AlbumOwnerControls } from "@/app/components/album-owner-controls";
 import { AlbumUploadForm } from "@/app/components/album-upload-form";
 import { ClientShell } from "@/components/client/ClientShell";
 import { getCurrentUser } from "@/server/auth/session";
@@ -38,6 +39,11 @@ export default async function AlbumDetailPage({
         </Link>
         <p className="eyebrow">Álbum</p>
         <h1 id="album-title">{album.title}</h1>
+        {!album.catalogVisible && album.isOwner ? (
+          <p className="field-help" role="status">
+            Este álbum está oculto del catálogo público.
+          </p>
+        ) : null}
         {album.description ? (
           <div className="album-detail-description">{album.description}</div>
         ) : (
@@ -73,6 +79,15 @@ export default async function AlbumDetailPage({
             <dd>{album.totalFiles}</dd>
           </div>
         </dl>
+
+        {album.isOwner ? (
+          <AlbumOwnerControls
+            albumId={album.id}
+            catalogVisible={album.catalogVisible}
+            description={album.description}
+            title={album.title}
+          />
+        ) : null}
 
         {album.isOwner ? <AlbumUploadForm albumId={album.id} /> : null}
 

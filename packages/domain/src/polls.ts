@@ -49,6 +49,7 @@ export interface PublicPollDetail extends PublicPoll {
   viewerOptionIndex: number | null;
   canVote: boolean;
   isOwner: boolean;
+  catalogVisible: boolean;
 }
 
 export interface PollCatalogResult {
@@ -69,7 +70,7 @@ export type PollCreateFormState = {
 };
 
 export type PollManageFormState = {
-  errors?: { form?: string[] };
+  errors?: { form?: string[]; title?: string[]; description?: string[]; options?: string[] };
   message?: string;
   success?: boolean;
 };
@@ -162,6 +163,51 @@ export function validatePollCreateInput(input: {
       options: input.options,
     },
   };
+}
+
+export function pollWriteInputFromFormData(formData: FormData): { title: string; description: string } {
+  const title = typeof formData.get("title") === "string" ? String(formData.get("title")).trim() : "";
+  const description =
+    typeof formData.get("description") === "string" ? String(formData.get("description")).trim() : "";
+  return { title, description };
+}
+
+export function validatePollWriteInput(input: { title: string; description: string }):
+  | { success: true; data: { title: string; description: string | null } }
+  | { success: false; errors: NonNullable<PollManageFormState["errors"] & { title?: string[]; description?: string[] }> } {
+  const errors: { form?: string[]; title?: string[]; description?: string[] } = {};
+  if (!input.title || input.title.length > 120) {
+    errors.title = ["El título es obligatorio (máx. 120 caracteres)."];
+  }
+  if (input.description.length > 500) {
+    errors.description = ["La descripción no puede superar 500 caracteres."];
+  }
+  if (Object.keys(errors).length > 0) return { success: false, errors };
+  return { success: true, data: { title: input.title, description: input.description || null } };
+}
+
+export function pollOptionsWriteInputFromFormData(formData: FormData): { options: string[] } {
+  const rawOptions = typeof formData.get("options") === "string" ? String(formData.get("options")) : "";
+  const options = rawOptions
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 12);
+  return { options };
+}
+
+export function validatePollOptionsWriteInput(input: { options: string[] }):
+  | { success: true; data: { options: string[] } }
+  | { success: false; errors: NonNullable<PollManageFormState["errors"]> } {
+  const errors: NonNullable<PollManageFormState["errors"]> = {};
+  if (input.options.length < 2) {
+    errors.options = ["Añade al menos 2 opciones (una por línea)."];
+  }
+  if (input.options.some((option) => option.length > 80)) {
+    errors.options = ["Cada opción puede tener como máximo 80 caracteres."];
+  }
+  if (Object.keys(errors).length > 0) return { success: false, errors };
+  return { success: true, data: { options: input.options } };
 }
 
 export function buildPollOptionResults(

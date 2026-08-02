@@ -60,7 +60,17 @@ export default async function PollDetailPage({
           </div>
         </dl>
 
-        {poll.isOwner ? <PollOwnerControls closed={poll.closed} pollId={poll.id} /> : null}
+        {poll.isOwner ? (
+          <PollOwnerControls
+            catalogVisible={poll.catalogVisible}
+            closed={poll.closed}
+            description={poll.description}
+            optionLabels={poll.options.map((option) => option.label)}
+            pollId={poll.id}
+            title={poll.title}
+            totalVotes={poll.totalVotes}
+          />
+        ) : null}
 
         <section className="poll-results" aria-labelledby="poll-results-title">
           <h2 id="poll-results-title">Resultados</h2>

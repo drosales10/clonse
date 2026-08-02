@@ -1,12 +1,14 @@
 import { Prisma } from "@prisma/client";
 
 import {
+  ARTICLE_ACCESS,
   ARTICLE_PAGE_SIZE,
   canReadArticle,
   normalizeArticleQuery,
   type ArticleCatalogQuery,
   type ArticleCatalogResult,
   type PublicArticle,
+  type PublicArticleDetail,
 } from "@domain/articles";
 import { db } from "@/server/db/client";
 
@@ -23,7 +25,9 @@ const articleSelect = {
   draft: true,
   searchable: true,
   privacy: true,
+  catalogVisible: true,
   authorId: true,
+  categoryId: true,
   author: { select: { username: true, displayName: true, enabled: true } },
   category: { select: { id: true, legacyId: true, title: true } },
 } satisfies Prisma.ArticleSelect;
@@ -31,22 +35,27 @@ const articleSelect = {
 type ArticleRow = Prisma.ArticleGetPayload<{ select: typeof articleSelect }>;
 type CategoryRow = { id: string; legacyId: number | null; parentId: string | null; title: string };
 
+export async function listActiveArticleCategories(): Promise<CategoryRow[]> {
+  return db.articleCategory.findMany({
+    where: { active: true },
+    orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+    select: { id: true, legacyId: true, parentId: true, title: true },
+  });
+}
+
 export async function getArticleCatalog(
   viewerId: string | null,
   input: Partial<ArticleCatalogQuery> = {},
 ): Promise<ArticleCatalogResult> {
   const query = normalizeArticleQuery(input);
-  const categories = await db.articleCategory.findMany({
-    where: { active: true },
-    orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
-    select: { id: true, legacyId: true, parentId: true, title: true },
-  });
+  const categories = await listActiveArticleCategories();
   const categoryIds = resolveCategoryIds(categories, query.categoryId);
   const rows = await db.article.findMany({
     where: {
       approved: true,
       draft: false,
       searchable: true,
+      catalogVisible: true,
       ...(query.featured ? { featured: true } : {}),
       author: { enabled: true },
       ...(categoryIds ? { categoryId: { in: categoryIds } } : {}),
@@ -59,15 +68,18 @@ export async function getArticleCatalog(
           }
         : {}),
     },
-    orderBy: query.sort === "views"
-      ? [{ views: "desc" }, { id: "asc" }]
-      : query.sort === "title"
-        ? [{ title: "asc" }, { id: "asc" }]
-        : [{ publishedAt: "desc" }, { id: "asc" }],
+    orderBy:
+      query.sort === "views"
+        ? [{ views: "desc" }, { id: "asc" }]
+        : query.sort === "title"
+          ? [{ title: "asc" }, { id: "asc" }]
+          : [{ publishedAt: "desc" }, { id: "asc" }],
     select: articleSelect,
   });
 
-  const visible = rows.filter((row) => canReadArticle(row.authorId, row.privacy, viewerId));
+  const visible = rows.filter((row) =>
+    canReadArticle(row.authorId, row.privacy, row.catalogVisible, viewerId),
+  );
   const pageCount = Math.max(1, Math.ceil(visible.length / ARTICLE_PAGE_SIZE));
   const page = Math.min(query.page, pageCount);
   const startIndex = (page - 1) * ARTICLE_PAGE_SIZE;
@@ -85,6 +97,145 @@ export async function getArticleCatalog(
     },
     categories,
   };
+}
+
+export async function getArticleDetail(
+  viewerId: string | null,
+  articleId: string,
+): Promise<PublicArticleDetail | null> {
+  const legacyId = parseLegacyArticleId(articleId);
+  const row = await db.article.findFirst({
+    where: {
+      OR: [{ id: articleId }, ...(legacyId === null ? [] : [{ legacyId }])],
+      author: { enabled: true },
+    },
+    select: articleSelect,
+  });
+  if (!row) return null;
+  if (!canReadArticle(row.authorId, row.privacy, row.catalogVisible, viewerId)) return null;
+
+  const isOwner = viewerId === row.authorId;
+  if (!isOwner && (row.draft || !row.approved)) return null;
+
+  return {
+    ...toPublicArticle(row),
+    body: toSafeText(row.body),
+    categoryId: row.categoryId,
+    catalogVisible: row.catalogVisible,
+    isOwner,
+  };
+}
+
+export type CreateArticleResult =
+  | { ok: true; id: string }
+  | { ok: false; reason: "unauthorized" | "invalid_category" };
+
+export async function createArticle(
+  authorId: string,
+  input: { title: string; body: string | null; categoryId: string | null },
+): Promise<CreateArticleResult> {
+  const author = await requireActiveOwner(authorId);
+  if (!author) return { ok: false, reason: "unauthorized" };
+
+  if (input.categoryId) {
+    const category = await db.articleCategory.findFirst({
+      where: { id: input.categoryId, active: true },
+      select: { id: true },
+    });
+    if (!category) return { ok: false, reason: "invalid_category" };
+  }
+
+  const now = new Date();
+  const article = await db.article.create({
+    data: {
+      authorId: author.id,
+      title: input.title,
+      body: input.body,
+      categoryId: input.categoryId,
+      publishedAt: now,
+      updatedAt: now,
+      approved: true,
+      draft: false,
+      searchable: true,
+      catalogVisible: true,
+      privacy: ARTICLE_ACCESS.ANONYMOUS | ARTICLE_ACCESS.REGISTERED,
+      views: 0,
+    },
+    select: { id: true },
+  });
+  return { ok: true, id: article.id };
+}
+
+export type UpdateArticleResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "forbidden" | "invalid_category" };
+
+export async function updateOwnArticle(
+  authorId: string,
+  articleId: string,
+  input: { title: string; body: string | null; categoryId: string | null },
+): Promise<UpdateArticleResult> {
+  const article = await db.article.findUnique({
+    where: { id: articleId },
+    select: { id: true, authorId: true },
+  });
+  if (!article) return { ok: false, reason: "not_found" };
+  if (article.authorId !== authorId) return { ok: false, reason: "forbidden" };
+
+  if (input.categoryId) {
+    const category = await db.articleCategory.findFirst({
+      where: { id: input.categoryId, active: true },
+      select: { id: true },
+    });
+    if (!category) return { ok: false, reason: "invalid_category" };
+  }
+
+  await db.article.update({
+    where: { id: article.id },
+    data: {
+      title: input.title,
+      body: input.body,
+      categoryId: input.categoryId,
+      updatedAt: new Date(),
+    },
+  });
+  return { ok: true };
+}
+
+export type SetArticleVisibleResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "forbidden" };
+
+export async function setOwnArticleCatalogVisible(
+  authorId: string,
+  articleId: string,
+  catalogVisible: boolean,
+): Promise<SetArticleVisibleResult> {
+  const article = await db.article.findUnique({
+    where: { id: articleId },
+    select: { id: true, authorId: true },
+  });
+  if (!article) return { ok: false, reason: "not_found" };
+  if (article.authorId !== authorId) return { ok: false, reason: "forbidden" };
+
+  await db.article.update({
+    where: { id: article.id },
+    data: {
+      catalogVisible,
+      searchable: catalogVisible ? true : undefined,
+      updatedAt: new Date(),
+    },
+  });
+  return { ok: true };
+}
+
+async function requireActiveOwner(ownerId: string) {
+  return db.user
+    .findUnique({
+      where: { id: ownerId },
+      select: { id: true, enabled: true, verifiedAt: true },
+    })
+    .then((user) => (user?.enabled && user.verifiedAt ? user : null));
 }
 
 function resolveCategoryIds(categories: CategoryRow[], selectedId: string | null): string[] | null {
@@ -126,28 +277,6 @@ function toTextExcerpt(body: string | null): string | null {
   if (!body) return null;
   const text = body.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
   return text.length > 280 ? `${text.slice(0, 277)}...` : text;
-}
-
-
-export async function getArticleDetail(viewerId: string | null, articleId: string): Promise<import("@domain/articles").PublicArticleDetail | null> {
-  const legacyId = parseLegacyArticleId(articleId);
-  const row = await db.article.findFirst({
-    where: {
-      OR: [
-        { id: articleId },
-        ...(legacyId === null ? [] : [{ legacyId }]),
-      ],
-      approved: true,
-      draft: false,
-      author: { enabled: true },
-    },
-    select: articleSelect,
-  });
-  if (!row || !canReadArticle(row.authorId, row.privacy, viewerId)) return null;
-  return {
-    ...toPublicArticle(row),
-    body: toSafeText(row.body),
-  };
 }
 
 function toSafeText(body: string | null): string | null {

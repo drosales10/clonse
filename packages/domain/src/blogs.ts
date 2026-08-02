@@ -57,12 +57,61 @@ export function normalizeBlogQuery(input: Partial<BlogCatalogQuery>): BlogCatalo
   return { page, search, categoryId, sort };
 }
 
-export function canReadBlogEntry(ownerId: string, privacy: number, viewerId: string | null): boolean {
+export function canReadBlogEntry(
+  ownerId: string,
+  privacy: number,
+  catalogVisible: boolean,
+  viewerId: string | null,
+): boolean {
   if (viewerId === ownerId) return true;
+  if (!catalogVisible) return false;
   const viewerAccess = viewerId === null ? BLOG_ACCESS.ANONYMOUS : BLOG_ACCESS.REGISTERED;
   return Number.isInteger(privacy) && (privacy & viewerAccess) !== 0;
 }
 
 export interface PublicBlogEntryDetail extends PublicBlogEntry {
   body: string | null;
+  categoryId: string | null;
+  catalogVisible: boolean;
+  isOwner: boolean;
+}
+
+export type BlogCreateFormState = {
+  errors?: { form?: string[]; title?: string[]; body?: string[]; categoryId?: string[] };
+  message?: string;
+  success?: boolean;
+};
+
+export type BlogManageFormState = BlogCreateFormState;
+
+export function blogWriteInputFromFormData(formData: FormData): {
+  title: string;
+  body: string;
+  categoryId: string | null;
+} {
+  const read = (name: string) =>
+    typeof formData.get(name) === "string" ? String(formData.get(name)).trim() : "";
+  const rawCategory = read("categoryId");
+  return { title: read("title"), body: read("body"), categoryId: rawCategory || null };
+}
+
+export function validateBlogWriteInput(input: {
+  title: string;
+  body: string;
+  categoryId: string | null;
+}):
+  | { success: true; data: { title: string; body: string | null; categoryId: string | null } }
+  | { success: false; errors: NonNullable<BlogCreateFormState["errors"]> } {
+  const errors: NonNullable<BlogCreateFormState["errors"]> = {};
+  if (!input.title || input.title.length > 120) {
+    errors.title = ["El título es obligatorio (máx. 120 caracteres)."];
+  }
+  if (input.body.length > 10000) {
+    errors.body = ["El contenido no puede superar 10000 caracteres."];
+  }
+  if (Object.keys(errors).length > 0) return { success: false, errors };
+  return {
+    success: true,
+    data: { title: input.title, body: input.body || null, categoryId: input.categoryId },
+  };
 }

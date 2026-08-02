@@ -5,7 +5,7 @@ import { Pool } from "pg";
 import { normalizeDatabaseUrl } from "@/../packages/db/src/database-url";
 
 /** Bump when Prisma schema fields change so HMR does not keep a stale client. */
-const PRISMA_SCHEMA_EPOCH = "20260804110000_event_catalog_visible";
+const PRISMA_SCHEMA_EPOCH = "20260804150000_catalog_visible_classifieds";
 
 const globalForDatabase = globalThis as unknown as {
   prisma?: PrismaClient;

@@ -33,6 +33,18 @@ export default async function BusinessesPage({
         <h1 id="businesses-title">Encuentra un negocio</h1>
         <p className="lead">Explora negocios aprobados, buscables y visibles para ti.</p>
 
+        <div className="poll-toolbar">
+          {viewer ? (
+            <Link className="button button-primary button-small" href="/businesses/new">
+              Crear negocio
+            </Link>
+          ) : (
+            <Link className="text-link" href="/login?returnUrl=/businesses/new">
+              Inicia sesión para crear un negocio
+            </Link>
+          )}
+        </div>
+
         <form className="business-filters" method="get">
           <div className="business-filter-search">
             <label htmlFor="business-search">Buscar</label>

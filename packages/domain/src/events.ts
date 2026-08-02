@@ -7,6 +7,37 @@ export const EVENT_ACCESS = {
   ANONYMOUS: 64,
 } as const;
 
+export const EVENT_RSVP = {
+  NOT_ATTENDING: 0,
+  MAYBE: 1,
+  ATTENDING: 2,
+} as const;
+
+export type EventRsvpValue = (typeof EVENT_RSVP)[keyof typeof EVENT_RSVP];
+
+export const EVENT_MEMBER_STATUS = {
+  INVITED: 0,
+  ACTIVE: 1,
+} as const;
+
+export type EventMembershipState = "none" | "member" | "owner" | "invited";
+
+export const ATTENDEE_LIST_PAGE_SIZE = 10;
+export const ATTENDEE_LIST_MAX_PAGE = 10_000;
+
+export type AttendeeFilter = "all" | "attending" | "maybe";
+
+export interface PublicEventAttendeeRow {
+  user: { username: string; displayName: string };
+  rsvp: EventRsvpValue;
+  joinedAt: Date;
+}
+
+export interface EventAttendeeListResult {
+  items: PublicEventAttendeeRow[];
+  pagination: EventCatalogPagination;
+}
+
 export type EventSort = "created" | "startsAt" | "endsAt";
 export type EventView = "all" | "upcoming";
 
@@ -53,6 +84,12 @@ export interface PublicEventDetail extends PublicEvent {
   description: string | null;
   categoryId: string | null;
   isOwner: boolean;
+  attendeeCount: number;
+  maybeCount: number;
+  membership: EventMembershipState;
+  viewerRsvp: EventRsvpValue | null;
+  canRsvp: boolean;
+  canAcceptInvite: boolean;
 }
 
 export interface EventCatalogResult {
@@ -77,6 +114,83 @@ export type EventCreateFormState = {
 };
 
 export type EventManageFormState = EventCreateFormState;
+
+export type EventRsvpFormState = {
+  errors?: { form?: string[]; rsvp?: string[]; username?: string[] };
+  message?: string;
+  success?: boolean;
+};
+
+export function normalizeAttendeeListPage(page: unknown): number {
+  const requested = Number.isInteger(page) ? Number(page) : 1;
+  return Math.min(Math.max(requested, 1), ATTENDEE_LIST_MAX_PAGE);
+}
+
+export function normalizeAttendeeFilter(value: unknown): AttendeeFilter {
+  return value === "attending" || value === "maybe" ? value : "all";
+}
+
+export function canViewerReadEvent(
+  ownerId: string,
+  privacy: number,
+  inviteOnly: boolean,
+  catalogVisible: boolean,
+  viewerId: string | null,
+  membership: { approved: boolean; status: number } | null,
+): boolean {
+  if (viewerId === ownerId) return true;
+  if (inviteOnly) {
+    if (!membership) return false;
+    if (!membership.approved) return false;
+    return (
+      membership.status === EVENT_MEMBER_STATUS.ACTIVE ||
+      membership.status === EVENT_MEMBER_STATUS.INVITED
+    );
+  }
+  return canReadEvent(ownerId, privacy, false, catalogVisible, viewerId);
+}
+
+export function resolveEventMembership(
+  isOwner: boolean,
+  row: { approved: boolean; status: number; rsvp: number } | null,
+): EventMembershipState {
+  if (isOwner) return "owner";
+  if (!row) return "none";
+  if (row.status === EVENT_MEMBER_STATUS.INVITED && row.approved) return "invited";
+  if (row.status === EVENT_MEMBER_STATUS.ACTIVE && row.approved) return "member";
+  return "none";
+}
+
+export function eventRsvpFromFormData(formData: FormData): {
+  eventId: string;
+  rsvp: number | null;
+} {
+  const eventId = typeof formData.get("eventId") === "string" ? String(formData.get("eventId")).trim() : "";
+  const raw = formData.get("rsvp");
+  const rsvp = typeof raw === "string" && /^-?\d+$/.test(raw) ? Number(raw) : null;
+  return { eventId, rsvp };
+}
+
+export function validateEventRsvpInput(rsvp: number | null): EventRsvpFormState["errors"] | null {
+  if (rsvp === null) return { rsvp: ["Selecciona una respuesta válida."] };
+  const valid = [EVENT_RSVP.NOT_ATTENDING, EVENT_RSVP.MAYBE, EVENT_RSVP.ATTENDING];
+  if (!valid.includes(rsvp as EventRsvpValue)) {
+    return { rsvp: ["Selecciona una respuesta válida."] };
+  }
+  return null;
+}
+
+export function inviteUsernameFromFormData(formData: FormData): { username: string } {
+  const username = typeof formData.get("username") === "string" ? String(formData.get("username")).trim() : "";
+  return { username };
+}
+
+export function validateInviteUsername(input: { username: string }): EventRsvpFormState["errors"] | null {
+  if (!input.username || input.username.length > 64) {
+    return { username: ["Indica un nombre de usuario válido."] };
+  }
+  return null;
+}
 
 export function normalizeEventQuery(input: Partial<EventCatalogQuery>): EventCatalogQuery {
   const requestedPage = Number.isInteger(input.page) ? Number(input.page) : 1;
