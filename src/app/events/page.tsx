@@ -31,7 +31,19 @@ export default async function EventsPage({
       <section className="profile-panel event-panel" aria-labelledby="events-title">
         <p className="eyebrow">Comunidad · Eventos</p>
         <h1 id="events-title">Vive algo nuevo</h1>
-        <p className="lead">Explora eventos visibles para ti y consulta los próximos encuentros de la comunidad.</p>
+        <p className="lead">Explora eventos visibles y publica los tuyos con fechas, lugar y categoría.</p>
+
+        <div className="poll-toolbar">
+          {viewer ? (
+            <Link className="button button-primary button-small" href="/events/new">
+              Crear evento
+            </Link>
+          ) : (
+            <Link className="text-link" href="/login?returnUrl=/events/new">
+              Inicia sesión para crear un evento
+            </Link>
+          )}
+        </div>
 
         <form className="event-filters" method="get">
           <div>

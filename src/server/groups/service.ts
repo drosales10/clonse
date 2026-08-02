@@ -22,6 +22,7 @@ const groupSelect = {
   catalogVisible: true,
   views: true,
   ownerId: true,
+  categoryId: true,
   owner: { select: { username: true, displayName: true, enabled: true } },
   category: { select: { id: true, legacyId: true, title: true } },
 } satisfies Prisma.GroupSelect;
@@ -29,16 +30,20 @@ const groupSelect = {
 type GroupRow = Prisma.GroupGetPayload<{ select: typeof groupSelect }>;
 type CategoryRow = { id: string; legacyId: number | null; parentId: string | null; title: string };
 
+export async function listActiveGroupCategories(): Promise<CategoryRow[]> {
+  return db.groupCategory.findMany({
+    where: { active: true },
+    orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+    select: { id: true, legacyId: true, parentId: true, title: true },
+  });
+}
+
 export async function getGroupCatalog(
   viewerId: string | null,
   input: Partial<GroupCatalogQuery> = {},
 ): Promise<GroupCatalogResult> {
   const query = normalizeGroupQuery(input);
-  const categories = await db.groupCategory.findMany({
-    where: { active: true },
-    orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
-    select: { id: true, legacyId: true, parentId: true, title: true },
-  });
+  const categories = await listActiveGroupCategories();
   const categoryIds = resolveCategoryIds(categories, query.categoryId);
   const rows = await db.group.findMany({
     where: {
@@ -69,6 +74,147 @@ export async function getGroupCatalog(
     },
     categories,
   };
+}
+
+export async function getGroupDetail(
+  viewerId: string | null,
+  identifier: string,
+): Promise<PublicGroupDetail | null> {
+  const normalizedIdentifier = identifier.trim();
+  if (!normalizedIdentifier) return null;
+
+  const legacyId = /^\d+$/.test(normalizedIdentifier) ? Number(normalizedIdentifier) : null;
+  const row = await db.group.findFirst({
+    where: {
+      AND: [
+        {
+          OR: [
+            { id: normalizedIdentifier },
+            ...(legacyId !== null && legacyId > 0 ? [{ legacyId }] : []),
+          ],
+        },
+        { owner: { enabled: true } },
+      ],
+    },
+    select: groupSelect,
+  });
+
+  if (!row || !canReadGroup(row.ownerId, row.catalogVisible, viewerId)) return null;
+
+  return {
+    ...toPublicGroup(row),
+    description: toSafeText(row.description),
+    categoryId: row.categoryId,
+    catalogVisible: row.catalogVisible,
+    isOwner: viewerId === row.ownerId,
+  };
+}
+
+export type CreateGroupResult =
+  | { ok: true; id: string }
+  | { ok: false; reason: "unauthorized" | "invalid_category" };
+
+export async function createGroup(
+  ownerId: string,
+  input: { title: string; description: string | null; categoryId: string | null },
+): Promise<CreateGroupResult> {
+  const owner = await requireActiveOwner(ownerId);
+  if (!owner) return { ok: false, reason: "unauthorized" };
+
+  if (input.categoryId) {
+    const category = await db.groupCategory.findFirst({
+      where: { id: input.categoryId, active: true },
+      select: { id: true },
+    });
+    if (!category) return { ok: false, reason: "invalid_category" };
+  }
+
+  const now = new Date();
+  const group = await db.group.create({
+    data: {
+      ownerId: owner.id,
+      title: input.title,
+      description: input.description,
+      categoryId: input.categoryId,
+      createdAt: now,
+      updatedAt: now,
+      searchable: true,
+      catalogVisible: true,
+      views: 0,
+    },
+    select: { id: true },
+  });
+  return { ok: true, id: group.id };
+}
+
+export type UpdateGroupResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "forbidden" | "invalid_category" };
+
+export async function updateOwnGroup(
+  ownerId: string,
+  groupId: string,
+  input: { title: string; description: string | null; categoryId: string | null },
+): Promise<UpdateGroupResult> {
+  const group = await db.group.findUnique({
+    where: { id: groupId },
+    select: { id: true, ownerId: true },
+  });
+  if (!group) return { ok: false, reason: "not_found" };
+  if (group.ownerId !== ownerId) return { ok: false, reason: "forbidden" };
+
+  if (input.categoryId) {
+    const category = await db.groupCategory.findFirst({
+      where: { id: input.categoryId, active: true },
+      select: { id: true },
+    });
+    if (!category) return { ok: false, reason: "invalid_category" };
+  }
+
+  await db.group.update({
+    where: { id: group.id },
+    data: {
+      title: input.title,
+      description: input.description,
+      categoryId: input.categoryId,
+      updatedAt: new Date(),
+    },
+  });
+  return { ok: true };
+}
+
+export type SetGroupVisibleResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "forbidden" };
+
+export async function setOwnGroupCatalogVisible(
+  ownerId: string,
+  groupId: string,
+  catalogVisible: boolean,
+): Promise<SetGroupVisibleResult> {
+  const group = await db.group.findUnique({
+    where: { id: groupId },
+    select: { id: true, ownerId: true },
+  });
+  if (!group) return { ok: false, reason: "not_found" };
+  if (group.ownerId !== ownerId) return { ok: false, reason: "forbidden" };
+
+  await db.group.update({
+    where: { id: group.id },
+    data: {
+      catalogVisible,
+      searchable: catalogVisible ? true : undefined,
+      updatedAt: new Date(),
+    },
+  });
+  return { ok: true };
+}
+
+async function requireActiveOwner(ownerId: string) {
+  return db.user.findUnique({
+    where: { id: ownerId },
+    select: { id: true, enabled: true, verifiedAt: true },
+  }).then((user) => (user?.enabled && user.verifiedAt ? user : null));
 }
 
 function resolveCategoryIds(categories: CategoryRow[], selectedId: string | null): string[] | null {
@@ -102,37 +248,6 @@ function toPublicGroup(row: GroupRow): PublicGroup {
     views: row.views,
     owner: { username: row.owner.username, displayName: row.owner.displayName },
     category: row.category,
-  };
-}
-
-export async function getGroupDetail(
-  viewerId: string | null,
-  identifier: string,
-): Promise<PublicGroupDetail | null> {
-  const normalizedIdentifier = identifier.trim();
-  if (!normalizedIdentifier) return null;
-
-  const legacyId = /^\d+$/.test(normalizedIdentifier) ? Number(normalizedIdentifier) : null;
-  const row = await db.group.findFirst({
-    where: {
-      AND: [
-        {
-          OR: [
-            { id: normalizedIdentifier },
-            ...(legacyId !== null && legacyId > 0 ? [{ legacyId }] : []),
-          ],
-        },
-        { owner: { enabled: true } },
-      ],
-    },
-    select: groupSelect,
-  });
-
-  if (!row || !canReadGroup(row.ownerId, row.catalogVisible, viewerId)) return null;
-
-  return {
-    ...toPublicGroup(row),
-    description: toSafeText(row.description),
   };
 }
 

@@ -9,6 +9,10 @@ import { getAdminAccessState } from "@/server/admin/access";
 const adminNav = [
   { href: "/admin/dashboard", label: "Panel", key: "dashboard" },
   { href: "/admin/users", label: "Usuarios", key: "users" },
+  { href: "/admin/polls", label: "Encuestas", key: "polls" },
+  { href: "/admin/albums", label: "Álbumes", key: "albums" },
+  { href: "/admin/groups", label: "Grupos", key: "groups" },
+  { href: "/admin/events", label: "Eventos", key: "events" },
   { href: "/admin/levels", label: "Niveles", key: "levels" },
   { href: "/admin/subnetworks", label: "Subredes", key: "subnetworks" },
   { href: "/admin/settings", label: "Configuración", key: "settings" },

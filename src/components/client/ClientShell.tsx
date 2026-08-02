@@ -16,6 +16,8 @@ const exploreNav = [
   { href: "/forum", label: "Foros" },
   { href: "/groups", label: "Grupos" },
   { href: "/events", label: "Eventos" },
+  { href: "/albums", label: "Álbumes" },
+  { href: "/polls", label: "Encuestas" },
   { href: "/blogs", label: "Blogs" },
   { href: "/articles", label: "Artículos" },
   { href: "/businesses", label: "Negocios" },

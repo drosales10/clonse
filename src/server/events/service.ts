@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import {
+  EVENT_ACCESS,
   EVENT_PAGE_SIZE,
   canReadEvent,
   normalizeEventQuery,
@@ -24,9 +25,11 @@ const eventSelect = {
   updatedAt: true,
   searchable: true,
   privacy: true,
+  catalogVisible: true,
   inviteOnly: true,
   views: true,
   ownerId: true,
+  categoryId: true,
   owner: { select: { username: true, displayName: true, enabled: true } },
   category: { select: { id: true, legacyId: true, title: true } },
 } satisfies Prisma.EventSelect;
@@ -34,22 +37,27 @@ const eventSelect = {
 type EventRow = Prisma.EventGetPayload<{ select: typeof eventSelect }>;
 type CategoryRow = { id: string; legacyId: number | null; parentId: string | null; title: string };
 
+export async function listActiveEventCategories(): Promise<CategoryRow[]> {
+  return db.eventCategory.findMany({
+    where: { active: true },
+    orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
+    select: { id: true, legacyId: true, parentId: true, title: true },
+  });
+}
+
 export async function getEventCatalog(
   viewerId: string | null,
   input: Partial<EventCatalogQuery> = {},
 ): Promise<EventCatalogResult> {
   const query = normalizeEventQuery(input);
-  const categories = await db.eventCategory.findMany({
-    where: { active: true },
-    orderBy: [{ sortOrder: "asc" }, { title: "asc" }],
-    select: { id: true, legacyId: true, parentId: true, title: true },
-  });
+  const categories = await listActiveEventCategories();
   const categoryIds = resolveCategoryIds(categories, query.categoryId);
   const now = new Date();
 
   const rows = await db.event.findMany({
     where: {
       searchable: true,
+      catalogVisible: true,
       owner: { enabled: true },
       ...(categoryIds ? { categoryId: { in: categoryIds } } : {}),
       ...(query.view === "upcoming" ? { startsAt: { gt: now } } : {}),
@@ -58,7 +66,9 @@ export async function getEventCatalog(
     select: eventSelect,
   });
 
-  const visible = rows.filter((row) => canReadEvent(row.ownerId, row.privacy, row.inviteOnly, viewerId));
+  const visible = rows.filter((row) =>
+    canReadEvent(row.ownerId, row.privacy, row.inviteOnly, row.catalogVisible, viewerId),
+  );
   const pageCount = Math.max(1, Math.ceil(visible.length / EVENT_PAGE_SIZE));
   const page = Math.min(query.page, pageCount);
   const startIndex = (page - 1) * EVENT_PAGE_SIZE;
@@ -75,55 +85,6 @@ export async function getEventCatalog(
       end: Math.min(startIndex + EVENT_PAGE_SIZE, visible.length),
     },
     categories,
-  };
-}
-
-function resolveCategoryIds(categories: CategoryRow[], selectedId: string | null): string[] | null {
-  if (!selectedId) return null;
-  const selected = categories.find((category) => category.id === selectedId);
-  if (!selected) return [];
-  if (selected.parentId !== null) return [selected.id];
-
-  const descendants = new Set([selected.id]);
-  let changed = true;
-  while (changed) {
-    changed = false;
-    for (const category of categories) {
-      if (category.parentId && descendants.has(category.parentId) && !descendants.has(category.id)) {
-        descendants.add(category.id);
-        changed = true;
-      }
-    }
-  }
-  return [...descendants];
-}
-
-function eventOrder(sort: EventCatalogQuery["sort"], view: EventCatalogQuery["view"]): Prisma.EventOrderByWithRelationInput[] {
-  if (view === "upcoming") return [{ startsAt: "asc" }, { id: "asc" }];
-  const primary: Prisma.EventOrderByWithRelationInput = sort === "startsAt"
-    ? { startsAt: "asc" }
-    : sort === "endsAt"
-      ? { endsAt: "asc" }
-      : { createdAt: "desc" };
-  return [primary, { id: "asc" }];
-}
-
-function toPublicEvent(row: EventRow): PublicEvent {
-  return {
-    id: row.id,
-    legacyId: row.legacyId,
-    title: row.title,
-    description: row.description,
-    host: row.host,
-    location: row.location,
-    startsAt: row.startsAt,
-    endsAt: row.endsAt,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-    inviteOnly: row.inviteOnly,
-    views: row.views,
-    owner: { username: row.owner.username, displayName: row.owner.displayName },
-    category: row.category,
   };
 }
 
@@ -150,11 +111,202 @@ export async function getEventDetail(
     select: eventSelect,
   });
 
-  if (!row || !canReadEvent(row.ownerId, row.privacy, row.inviteOnly, viewerId)) return null;
+  if (!row || !canReadEvent(row.ownerId, row.privacy, row.inviteOnly, row.catalogVisible, viewerId)) {
+    return null;
+  }
 
   return {
     ...toPublicEvent(row),
     description: toSafeText(row.description),
+    categoryId: row.categoryId,
+    isOwner: viewerId === row.ownerId,
+  };
+}
+
+export type CreateEventResult =
+  | { ok: true; id: string }
+  | { ok: false; reason: "unauthorized" | "invalid_category" };
+
+export async function createEvent(
+  ownerId: string,
+  input: {
+    title: string;
+    description: string | null;
+    host: string | null;
+    location: string | null;
+    startsAt: Date | null;
+    endsAt: Date | null;
+    categoryId: string | null;
+  },
+): Promise<CreateEventResult> {
+  const owner = await requireActiveOwner(ownerId);
+  if (!owner) return { ok: false, reason: "unauthorized" };
+
+  if (input.categoryId) {
+    const category = await db.eventCategory.findFirst({
+      where: { id: input.categoryId, active: true },
+      select: { id: true },
+    });
+    if (!category) return { ok: false, reason: "invalid_category" };
+  }
+
+  const now = new Date();
+  const event = await db.event.create({
+    data: {
+      ownerId: owner.id,
+      title: input.title,
+      description: input.description,
+      host: input.host,
+      location: input.location,
+      startsAt: input.startsAt,
+      endsAt: input.endsAt,
+      categoryId: input.categoryId,
+      createdAt: now,
+      updatedAt: now,
+      searchable: true,
+      catalogVisible: true,
+      privacy: EVENT_ACCESS.ANONYMOUS,
+      inviteOnly: false,
+      views: 0,
+    },
+    select: { id: true },
+  });
+  return { ok: true, id: event.id };
+}
+
+export type UpdateEventResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "forbidden" | "invalid_category" };
+
+export async function updateOwnEvent(
+  ownerId: string,
+  eventId: string,
+  input: {
+    title: string;
+    description: string | null;
+    host: string | null;
+    location: string | null;
+    startsAt: Date | null;
+    endsAt: Date | null;
+    categoryId: string | null;
+  },
+): Promise<UpdateEventResult> {
+  const event = await db.event.findUnique({
+    where: { id: eventId },
+    select: { id: true, ownerId: true },
+  });
+  if (!event) return { ok: false, reason: "not_found" };
+  if (event.ownerId !== ownerId) return { ok: false, reason: "forbidden" };
+
+  if (input.categoryId) {
+    const category = await db.eventCategory.findFirst({
+      where: { id: input.categoryId, active: true },
+      select: { id: true },
+    });
+    if (!category) return { ok: false, reason: "invalid_category" };
+  }
+
+  await db.event.update({
+    where: { id: event.id },
+    data: {
+      title: input.title,
+      description: input.description,
+      host: input.host,
+      location: input.location,
+      startsAt: input.startsAt,
+      endsAt: input.endsAt,
+      categoryId: input.categoryId,
+      updatedAt: new Date(),
+    },
+  });
+  return { ok: true };
+}
+
+export type SetEventVisibleResult =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "forbidden" };
+
+export async function setOwnEventCatalogVisible(
+  ownerId: string,
+  eventId: string,
+  catalogVisible: boolean,
+): Promise<SetEventVisibleResult> {
+  const event = await db.event.findUnique({
+    where: { id: eventId },
+    select: { id: true, ownerId: true },
+  });
+  if (!event) return { ok: false, reason: "not_found" };
+  if (event.ownerId !== ownerId) return { ok: false, reason: "forbidden" };
+
+  await db.event.update({
+    where: { id: event.id },
+    data: {
+      catalogVisible,
+      searchable: catalogVisible ? true : undefined,
+      updatedAt: new Date(),
+    },
+  });
+  return { ok: true };
+}
+
+async function requireActiveOwner(ownerId: string) {
+  return db.user.findUnique({
+    where: { id: ownerId },
+    select: { id: true, enabled: true, verifiedAt: true },
+  }).then((user) => (user?.enabled && user.verifiedAt ? user : null));
+}
+
+function resolveCategoryIds(categories: CategoryRow[], selectedId: string | null): string[] | null {
+  if (!selectedId) return null;
+  const selected = categories.find((category) => category.id === selectedId);
+  if (!selected) return [];
+  if (selected.parentId !== null) return [selected.id];
+
+  const descendants = new Set([selected.id]);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const category of categories) {
+      if (category.parentId && descendants.has(category.parentId) && !descendants.has(category.id)) {
+        descendants.add(category.id);
+        changed = true;
+      }
+    }
+  }
+  return [...descendants];
+}
+
+function eventOrder(
+  sort: EventCatalogQuery["sort"],
+  view: EventCatalogQuery["view"],
+): Prisma.EventOrderByWithRelationInput[] {
+  if (view === "upcoming") return [{ startsAt: "asc" }, { id: "asc" }];
+  const primary: Prisma.EventOrderByWithRelationInput =
+    sort === "startsAt"
+      ? { startsAt: "asc" }
+      : sort === "endsAt"
+        ? { endsAt: "asc" }
+        : { createdAt: "desc" };
+  return [primary, { id: "asc" }];
+}
+
+function toPublicEvent(row: EventRow): PublicEvent {
+  return {
+    id: row.id,
+    legacyId: row.legacyId,
+    title: row.title,
+    description: row.description,
+    host: row.host,
+    location: row.location,
+    startsAt: row.startsAt,
+    endsAt: row.endsAt,
+    createdAt: row.createdAt,
+    updatedAt: row.updatedAt,
+    inviteOnly: row.inviteOnly,
+    catalogVisible: row.catalogVisible,
+    views: row.views,
+    owner: { username: row.owner.username, displayName: row.owner.displayName },
+    category: row.category,
   };
 }
 

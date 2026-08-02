@@ -4,8 +4,12 @@ import { Pool } from "pg";
 
 import { normalizeDatabaseUrl } from "@/../packages/db/src/database-url";
 
+/** Bump when Prisma schema fields change so HMR does not keep a stale client. */
+const PRISMA_SCHEMA_EPOCH = "20260804110000_event_catalog_visible";
+
 const globalForDatabase = globalThis as unknown as {
   prisma?: PrismaClient;
+  prismaSchemaEpoch?: string;
   pool?: Pool;
 };
 
@@ -24,14 +28,26 @@ const pool =
 
 const adapter = new PrismaPg(pool);
 
-export const db =
-  globalForDatabase.prisma ??
-  new PrismaClient({
+function createPrismaClient(): PrismaClient {
+  return new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
   });
+}
+
+if (
+  process.env.NODE_ENV !== "production" &&
+  globalForDatabase.prisma &&
+  globalForDatabase.prismaSchemaEpoch !== PRISMA_SCHEMA_EPOCH
+) {
+  void globalForDatabase.prisma.$disconnect().catch(() => undefined);
+  globalForDatabase.prisma = undefined;
+}
+
+export const db = globalForDatabase.prisma ?? createPrismaClient();
 
 if (process.env.NODE_ENV !== "production") {
   globalForDatabase.pool = pool;
   globalForDatabase.prisma = db;
+  globalForDatabase.prismaSchemaEpoch = PRISMA_SCHEMA_EPOCH;
 }

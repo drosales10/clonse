@@ -43,3 +43,6 @@ next-env.d.ts
 /docs/
 .kiro/
 
+# local album binaries
+/storage/
+

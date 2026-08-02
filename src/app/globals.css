@@ -870,6 +870,199 @@ html.dark .person-avatar.tone-4 { background: #475569; }
 .group-detail-facts dd { font-size: .95rem; line-height: 1.45; margin: 0; overflow-wrap: anywhere; }
 .group-detail-facts a { color: var(--forest); font-weight: 700; text-decoration: none; }
 .group-detail-note { color: var(--muted); font-size: .82rem; line-height: 1.5; margin: 38px 0 0; }
+
+.album-panel, .poll-panel { max-width: 1040px; }
+.album-sort-bar, .poll-sort-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }
+.album-list, .poll-list { display: grid; gap: 14px; margin-top: 28px; }
+.album-card {
+  align-items: stretch;
+  background: var(--input-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 110px minmax(0, 1fr);
+  padding: 16px;
+}
+.album-card-cover {
+  align-items: center;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--accent) 35%, transparent), transparent 60%),
+    var(--soft);
+  border-radius: var(--radius-sm);
+  color: var(--forest);
+  display: grid;
+  justify-items: center;
+  place-content: center;
+}
+.album-card-cover span {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: -.04em;
+}
+.album-card-cover small { color: var(--muted); font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.album-card h2, .poll-card h2 { color: var(--forest); font-size: 1.35rem; letter-spacing: -.04em; margin: 0; }
+.album-card-link, .poll-card-link { color: inherit; text-decoration: none; }
+.album-card-link:hover, .poll-card-link:hover { color: var(--accent-dark); }
+.album-summary, .poll-summary { color: var(--muted); line-height: 1.55; margin: 12px 0 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.album-facts, .poll-facts {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 16px 0 0;
+  padding-top: 14px;
+}
+.album-facts div, .poll-facts div { display: grid; gap: 5px; }
+.album-facts dt, .poll-facts dt { color: var(--muted); font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.album-facts dd, .poll-facts dd { font-size: .84rem; margin: 0; }
+.album-facts a, .poll-facts a { color: var(--forest); font-weight: 700; text-decoration: none; }
+.album-pagination, .poll-pagination {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  display: flex;
+  font-size: .78rem;
+  gap: 18px;
+  justify-content: space-between;
+  margin-top: 22px;
+  padding-top: 16px;
+}
+.album-detail-panel, .poll-detail-panel { max-width: 920px; }
+.album-back-link, .poll-back-link { display: inline-block; margin-bottom: 28px; }
+.album-detail-description, .poll-detail-description {
+  border-left: 3px solid var(--accent);
+  color: var(--forest);
+  font-size: 1.05rem;
+  line-height: 1.7;
+  margin: 28px 0 0;
+  overflow-wrap: anywhere;
+  padding-left: 14px;
+  white-space: pre-wrap;
+}
+.album-detail-facts, .poll-detail-facts {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 36px 0 0;
+  padding-top: 20px;
+}
+.album-detail-facts div, .poll-detail-facts div { display: grid; gap: 6px; }
+.album-detail-facts dt, .poll-detail-facts dt { color: var(--muted); font-size: .7rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.album-detail-facts dd, .poll-detail-facts dd { margin: 0; }
+.album-detail-facts a, .poll-detail-facts a { color: var(--forest); font-weight: 700; text-decoration: none; }
+.album-media-section, .poll-results, .poll-vote-section { margin-top: 36px; }
+.album-media-section h2, .poll-results h2, .poll-vote-section h2 {
+  color: var(--forest);
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  margin: 0 0 16px;
+}
+.album-media-grid { display: grid; gap: 12px; list-style: none; margin: 0; padding: 0; }
+.album-media-card {
+  align-items: center;
+  background: var(--input-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  display: flex;
+  gap: 14px;
+  padding: 12px;
+}
+.album-media-thumb {
+  align-items: center;
+  background: var(--soft);
+  border-radius: 10px;
+  color: var(--accent-dark);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: .72rem;
+  font-weight: 800;
+  height: 54px;
+  justify-content: center;
+  letter-spacing: .04em;
+  width: 54px;
+}
+.album-media-card strong { display: block; overflow-wrap: anywhere; }
+.album-media-card p { color: var(--muted); font-size: .84rem; margin: 4px 0 0; }
+.album-media-card small { color: var(--muted); font-size: .72rem; }
+.album-media-preview {
+  border-radius: 10px;
+  display: block;
+  flex: 0 0 auto;
+  height: 72px;
+  overflow: hidden;
+  width: 72px;
+}
+.album-media-preview img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+.album-upload-panel {
+  border-top: 1px solid var(--line);
+  margin-top: 32px;
+  padding-top: 24px;
+}
+.album-upload-panel h2 {
+  color: var(--forest);
+  font-size: 1.15rem;
+  letter-spacing: -.03em;
+  margin: 0 0 6px;
+}
+.album-upload-form { margin-top: 16px; max-width: 480px; }
+.album-upload-form .button { margin-top: 8px; }
+.album-create-form { max-width: 560px; }
+html.dark .album-media-preview { box-shadow: inset 0 0 0 1px var(--line); }
+
+.album-detail-note, .poll-detail-note { color: var(--muted); font-size: .82rem; line-height: 1.5; margin: 36px 0 0; }
+
+.poll-card { background: var(--input-bg); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; }
+.poll-card-heading { align-items: flex-start; display: flex; gap: 16px; justify-content: space-between; }
+.poll-badge { background: var(--warn-soft); border-radius: 999px; color: var(--warn-ink); font-size: .7rem; font-weight: 800; padding: 7px 10px; white-space: nowrap; }
+.poll-result-list { display: grid; gap: 14px; list-style: none; margin: 0; padding: 0; }
+.poll-result-meta { align-items: baseline; display: flex; gap: 12px; justify-content: space-between; margin-bottom: 8px; }
+.poll-result-meta span { color: var(--muted); font-size: .8rem; white-space: nowrap; }
+.poll-result-bar {
+  background: var(--soft);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+.poll-result-bar > span {
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent-alt) 70%, var(--accent)));
+  display: block;
+  height: 100%;
+  min-width: 0;
+  transition: width .35s ease;
+}
+.poll-vote-form { margin-top: 8px; }
+.poll-vote-form fieldset { border: 0; margin: 0; padding: 0; }
+.poll-vote-form legend { font-size: .85rem; font-weight: 700; margin-bottom: 12px; }
+.poll-option-list { display: grid; gap: 8px; margin-bottom: 16px; }
+.poll-option-row {
+  background: var(--input-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  margin: 0;
+  padding: 12px 14px;
+}
+.poll-option-row:has(input:checked) {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+@media (max-width: 780px) {
+  .album-card { grid-template-columns: 1fr; }
+  .album-facts, .poll-facts, .album-detail-facts, .poll-detail-facts { grid-template-columns: 1fr; }
+}
+
+.field input:focus, .field select:focus, .field textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--ring);
+}
 @media (max-width: 780px) {
   .group-detail-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -900,6 +1093,120 @@ html.dark .person-avatar.tone-4 { background: #475569; }
 .admin-user-link strong, .admin-user-link small { display: block; }
 .admin-user-facts { margin-top: 42px; }
 .admin-user-stats { margin-top: 42px; }
+.admin-user-controls {
+  border-top: 1px solid var(--line);
+  margin-top: 36px;
+  padding-top: 28px;
+}
+.admin-user-controls h2 {
+  color: var(--forest);
+  font-size: 1.2rem;
+  letter-spacing: -.03em;
+  margin: 0 0 8px;
+}
+.admin-user-controls .lead { margin-top: 0; }
+.admin-action-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+.admin-poll-controls {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.admin-poll-controls .form-success,
+.admin-poll-controls .form-error {
+  flex-basis: 100%;
+  margin: 4px 0 0;
+}
+
+.status-composer {
+  background: var(--input-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  margin-top: 28px;
+  padding: 22px clamp(16px, 3vw, 24px);
+}
+.status-composer-form { margin-top: 14px; }
+.status-composer-form textarea {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  display: block;
+  font: inherit;
+  min-height: 88px;
+  outline: none;
+  padding: 14px 16px;
+  resize: vertical;
+  width: 100%;
+}
+html.dark .status-composer-form textarea { background: color-mix(in srgb, var(--paper) 88%, #000); }
+.status-composer-form textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+.status-composer-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+.poll-toolbar {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 22px;
+}
+.poll-owner-controls {
+  border-top: 1px solid var(--line);
+  margin-top: 28px;
+  padding-top: 20px;
+}
+.poll-create-form { max-width: 560px; }
+.sr-only {
+  border: 0;
+  clip: rect(0, 0, 0, 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+.owner-manage-panel {
+  border-top: 1px solid var(--line);
+  margin-top: 36px;
+  padding-top: 28px;
+}
+.owner-manage-panel h2 {
+  color: var(--forest);
+  font-size: 1.2rem;
+  letter-spacing: -.03em;
+  margin: 0 0 16px;
+}
+.catalog-write-form { max-width: 560px; }
+.field-row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.owner-visibility-form {
+  border-top: 1px solid var(--line);
+  margin-top: 24px;
+  padding-top: 20px;
+}
+@media (max-width: 640px) {
+  .field-row { grid-template-columns: 1fr; }
+}
 
 /* Client shell — social product surface */
 .client-surface {

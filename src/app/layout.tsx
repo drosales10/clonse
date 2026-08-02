@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { IBM_Plex_Sans, Sora } from "next/font/google";
 
 import "./globals.css";
@@ -39,10 +40,12 @@ export default function RootLayout({
 }>) {
   return (
     <html className={`${sora.variable} ${ibmPlex.variable}`} lang="es" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-      </head>
-      <body>{children}</body>
+      <body>
+        <Script id="nexo-theme-init" strategy="beforeInteractive">
+          {themeInitScript}
+        </Script>
+        {children}
+      </body>
     </html>
   );
 }

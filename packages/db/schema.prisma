@@ -56,6 +56,9 @@ model User {
   forumPostsAuthored          ForumPost[]         @relation("ForumPostAuthor")
   identityMappings            UserIdentityMap[]   @relation("IdentityMapUser")
   canonicalMappings           UserIdentityMap[]   @relation("IdentityMapCanonical")
+  albumsOwned                 Album[]             @relation("AlbumOwner")
+  pollsOwned                  Poll[]              @relation("PollOwner")
+  pollVotes                   PollVote[]          @relation("PollVoter")
 
   @@index([enabled, verifiedAt])
   @@map("users")
@@ -370,29 +373,30 @@ model EventCategory {
 }
 
 model Event {
-  id          String    @id @default(cuid())
-  legacyId    Int?      @unique @map("legacy_id")
-  ownerId     String    @map("owner_id")
-  categoryId  String?   @map("category_id")
-  title       String
-  description String?
-  host        String?
-  location    String?
-  startsAt    DateTime? @map("starts_at")
-  endsAt      DateTime? @map("ends_at")
-  createdAt   DateTime  @map("created_at")
-  updatedAt   DateTime  @map("updated_at")
-  searchable  Boolean   @default(true)
-  privacy     Int       @default(64)
-  inviteOnly  Boolean   @default(false) @map("invite_only")
-  views       Int       @default(0)
+  id             String    @id @default(cuid())
+  legacyId       Int?      @unique @map("legacy_id")
+  ownerId        String    @map("owner_id")
+  categoryId     String?   @map("category_id")
+  title          String
+  description    String?
+  host           String?
+  location       String?
+  startsAt       DateTime? @map("starts_at")
+  endsAt         DateTime? @map("ends_at")
+  createdAt      DateTime  @map("created_at")
+  updatedAt      DateTime  @map("updated_at")
+  searchable     Boolean   @default(true)
+  privacy        Int       @default(64)
+  catalogVisible Boolean   @default(false) @map("catalog_visible")
+  inviteOnly     Boolean   @default(false) @map("invite_only")
+  views          Int       @default(0)
 
   owner    User           @relation("EventOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   category EventCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@index([ownerId])
   @@index([categoryId, searchable, startsAt])
-  @@index([searchable, startsAt])
+  @@index([searchable, catalogVisible, startsAt])
   @@map("events")
 }
 
@@ -720,4 +724,91 @@ model Setting {
 
   @@index([key])
   @@map("settings")
+}
+
+model Album {
+  id             String   @id @default(cuid())
+  legacyId       Int?     @unique @map("legacy_id")
+  ownerId        String   @map("owner_id")
+  title          String
+  description    String?
+  createdAt      DateTime @map("created_at")
+  updatedAt      DateTime @map("updated_at")
+  searchable     Boolean  @default(true)
+  privacy        Int      @default(0)
+  catalogVisible Boolean  @default(false) @map("catalog_visible")
+  commentsPrivacy Int?    @map("comments_privacy")
+  coverMediaId   String?  @map("cover_media_id")
+  views          Int      @default(0)
+  totalFiles     Int      @default(0) @map("total_files")
+  sortOrder      Int      @default(0) @map("sort_order")
+
+  owner  User         @relation("AlbumOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  media  AlbumMedia[]
+
+  @@index([ownerId])
+  @@index([searchable, catalogVisible, createdAt])
+  @@map("albums")
+}
+
+model AlbumMedia {
+  id          String   @id @default(cuid())
+  legacyId    Int?     @unique @map("legacy_id")
+  albumId     String   @map("album_id")
+  title       String   @default("")
+  description String?
+  extension   String   @default("")
+  filesize    Int      @default(0)
+  mimeType    String?  @map("mime_type")
+  storageKey  String?  @map("storage_key")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  album Album @relation(fields: [albumId], references: [id], onDelete: Cascade)
+
+  @@index([albumId, sortOrder])
+  @@map("album_media")
+}
+
+model Poll {
+  id             String   @id @default(cuid())
+  legacyId       Int?     @unique @map("legacy_id")
+  ownerId        String   @map("owner_id")
+  title          String
+  description    String?
+  options        Json
+  createdAt      DateTime @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  searchable     Boolean  @default(true)
+  privacy        Int      @default(0)
+  catalogVisible Boolean  @default(false) @map("catalog_visible")
+  commentsPrivacy Int?    @map("comments_privacy")
+  closed         Boolean  @default(false)
+  totalVotes     Int      @default(0) @map("total_votes")
+  views          Int      @default(0)
+
+  owner User       @relation("PollOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  votes PollVote[]
+
+  @@index([ownerId])
+  @@index([searchable, catalogVisible, createdAt])
+  @@index([searchable, catalogVisible, totalVotes])
+  @@map("polls")
+}
+
+model PollVote {
+  id          String   @id @default(cuid())
+  pollId      String   @map("poll_id")
+  userId      String   @map("user_id")
+  optionIndex Int      @map("option_index")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  poll Poll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  user User @relation("PollVoter", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId])
+  @@index([pollId, optionIndex])
+  @@index([userId])
+  @@map("poll_votes")
 }

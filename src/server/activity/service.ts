@@ -7,7 +7,7 @@ import {
   ACTIVITY_TYPE_STATUS,
   type ActivityFeedResult,
 } from "@domain/activity";
-import { canViewProfile, type ProfileSettingsInput } from "@domain/profile";
+import { canViewProfile, isProfilePrivacy, type ProfileSettingsInput } from "@domain/profile";
 import { db } from "@/server/db/client";
 
 export type ActivityTransaction = Prisma.TransactionClient;
@@ -98,6 +98,34 @@ export async function updateStatusAndPrivacy(
     }
     throw error;
   }
+}
+
+export async function updateOwnStatus(
+  userId: string,
+  status: string | null,
+): Promise<{ ok: true } | { ok: false; reason: "not_found" }> {
+  const current = await db.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      enabled: true,
+      verifiedAt: true,
+      profilePrivacy: true,
+      commentsPrivacy: true,
+      saveProfileViews: true,
+    },
+  });
+  if (!current?.enabled || !current.verifiedAt) return { ok: false, reason: "not_found" };
+  if (!isProfilePrivacy(current.profilePrivacy) || !isProfilePrivacy(current.commentsPrivacy)) {
+    return { ok: false, reason: "not_found" };
+  }
+
+  return updateStatusAndPrivacy(userId, {
+    profilePrivacy: current.profilePrivacy,
+    commentsPrivacy: current.commentsPrivacy,
+    saveProfileViews: current.saveProfileViews,
+    status,
+  });
 }
 
 export async function getActivityFeed(viewerId: string, requestedPage = 1): Promise<ActivityFeedResult> {

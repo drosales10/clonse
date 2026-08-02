@@ -29,7 +29,19 @@ export default async function GroupsPage({
       <section className="profile-panel group-panel" aria-labelledby="groups-title">
         <p className="eyebrow">Comunidad · Grupos</p>
         <h1 id="groups-title">Encuentra tu comunidad</h1>
-        <p className="lead">Explora grupos que han sido autorizados para aparecer en el catálogo público.</p>
+        <p className="lead">Explora grupos autorizados en el catálogo público. Crea el tuyo y gestiona su visibilidad.</p>
+
+        <div className="poll-toolbar">
+          {viewer ? (
+            <Link className="button button-primary button-small" href="/groups/new">
+              Crear grupo
+            </Link>
+          ) : (
+            <Link className="text-link" href="/login?returnUrl=/groups/new">
+              Inicia sesión para crear un grupo
+            </Link>
+          )}
+        </div>
 
         <div className="group-category-bar" aria-label="Filtrar por categoría">
           <Link className={!query.categoryId ? "category-chip category-chip-active" : "category-chip"} href={categoryHref(null)}>Todos</Link>

@@ -5,16 +5,20 @@ import { ActivityPagination } from "@/app/components/activity-pagination";
 import { ProfileViewsResetForm } from "@/app/components/profile-views-reset-form";
 import { ProfileCommentNotifications } from "@/app/components/profile-comment-notifications";
 import { FriendRequestNotifications } from "@/app/components/friend-request-notifications";
+import { StatusComposer } from "@/app/components/status-composer";
 import { ClientShell } from "@/components/client/ClientShell";
 import { getActivityFeed } from "@/server/activity/service";
 import { getFriendRequestNotifications, getProfileCommentNotifications } from "@/server/notifications/service";
 import { getCurrentUser } from "@/server/auth/session";
 import { getOwnProfileViews } from "@/server/profile-views/service";
+import { getOwnProfileSettings } from "@/server/profile/service";
 
 const exploreLinks = [
   { href: "/people", label: "Descubrir personas" },
   { href: "/groups", label: "Grupos" },
   { href: "/events", label: "Eventos" },
+  { href: "/albums", label: "Álbumes" },
+  { href: "/polls", label: "Encuestas" },
   { href: "/forum", label: "Foros" },
   { href: "/blogs", label: "Blogs" },
   { href: "/articles", label: "Artículos" },
@@ -32,12 +36,14 @@ export default async function HomePage({
 
   const params = await searchParams;
   const activityPage = parseActivityPage(params.activityPage);
-  const [activityFeed, profileViews, notifications, friendRequestNotifications] = await Promise.all([
-    getActivityFeed(user.id, activityPage),
-    getOwnProfileViews(user.id),
-    getProfileCommentNotifications(user.id),
-    getFriendRequestNotifications(user.id),
-  ]);
+  const [activityFeed, profileViews, notifications, friendRequestNotifications, profileSettings] =
+    await Promise.all([
+      getActivityFeed(user.id, activityPage),
+      getOwnProfileViews(user.id),
+      getProfileCommentNotifications(user.id),
+      getFriendRequestNotifications(user.id),
+      getOwnProfileSettings(user.id),
+    ]);
 
   return (
     <ClientShell current="home">
@@ -101,15 +107,14 @@ export default async function HomePage({
           <FriendRequestNotifications notifications={friendRequestNotifications} />
           <ProfileCommentNotifications notifications={notifications} />
 
+          <StatusComposer currentStatus={profileSettings?.status ?? null} />
+
           <section className="activity-panel" aria-labelledby="activity-title">
             <div className="activity-heading">
               <div>
                 <p className="eyebrow">Red · Actividad</p>
                 <h2 id="activity-title">Qué está pasando</h2>
               </div>
-              <Link className="text-link" href="/account/profile">
-                Publicar estado
-              </Link>
             </div>
             {activityFeed.items.length > 0 ? (
               <ol className="activity-list">

@@ -29,7 +29,10 @@ export default async function AdminUsersPage({
       <section className="profile-panel admin-users-panel" aria-labelledby="admin-users-title">
         <p className="eyebrow">Administración · Usuarios</p>
         <h1 id="admin-users-title">Usuarios</h1>
-        <p className="lead">{result.total} usuarios encontrados. Este módulo es de solo lectura en esta fase.</p>
+        <p className="lead">
+          {result.total} usuarios encontrados. Desde el detalle puedes habilitar, deshabilitar y
+          verificar cuentas.
+        </p>
         <form className="admin-filter-form" method="get">
           <label>Usuario o nombre<input name="f_user" defaultValue={result.query.userFilter} /></label>
           <label>Email<input name="f_email" defaultValue={result.query.emailFilter} type="email" /></label>
