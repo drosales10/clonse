@@ -123,5 +123,32 @@ export interface PublicProfileField {
   label: string;
   type: ProfileFieldType;
   value: Exclude<ProfileFieldValue, null>;
+  /** Texto listo para UI (etiquetas de opciones resueltas). */
+  displayValue: string;
   displayMode: number;
+}
+
+export function formatProfileFieldDisplayValue(
+  type: ProfileFieldType,
+  value: Exclude<ProfileFieldValue, null>,
+  options: ProfileFieldOption[],
+): string {
+  if (type === "checkbox" && Array.isArray(value)) {
+    const labels = value.map((item) => options.find((option) => option.value === item)?.label ?? item);
+    return labels.join(", ");
+  }
+  if (typeof value === "string") {
+    if (type === "select" || type === "radio") {
+      return options.find((option) => option.value === value)?.label ?? value;
+    }
+    if (type === "date") {
+      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+      if (match) {
+        const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+        return new Intl.DateTimeFormat("es", { dateStyle: "long", timeZone: "UTC" }).format(date);
+      }
+    }
+    return value;
+  }
+  return Array.isArray(value) ? value.join(", ") : String(value);
 }

@@ -6,6 +6,7 @@ import type {
   FriendRelationship,
   PeopleDirectoryItem,
   PeopleDirectoryPagination,
+  PeopleDirectoryRelationFilter,
   PublicProfileFriend,
   PublicProfileFriendsPagination,
 } from "@domain/friends";
@@ -17,7 +18,7 @@ import type {
   ProfileFieldValue,
   PublicProfileField,
 } from "@domain/profile-fields";
-import { isProfileFieldType } from "@domain/profile-fields";
+import { formatProfileFieldDisplayValue, isProfileFieldType } from "@domain/profile-fields";
 import type { ProfileSettingsInput, PublicProfile } from "@domain/profile";
 import { canCommentOnProfile, canViewProfile } from "@domain/profile";
 import { presenceFromLastActiveAt } from "@domain/presence";
@@ -557,6 +558,7 @@ export async function getPublicProfileFields(userId: string): Promise<PublicProf
       label: record.label,
       type: record.type,
       value: record.value,
+      displayValue: formatProfileFieldDisplayValue(record.type, record.value, record.options),
       displayMode: record.displayMode,
     }));
 }
@@ -699,6 +701,7 @@ function normalizeProfileFieldValue(value: Prisma.JsonValue): ProfileFieldValue 
 export interface PeopleDirectoryQuery {
   page?: number;
   search?: string;
+  relationFilter?: PeopleDirectoryRelationFilter;
 }
 
 export async function getPeopleDirectory(
@@ -706,6 +709,7 @@ export async function getPeopleDirectory(
   query: PeopleDirectoryQuery = {},
 ): Promise<{ items: PeopleDirectoryItem[]; pagination: PeopleDirectoryPagination }> {
   const search = (query.search ?? "").trim().slice(0, 64);
+  const relationFilter = query.relationFilter ?? "all";
   const [viewer, candidates, connections, blocks] = await Promise.all([
     db.user.findUnique({ where: { id: viewerId }, select: { id: true, enabled: true, verifiedAt: true } }),
     db.user.findMany({
@@ -720,7 +724,14 @@ export async function getPeopleDirectory(
           ],
         } : {}),
       },
-      select: { id: true, username: true, displayName: true, profilePrivacy: true },
+      select: {
+        id: true,
+        username: true,
+        displayName: true,
+        profilePrivacy: true,
+        status: true,
+        lastActiveAt: true,
+      },
     }),
     db.friendConnection.findMany({
       where: { OR: [{ requesterId: viewerId }, { addresseeId: viewerId }] },
@@ -733,7 +744,7 @@ export async function getPeopleDirectory(
   ]);
 
   if (!viewer?.enabled || !viewer.verifiedAt) {
-    return emptyPeopleDirectory(search);
+    return emptyPeopleDirectory(search, relationFilter);
   }
 
   const blockedIds = new Set(blocks.map((block) => block.blockerId === viewerId ? block.blockedId : block.blockerId));
@@ -750,21 +761,45 @@ export async function getPeopleDirectory(
     .filter((candidate) => canViewProfile(candidate.id, candidate.profilePrivacy, viewerId, connectionByTarget.get(candidate.id) === "friends"))
     .map((candidate): PeopleDirectoryItem => {
       const relationship: Exclude<FriendRelationship, "self"> = connectionByTarget.get(candidate.id) ?? "none";
+      const status = candidate.status?.trim() ? candidate.status.trim().slice(0, 140) : null;
       return {
         username: candidate.username,
         displayName: candidate.displayName,
         relationship,
+        status,
+        presence: presenceFromLastActiveAt(candidate.lastActiveAt).status,
       };
     })
-    .sort((left, right) => left.displayName.localeCompare(right.displayName, "es", { sensitivity: "base" }) || left.username.localeCompare(right.username, "es", { sensitivity: "base" }));
+    .filter((item) => matchesPeopleRelationFilter(item.relationship, relationFilter))
+    .sort((left, right) => {
+      if (left.presence !== right.presence) return left.presence === "online" ? -1 : 1;
+      return left.displayName.localeCompare(right.displayName, "es", { sensitivity: "base" })
+        || left.username.localeCompare(right.username, "es", { sensitivity: "base" });
+    });
 
-  return paginatePeopleDirectory(visible, query.page ?? 1, search);
+  return paginatePeopleDirectory(visible, query.page ?? 1, search, relationFilter);
 }
 
-function paginatePeopleDirectory(items: PeopleDirectoryItem[], requestedPage: number, search: string): { items: PeopleDirectoryItem[]; pagination: PeopleDirectoryPagination } {
+function matchesPeopleRelationFilter(
+  relationship: Exclude<FriendRelationship, "self">,
+  filter: PeopleDirectoryRelationFilter,
+): boolean {
+  if (filter === "all") return true;
+  if (filter === "connect") return relationship === "none";
+  if (filter === "friends") return relationship === "friends";
+  return relationship === "incoming_pending" || relationship === "outgoing_pending";
+}
+
+function paginatePeopleDirectory(
+  items: PeopleDirectoryItem[],
+  requestedPage: number,
+  search: string,
+  relationFilter: PeopleDirectoryRelationFilter,
+): { items: PeopleDirectoryItem[]; pagination: PeopleDirectoryPagination } {
   const pageCount = Math.max(1, Math.ceil(items.length / PEOPLE_DIRECTORY_PAGE_SIZE));
   const page = normalizeFriendsPage(requestedPage, pageCount);
   const skip = (page - 1) * PEOPLE_DIRECTORY_PAGE_SIZE;
+  const onlineCount = items.filter((item) => item.presence === "online").length;
   return {
     items: items.slice(skip, skip + PEOPLE_DIRECTORY_PAGE_SIZE),
     pagination: {
@@ -775,13 +810,28 @@ function paginatePeopleDirectory(items: PeopleDirectoryItem[], requestedPage: nu
       start: items.length === 0 ? 0 : skip + 1,
       end: Math.min(skip + PEOPLE_DIRECTORY_PAGE_SIZE, items.length),
       search,
+      relationFilter,
+      onlineCount,
     },
   };
 }
 
-function emptyPeopleDirectory(search: string): { items: PeopleDirectoryItem[]; pagination: PeopleDirectoryPagination } {
+function emptyPeopleDirectory(
+  search: string,
+  relationFilter: PeopleDirectoryRelationFilter = "all",
+): { items: PeopleDirectoryItem[]; pagination: PeopleDirectoryPagination } {
   return {
     items: [],
-    pagination: { page: 1, pageSize: PEOPLE_DIRECTORY_PAGE_SIZE, total: 0, pageCount: 1, start: 0, end: 0, search },
+    pagination: {
+      page: 1,
+      pageSize: PEOPLE_DIRECTORY_PAGE_SIZE,
+      total: 0,
+      pageCount: 1,
+      start: 0,
+      end: 0,
+      search,
+      relationFilter,
+      onlineCount: 0,
+    },
   };
 }

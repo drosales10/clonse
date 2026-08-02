@@ -69,6 +69,8 @@ async function executeFriendAction(
     if (!result.ok) return { errors: { form: [friendMutationError(result.reason)] } };
 
     revalidatePath("/account/friends");
+    revalidatePath("/people");
+    revalidatePath("/home");
     revalidatePath(`/profile/${encodeURIComponent(user.username)}`);
     revalidatePath(`/profile/${encodeURIComponent(targetUsername)}`);
     return { success: true, message: successMessage };

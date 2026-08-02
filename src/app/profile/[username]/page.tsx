@@ -74,7 +74,10 @@ export default async function ProfilePage({
               <h2 id="profile-information-title">Información</h2>
               <dl>
                 {result.profile.fields.map((field) => (
-                  <div key={`${field.categoryTitle}-${field.label}`}><dt>{field.label}</dt><dd>{Array.isArray(field.value) ? field.value.join(", ") : field.value}</dd></div>
+                  <div key={`${field.categoryTitle}-${field.label}`}>
+                    <dt>{field.label}</dt>
+                    <dd>{field.displayValue}</dd>
+                  </div>
                 ))}
               </dl>
             </section>

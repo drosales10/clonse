@@ -6,10 +6,14 @@ export const PEOPLE_DIRECTORY_PAGE_SIZE = 20;
 export type FriendConnectionStatus = (typeof FRIEND_CONNECTION_STATUSES)[number];
 export type FriendRelationship = "self" | "friends" | "incoming_pending" | "outgoing_pending" | "none";
 
+export type PeopleDirectoryRelationFilter = "all" | "connect" | "pending" | "friends";
+
 export interface PeopleDirectoryItem {
   username: string;
   displayName: string;
   relationship: Exclude<FriendRelationship, "self">;
+  status: string | null;
+  presence: "online" | "offline";
 }
 
 export interface PeopleDirectoryPagination {
@@ -20,6 +24,12 @@ export interface PeopleDirectoryPagination {
   start: number;
   end: number;
   search: string;
+  relationFilter: PeopleDirectoryRelationFilter;
+  onlineCount: number;
+}
+
+export function isPeopleDirectoryRelationFilter(value: string): value is PeopleDirectoryRelationFilter {
+  return value === "all" || value === "connect" || value === "pending" || value === "friends";
 }
 
 export interface PeopleDirectoryResult {

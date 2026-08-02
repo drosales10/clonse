@@ -50,9 +50,17 @@ export default async function ProfileSettingsPage({
       </section>
       <section className="profile-panel settings-panel" aria-labelledby="fields-title">
         <p className="eyebrow">Perfil · Información</p>
-        <h2 id="fields-title">Tus campos de perfil</h2>
-        <p className="lead">Completa la información que esté configurada para tu cuenta.</p>
+        <h2 id="fields-title">Completa tu perfil</h2>
+        <p className="lead">
+          Rellena biografía, datos personales e intereses. Lo que guardes aquí aparecerá en tu perfil
+          público según tu privacidad.
+        </p>
         <ProfileFieldsForm fields={fields} />
+        {fields.length > 0 ? (
+          <p className="form-footnote">
+            <Link href={`/profile/${encodeURIComponent(user.username)}`}>Ver mi perfil público</Link>
+          </p>
+        ) : null}
       </section>
       <section className="profile-panel settings-panel" aria-labelledby="password-title">
         <p className="eyebrow">Cuenta · Seguridad</p>
